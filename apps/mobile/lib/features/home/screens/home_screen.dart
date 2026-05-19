@@ -1,22 +1,25 @@
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/home_state.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../widgets/header/home_header.dart';
-import '../widgets/cards/top_destination_card.dart';
-import '../widgets/cards/upcoming_trip_card.dart';
-import '../widgets/cards/stat_card.dart';
-import '../widgets/sections/groups_section.dart';
-import '../widgets/sections/requests_section.dart';
-import '../widgets/sections/itinerary_section.dart';
-import '../providers/home_provider.dart';
-import '../../app_shell/providers/app_shell_provider.dart';
-import '../../../core/widgets/skeletons/kovari_skeletons.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../shared/widgets/kovari_refresh_indicator.dart';
-import '../../../shared/widgets/kovari_empty_state.dart';
-import '../../../shared/utils/scroll_preloader.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/home/models/home_state.dart';
+import 'package:mobile/features/home/providers/home_provider.dart';
+import 'package:mobile/features/home/widgets/cards/stat_card.dart';
+import 'package:mobile/features/home/widgets/cards/top_destination_card.dart';
+import 'package:mobile/features/home/widgets/cards/upcoming_trip_card.dart';
+import 'package:mobile/features/home/widgets/header/home_header.dart';
+import 'package:mobile/features/home/widgets/sections/groups_section.dart';
+import 'package:mobile/features/home/widgets/sections/itinerary_section.dart';
+import 'package:mobile/features/home/widgets/sections/requests_section.dart';
+import 'package:mobile/shared/utils/scroll_preloader.dart';
+import 'package:mobile/shared/widgets/kovari_empty_state.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -35,7 +38,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _handleExploreUpcomingTrip(String? groupId) {
-    ref.read(appShellIndexProvider.notifier).setIndex(3);
+    if (groupId != null) {
+      GroupDetailsRouteData(groupId: groupId).push<void>(context);
+    }
+  }
+
+  Future<void> _handleOpenMap(String destination) async {
+    if (destination.isEmpty) return;
+
+    final url = Platform.isIOS
+        ? 'https://maps.apple.com/?q=${Uri.encodeComponent(destination)}'
+        : 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(destination)}';
+
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
@@ -58,65 +76,109 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     }
 
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Material(
       color: AppColors.surface(context),
-      child: SafeArea(
-        child: ScrollPreloader(
-          onIdle: () {
-            if (homeState.data != null) {
-              ref.read(homeDataProvider.notifier).refresh(isSilent: true);
-            }
-          },
-          child: KovariRefreshIndicator(
-            onRefresh: _handleRefresh,
-            child: CustomScrollView(
-              key: const PageStorageKey('home_scroll'),
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // 1. Stale Indicator (Subtle)
-                if (homeState.isStale)
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 2,
-                      child: LinearProgressIndicator(
-                        backgroundColor: Colors.transparent,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primary.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // 2. Header
-                SliverPadding(
-                  padding: const EdgeInsets.only(
-                    left: AppSpacing.md,
-                    right: AppSpacing.md,
-                    top: AppSpacing.md,
-                    bottom: AppSpacing.sm,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: HomeHeader(
-                      firstName:
-                          homeState.data?.profile.name.split(' ')[0] ?? 'User',
-                      isLoading: homeState.isLoading && homeState.data == null,
-                    ),
-                  ),
-                ),
-
-                // 3. Body Content
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                  ),
-                  sliver: _buildSliverBody(homeState),
-                ),
-
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.xl),
-                ),
-              ],
+      child: ScrollPreloader(
+        onIdle: () {
+          if (homeState.data != null) {
+            ref.read(homeDataProvider.notifier).refresh(isSilent: true);
+          }
+        },
+        child: KovariRefreshIndicator(
+          onRefresh: _handleRefresh,
+          child: CustomScrollView(
+            key: const PageStorageKey('home_scroll'),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            slivers: [
+              // 1. Home Header with Status Bar Padding
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    topPadding + AppSpacing.md,
+                    AppSpacing.md,
+                    AppSpacing.xs,
+                  ),
+                  child: HomeHeader(
+                    firstName:
+                        homeState.data?.profile.name.split(' ')[0] ?? 'User',
+                    isLoading: homeState.isLoading && homeState.data == null,
+                  ),
+                ),
+              ),
+
+              // 2. Main Stats/Cards (Wrapped in horizontal padding)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    if (homeState.isLoading && homeState.data == null) ...[
+                      const KovariSkeletonCard(height: 180), // Top Destination
+                      const SizedBox(height: AppSpacing.mds),
+                      const KovariSkeletonCard(height: 180), // Upcoming Trip
+                      const SizedBox(height: AppSpacing.mds),
+                      const KovariSkeletonCard(height: 80), // Stat 1
+                      const SizedBox(height: AppSpacing.mds),
+                      const KovariSkeletonCard(height: 80), // Stat 2
+                    ] else if (homeState.data != null) ...[
+                      // Top Destination
+                      if (homeState.data!.topDestination != null)
+                        TopDestinationCard(
+                          name: homeState.data!.topDestination!.name,
+                          imageUrl: homeState.data!.topDestination!.imageUrl,
+                          onExplore: () => _handleOpenMap(
+                            homeState.data!.topDestination!.name,
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.mds),
+
+                      // Upcoming Trip
+                      if (homeState.data!.featuredTrip != null) ...[
+                        UpcomingTripCard(
+                          name: homeState.data!.featuredTrip!.name,
+                          groupId: homeState.data!.featuredTrip!.id,
+                          imageUrl: homeState.data!.featuredTrip!.coverImage,
+                          onExplore: () => _handleExploreUpcomingTrip(
+                            homeState.data!.featuredTrip!.id,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.mds),
+                      ],
+
+                      // Stats
+                      StatCard(
+                        title: 'Total Travel Days',
+                        value: homeState.data!.stats.travelDaysDisplay,
+                      ),
+                      const SizedBox(height: AppSpacing.mds),
+                      StatCard(
+                        title: 'Profile Impressions',
+                        value: homeState.data!.stats.impressionsDisplay,
+                      ),
+                    ] else
+                      const KovariEmptyState(
+                        title: 'Welcome',
+                        description: 'Welcome to Kovari! Start exploring now.',
+                      ),
+                  ]),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.mds)),
+
+              // 3. Sections
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                sliver: _buildSliverBody(homeState),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 110)),
+            ],
           ),
         ),
       ),
@@ -127,99 +189,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (state.isLoading && state.data == null) {
       return SliverList(
         delegate: SliverChildListDelegate([
-          const SkeletonCard(height: 200),
-          const SizedBox(height: AppSpacing.md),
-          const SkeletonCard(height: 180),
-          const SizedBox(height: AppSpacing.md),
-          const SkeletonListTile(),
-          const SkeletonListTile(),
+          const KovariSkeletonCard(height: 240), // Groups
+          const SizedBox(height: AppSpacing.mds),
+          const KovariSkeletonCard(height: 240), // Requests
+          const SizedBox(height: AppSpacing.mds),
+          const KovariSkeletonCard(height: 240), // Itinerary
         ]),
       );
     }
 
-    if (state.error != null && state.data == null) {
-      return SliverFillRemaining(
-        child: KovariEmptyState(
-          title: 'Something went wrong',
-          description: state.error!,
-          icon: Icons.error_outline,
-          actionLabel: 'Try Again',
-          onAction: _handleRefresh,
-        ),
-      );
-    }
+    final data = state.data;
+    if (data == null) return const SliverToBoxAdapter(child: SizedBox.shrink());
 
-    final data = state.data!;
-
-    // Convert data for sections
-    final mockGroups = data.activeGroups
-        .map<MockGroup>(
+    // Map active groups to MockGroup for GroupsSection compatibility
+    final groups = data.activeGroups
+        .map(
           (g) => MockGroup(
             id: g.id,
             name: g.name,
-            destination: g.destination ?? '',
+            destination: g.destination ?? 'Various',
             members: g.members,
             imageUrl: g.coverImage,
           ),
         )
         .toList();
 
-    final mockEvents =
-        data.featuredTrip?.itinerary
-            .map<MockEvent>(
-              (i) => MockEvent(
-                id: i.id,
-                title: i.title,
-                description: i.description,
-                start: DateTime.tryParse(i.datetime ?? '') ?? DateTime.now(),
-                end: (DateTime.tryParse(i.datetime ?? '') ?? DateTime.now())
-                    .add(const Duration(hours: 1)),
-              ),
-            )
-            .toList() ??
+    // Map featured trip itinerary to MockEvent for ItinerarySection compatibility
+    final events =
+        data.featuredTrip?.itinerary.map((item) {
+          final date = item.datetime != null
+              ? DateTime.parse(item.datetime!).toLocal()
+              : DateTime.now();
+          return MockEvent(
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            start: date,
+            end: date.add(const Duration(hours: 1)),
+          );
+        }).toList() ??
         [];
 
     return SliverList(
       delegate: SliverChildListDelegate([
-        // Top Destination
-        TopDestinationCard(
-          name: data.topDestination?.name ?? '',
-          imageUrl: data.topDestination?.imageUrl,
-          isLoading: false,
-        ),
-        const SizedBox(height: AppSpacing.mds),
-
-        // Upcoming Trip
-        UpcomingTripCard(
-          name: data.featuredTrip?.name ?? '',
-          groupId: data.featuredTrip?.id,
-          imageUrl: data.featuredTrip?.coverImage,
-          onExplore: () => _handleExploreUpcomingTrip(data.featuredTrip?.id),
-          isLoading: false,
-        ),
-        const SizedBox(height: AppSpacing.mds),
-
-        // Stats
-        StatCard(
-          title: 'Total Travel Days',
-          value: data.stats.travelDaysDisplay,
-        ),
-        const SizedBox(height: AppSpacing.mds),
-        StatCard(
-          title: 'Profile Impressions',
-          value: data.stats.impressionsDisplay,
-        ),
-        const SizedBox(height: AppSpacing.mds),
-
         // Sections
         RepaintBoundary(
-          child: GroupsSection(groups: mockGroups, isLoading: false),
+          child: GroupsSection(
+            groups: groups,
+            isLoading: state.isLoading,
+            onGroupTap: _handleExploreUpcomingTrip,
+          ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        const RepaintBoundary(child: RequestsSection(isLoading: false)),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.mds),
+        RepaintBoundary(child: RequestsSection(isLoading: state.isLoading)),
+        const SizedBox(height: AppSpacing.mds),
         RepaintBoundary(
-          child: ItinerarySection(events: mockEvents, isLoading: false),
+          child: ItinerarySection(events: events, isLoading: state.isLoading),
         ),
       ]),
     );

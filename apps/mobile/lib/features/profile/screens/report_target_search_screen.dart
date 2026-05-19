@@ -1,20 +1,22 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../providers/safety_provider.dart';
-import '../models/safety_report.dart';
-import '../../../shared/widgets/text_input_field.dart';
-import 'submit_report_screen.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/profile/models/safety_report.dart';
+import 'package:mobile/features/profile/providers/safety_provider.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
-class ReportTargetSearchScreen extends ConsumerStatefulWidget {
-  final String targetType; // 'user' or 'group'
+class ReportTargetSearchScreen extends ConsumerStatefulWidget { // 'user' or 'group'
 
   const ReportTargetSearchScreen({super.key, required this.targetType});
+  final String targetType;
 
   @override
   ConsumerState<ReportTargetSearchScreen> createState() =>
@@ -67,12 +69,13 @@ class _ReportTargetSearchScreenState
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
+  Widget _buildHeader(BuildContext context) => Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outline),
+        ),
       ),
       child: Row(
         children: [
@@ -81,17 +84,15 @@ class _ReportTargetSearchScreenState
           Expanded(
             child: Text(
               'Safety',
-              style: AppTextStyles.h3,
+              style: AppTextStyles.h3.copyWith(color: AppColors.text(context)),
             ),
           ),
         ],
       ),
     );
-  }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
+      onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -101,10 +102,8 @@ class _ReportTargetSearchScreenState
         ),
       ),
     );
-  }
 
-  Widget _buildSearchBar(BuildContext context) {
-    return Padding(
+  Widget _buildSearchBar(BuildContext context) => Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,14 +121,14 @@ class _ReportTargetSearchScreenState
           Text(
             'Select the ${widget.targetType == 'user' ? 'profile' : 'group'} you want to report',
             style: TextStyle(
-              fontSize: 14, 
-              color: AppColors.text(context, isMuted: true)
+              fontSize: 14,
+              color: AppColors.text(context, isMuted: true),
             ),
           ),
           const SizedBox(height: 20),
           TextInputField(
             fillColor: AppColors.surface(context, level: 1),
-            label: "",
+            label: '',
             controller: _searchController,
             onChanged: _onSearchChanged,
             hintText:
@@ -162,7 +161,6 @@ class _ReportTargetSearchScreenState
         ],
       ),
     );
-  }
 
   Widget _buildResultsList(BuildContext context, SafetyState state) {
     if (state.isSearchLoading && state.searchResults.isEmpty) {
@@ -219,7 +217,9 @@ class _ReportTargetSearchScreenState
               decoration: BoxDecoration(
                 color: AppColors.surface(context, level: 1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderColor(context), width: 1),
+                border: Border.all(
+                  color: AppColors.borderColor(context),
+                ),
               ),
               child: Row(
                 children: [
@@ -261,15 +261,10 @@ class _ReportTargetSearchScreenState
   }
 
   void _onSelectTarget(SafetyTarget target) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SubmitReportScreen(
-          targetType: widget.targetType,
-          targetId: target.id,
-          targetName: target.name,
-        ),
-      ),
-    );
+    SubmitReportRouteData(
+      targetType: widget.targetType,
+      targetId: target.id,
+      targetName: target.name,
+    ).push<void>(context);
   }
 }

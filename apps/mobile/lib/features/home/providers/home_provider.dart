@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/features/home/data/home_service.dart';
 import 'package:mobile/features/home/models/home_state.dart';
-import '../data/home_service.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/cache_provider.dart';
-import '../../../core/network/api_endpoints.dart';
 
 final homeServiceProvider = Provider<HomeService>((ref) {
   final apiClient = ref.read(apiClientProvider);
@@ -20,9 +20,16 @@ final homeDataProvider = StateNotifierProvider<HomeDataNotifier, HomeState>((
 });
 
 class HomeDataNotifier extends StateNotifier<HomeState> {
-  final Ref _ref;
   HomeDataNotifier(this._ref) : super(HomeState()) {
     _init();
+  }
+  bool _isDisposed = false;
+  final Ref _ref;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 
   Future<void> _init() async {
@@ -30,34 +37,38 @@ class HomeDataNotifier extends StateNotifier<HomeState> {
   }
 
   Future<void> refresh({bool isInitial = false, bool isSilent = false}) async {
+    if (_isDisposed) return;
+    
     final cache = _ref.read(localCacheProvider);
     final service = _ref.read(homeServiceProvider);
 
     if (!isSilent) {
       // 1. Try Cache First
       final cached = cache.get(ApiEndpoints.home);
-      if (cached != null) {
+      if (cached != null && !_isDisposed) {
         state = state.copyWith(
           data: service.parseHomeData(cached.data),
           isStale: true,
           isLoading:
               isInitial, // Only show main loading if we don't have cached data yet
         );
-      } else {
+      } else if (!_isDisposed) {
         state = state.copyWith(isLoading: true);
       }
     }
 
-    // 2. Fetch Fresh Data
+    // 2. Fetch Fresh Data (Always ignore cache for the background refresh)
     try {
-      final freshData = await service.getHomeData();
-      state = state.copyWith(
-        data: freshData,
-        isStale: false,
-        isLoading: false,
-        error: null,
-      );
+      final freshData = await service.getHomeData(ignoreCache: true);
+      if (!_isDisposed) {
+        state = state.copyWith(
+          data: freshData,
+          isStale: false,
+          isLoading: false,
+        );
+      }
     } catch (e) {
+      if (_isDisposed) return;
       if (state.data == null) {
         state = state.copyWith(error: e.toString(), isLoading: false);
       } else {

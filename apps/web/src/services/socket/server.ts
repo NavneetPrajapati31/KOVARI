@@ -1,7 +1,8 @@
 import { Server } from "socket.io";
 import { createServer } from "http";
 import { registerSocketEvents } from "./events";
-import { redisAdapter, connectRedis } from "./redis";
+import { resolveSupabaseUserIdFromAuthId } from "./resolveSocketUser";
+import { connectRedis, redisAdapter } from "./redis";
 import { PresenceManager } from "./presence";
 import { createAdminSupabaseClient } from "@kovari/api";
 import {
@@ -34,32 +35,33 @@ const io = new Server<
   cors: {
     origin: [
       "http://localhost:3000",
+      // Allow the mobile dev LAN IP range
+      /^http:\/\/172\.\d+\.\d+\.\d+:3000$/,
+      /^http:\/\/10\.\d+\.\d+\.\d+:3000$/,
+      /^http:\/\/192\.168\.\d+\.\d+:3000$/,
       "https://kovari.in",
       "https://www.kovari.in"
     ],
     methods: ["GET", "POST"],
     credentials: true,
   },
-  adapter: redisAdapter,
+  // Adapter is set after Redis connects (or skipped in offline-dev mode)
 });
 
 // Auth middleware — also resolve Supabase UUID once and cache in socket.data
 io.use(async (socket, next) => {
-  const userId = socket.handshake.auth.userId;
+  const { userId, deviceId, sessionId } = socket.handshake.auth;
   if (!userId) {
     return next(new Error("Authentication error: userId missing"));
   }
   socket.data.userId = userId;
+  socket.data.deviceId = deviceId;
+  socket.data.sessionId = sessionId;
 
   // Resolve Supabase UUID and profile_photo once at connection (two queries, no join — avoids schema cache issues)
   try {
     const supabase = createAdminSupabaseClient();
-    const { data: userRow } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_user_id", userId)
-      .single();
-    const supabaseId = userRow?.id || null;
+    const supabaseId = await resolveSupabaseUserIdFromAuthId(userId);
     socket.data.supabaseId = supabaseId;
 
     if (supabaseId) {
@@ -97,18 +99,33 @@ io.on("connection", (socket) => {
   socket.on("disconnect", (reason) => {
     console.log(`[Socket] User disconnected: ${userId} (Socket ID: ${socket.id}). Reason: ${reason}`);
     PresenceManager.userDisconnected(userId, socket.id, (cId, uId, lastSeen) => {
-      io.to(cId).emit("user_offline", { userId: uId, supabaseId, lastSeen });
+      io.to(cId).emit("user_offline", { chatId: cId, userId: uId, supabaseId, lastSeen });
     });
   });
 });
 
-// Await Redis connection before accepting HTTP requests
-connectRedis().then(async () => {
+// Start server — Redis is optional for local dev.
+// In production, Redis is required for multi-instance pub/sub.
+async function startServer() {
+  const redisConnected = await connectRedis();
+
+  if (redisConnected) {
+    io.adapter(redisAdapter);
+    console.log("[Socket] Redis adapter enabled (multi-instance mode)");
+  } else {
+    console.warn(
+      "[Socket] ⚠️  Redis unavailable — running in single-instance (in-memory) mode.\n" +
+      "           This is fine for local development. Do NOT use in production."
+    );
+  }
+
   // Clear stale socket presence data from any previous server run
   await PresenceManager.flushStalePresence();
 
   httpServer.listen(Number(PORT), "0.0.0.0", () => {
-    console.log(`[Socket] Server listening on port 3005 at 0.0.0.0`);
+    console.log(`[Socket] 🚀 Server listening on port ${PORT} at 0.0.0.0`);
   });
-});
+}
+
+startServer();
 

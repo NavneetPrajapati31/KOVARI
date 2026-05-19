@@ -1,46 +1,47 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/secondary_button.dart';
-import '../providers/explore_provider.dart';
-import '../../../core/widgets/common/user_avatar_fallback.dart';
-
-import '../../../features/groups/models/group.dart';
-import '../../../shared/widgets/app_card.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/common/user_avatar_fallback.dart';
+import 'package:mobile/features/explore/providers/explore_provider.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
 
 class GroupMatchCard extends ConsumerWidget {
-  final GroupModel group;
 
   const GroupMatchCard({super.key, required this.group});
+  final GroupModel group;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final String name = group.name;
-    final String? description = group.description;
-    final String? coverImage = group.coverImage;
-    final int memberCount = group.memberCount;
-    final GroupCreator creator = group.creator;
+    final name = group.name;
+    final description = group.description;
+    final coverImage = group.coverImage;
+    final memberCount = group.memberCount;
+    final creator = group.creator;
 
-    final DateTime? startDate = group.dateRange.start != null
+    final startDate = group.dateRange.start != null
         ? DateTime.tryParse(group.dateRange.start!)
         : null;
-    final DateTime? endDate = group.dateRange.end != null
+    final endDate = group.dateRange.end != null
         ? DateTime.tryParse(group.dateRange.end!)
         : null;
-    final String dateRange = startDate != null && endDate != null
+    final dateRange = startDate != null && endDate != null
         ? "${DateFormat('MMM d').format(startDate)} - ${DateFormat('MMM d, yyyy').format(endDate)}"
-        : "Dates TBD";
-    final int? tripLength = startDate != null && endDate != null
+        : 'Dates TBD';
+    final tripLength = startDate != null && endDate != null
         ? endDate.difference(startDate).inDays + 1
         : null;
 
     return AppCard(
       padding: EdgeInsets.zero,
       borderRadius: BorderRadius.circular(24),
+      border: const Border(),
+      boxShadow: const [],
       child: Column(
         children: [
           Column(
@@ -73,7 +74,7 @@ class GroupMatchCard extends ConsumerWidget {
                                       size: 100,
                                     ),
                                 errorWidget: (context, url, dynamic error) =>
-                                    UserAvatarFallback(
+                                    const UserAvatarFallback(
                                       shape: BoxShape.rectangle,
                                       borderRadius: BorderRadius.all(
                                         Radius.circular(16),
@@ -81,11 +82,20 @@ class GroupMatchCard extends ConsumerWidget {
                                       size: 100,
                                     ),
                               )
-                            : UserAvatarFallback(size: 100),
+                            : UserAvatarFallback(
+                                shape: BoxShape.rectangle,
+                                borderRadius: BorderRadius.circular(16),
+                                size: 100,
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(name, style: AppTextStyles.h3),
+                    Text(
+                      name,
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.text(context),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       (description != null && description.isNotEmpty)
@@ -128,7 +138,7 @@ class GroupMatchCard extends ConsumerWidget {
                       if (tripLength != null)
                         _PillData(
                           icon: Icons.timelapse_outlined,
-                          label: "$tripLength days",
+                          label: '$tripLength days',
                         ),
                       if (group.budget != null && group.budget! > 0)
                         _PillData(
@@ -144,11 +154,11 @@ class GroupMatchCard extends ConsumerWidget {
                     _buildPillList(context, [
                       _PillData(
                         icon: Icons.person_pin_outlined,
-                        label: "By ${creator.name}",
+                        label: 'By ${creator.name}',
                       ),
                       _PillData(
                         icon: Icons.group_outlined,
-                        label: "$memberCount members",
+                        label: '$memberCount members',
                       ),
                     ]),
 
@@ -217,8 +227,7 @@ class GroupMatchCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
+  Widget _buildSectionTitle(BuildContext context, String title) => Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title.toUpperCase(),
@@ -229,20 +238,18 @@ class GroupMatchCard extends ConsumerWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildPillList(BuildContext context, List<_PillData> pills) {
-    return Wrap(
+  Widget _buildPillList(BuildContext context, List<_PillData> pills) => Wrap(
       spacing: 6,
       runSpacing: 8,
       children: pills.map((pill) => _buildPill(context, pill)).toList(),
     );
-  }
 
-  Widget _buildPill(BuildContext context, _PillData data) {
-    return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+  Widget _buildPill(BuildContext context, _PillData data) => AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       borderRadius: BorderRadius.circular(20),
+      backgroundColor: AppColors.mutedColor(context),
+      boxShadow: const [],
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -260,10 +267,8 @@ class GroupMatchCard extends ConsumerWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildActions(WidgetRef ref, String groupId) {
-    return Container(
+  Widget _buildActions(WidgetRef ref, String groupId) => Container(
       padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20, top: 20),
       child: Row(
         children: [
@@ -272,7 +277,6 @@ class GroupMatchCard extends ConsumerWidget {
               onPressed: () =>
                   ref.read(exploreProvider.notifier).handlePass(groupId),
               icon: Icons.close_rounded,
-              height: 44,
             ),
           ),
           const SizedBox(width: 8),
@@ -280,7 +284,6 @@ class GroupMatchCard extends ConsumerWidget {
             child: SecondaryButton(
               onPressed: () => {},
               icon: Icons.flag_outlined,
-              height: 44,
             ),
           ),
           const SizedBox(width: 8),
@@ -289,18 +292,16 @@ class GroupMatchCard extends ConsumerWidget {
               onPressed: () =>
                   ref.read(exploreProvider.notifier).handleInterested(groupId),
               icon: Icons.check_rounded,
-              height: 44,
             ),
           ),
         ],
       ),
     );
-  }
 }
 
 class _PillData {
-  final IconData? icon;
-  final String label;
 
   _PillData({this.icon, required this.label});
+  final IconData? icon;
+  final String label;
 }

@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/profile/models/user_profile.dart';
-import 'auth_provider.dart';
-import 'connectivity_provider.dart';
-import '../utils/app_logger.dart';
-import '../network/sync_engine.dart';
-import '../providers/cache_provider.dart';
-import '../network/api_endpoints.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/network/sync_engine.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/features/profile/models/user_profile.dart';
 
 class ProfileNotifier extends Notifier<UserProfile?> {
   @override
@@ -14,58 +14,62 @@ class ProfileNotifier extends Notifier<UserProfile?> {
 
     if (user == null) return null;
 
-    // 1. Instant Boot: Try to return cached profile immediately
+    // 1. Instant Boot: Try to return cached profile immediately as the initial state.
+    // NOTE: Do NOT read `state` inside build() — build() IS the initialization.
     final cache = ref.read(localCacheProvider);
     final cachedData = cache.getProfile();
-    if (cachedData != null && state == null) {
+    UserProfile? initialProfile;
+
+    if (cachedData != null) {
       final cachedProfile = UserProfile.fromJson(cachedData);
       if (cachedProfile.userId == user.id) {
-        state = cachedProfile;
-        AppLogger.d('🚀 [BOOT] Profile loaded from cache instantly');
+        initialProfile = cachedProfile;
+        AppLogger.d('🚀 [BOOT] Profile seeded from cache instantly');
       }
     }
 
-    // Auto-refresh when connectivity is restored
+    // 2. Auto-refresh when connectivity is restored
     ref.listen(connectivityProvider, (previous, next) {
       if (next.isOnline && previous?.status != ConnectionStatus.online) {
-        if (state == null) {
-          fetchProfile();
-        }
+        fetchProfile();
       }
     });
 
-    // If we have a user but no profile, or user ID mismatch, trigger fetch
-    if (state == null || state?.userId != user.id) {
-      Future.microtask(() => fetchProfile());
-      // If mismatch, return null to show loading while we fetch
-      if (state?.userId != user.id) return null;
-    }
+    // 3. Always schedule a background network refresh to keep data fresh.
+    //    This runs after build() completes so state is already initialized.
+    Future.microtask(fetchProfile);
 
-    return state;
+    return initialProfile;
   }
 
   // Allow setting the profile externally (e.g., during login or onboarding)
   void setProfile(UserProfile? profile) => state = profile;
 
-  Future<void> fetchProfile() async {
+  Future<void> fetchProfile({bool ignoreCache = false}) async {
     try {
       final syncEngine = ref.read(syncEngineProvider);
       final cache = ref.read(localCacheProvider);
-      
-      await syncEngine.swrFetch<UserProfile?>(
+
+      final profile = await syncEngine.swrFetch<UserProfile?>(
         path: ApiEndpoints.currentProfile,
+        ignoreCache: ignoreCache,
         parser: (data) {
           if (data is! Map<String, dynamic>) return null;
           final actualData = (data['profile'] as Map<String, dynamic>?) ?? data;
           return UserProfile.fromJson(actualData);
         },
-        onUpdate: (profile) {
-          if (profile != null) {
-            state = profile;
-            cache.setProfile(profile.toJson());
+        onUpdate: (updatedProfile) {
+          if (updatedProfile != null) {
+            state = updatedProfile;
+            cache.setProfile(updatedProfile.toJson());
           }
         },
       );
+
+      if (profile != null) {
+        state = profile;
+        cache.setProfile(profile.toJson());
+      }
     } catch (e) {
       AppLogger.e('Failed to fetch profile: $e');
     }

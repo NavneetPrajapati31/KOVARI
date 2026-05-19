@@ -1,47 +1,59 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
+import 'dart:async';
 import 'dart:ui';
-import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'core/utils/app_logger.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'core/theme/app_theme.dart';
-import 'features/auth/screens/login_screen.dart';
-import 'features/profile/models/user_profile.dart';
-import 'features/app_shell/screens/app_shell_screen.dart';
-import 'features/onboarding/screens/onboarding_screen.dart';
-import 'core/network/api_client.dart';
-import 'core/theme/app_colors.dart';
-import 'features/onboarding/data/profile_service.dart';
-import 'dart:async';
-import 'package:app_links/app_links.dart';
-import 'core/config/routes.dart';
-import 'features/groups/screens/group_invite_screen.dart';
-import 'features/auth/screens/reset_password_screen.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'core/config/env.dart';
-import 'features/auth/screens/banned_screen.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:mobile/core/config/env.dart';
+import 'package:mobile/core/navigation/router.dart';
+import 'package:mobile/core/network/mutation_queue.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
+import 'package:mobile/core/providers/theme_provider.dart';
+import 'package:mobile/core/runtime/runtime_init.dart';
+import 'package:mobile/core/security/runtime_trust_service.dart';
+import 'package:mobile/core/security/secure_key_manager.dart';
+import 'package:mobile/core/security/trust_state_machine.dart';
+import 'package:mobile/core/telemetry/freeze_monitor.dart';
+import 'package:mobile/core/telemetry/release_health_service.dart';
+import 'package:mobile/core/telemetry/runtime_metrics_service.dart';
+import 'package:mobile/core/telemetry/telemetry_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_theme.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/shared/widgets/dynamic_status_overlay.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'core/providers/auth_provider.dart';
-import 'core/providers/profile_provider.dart';
-import 'core/providers/connectivity_provider.dart';
-import 'core/providers/cache_provider.dart';
-import 'core/auth/session_manager.dart';
-import 'core/network/mutation_queue.dart';
-import 'core/providers/theme_provider.dart';
+late final ProviderContainer globalProviderContainer;
 
 void main() {
   runZonedGuarded(
     () async {
-      WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+      // 🛰️ [Production Observability] Phase 1: Foundation
+      RuntimeMetricsService().markAppStart();
+
+      // 🧊 [Aesthetic] Set status bar to transparent for blurred effect
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+      );
 
       // Initialize Hive
       try {
         await Hive.initFlutter();
-        await Hive.openBox('settings');
+        await Hive.openBox<dynamic>('settings');
         AppLogger.i('Hive initialized successfully');
       } catch (e) {
         AppLogger.e('Hive initialization failed: $e');
@@ -135,27 +147,85 @@ void main() {
         // We continue to runApp so the user can see an error widget instead of a hang
       }
 
-      // Initialize Google Sign In
-      try {
-        AppLogger.d('Initializing Google Sign-In (isWeb: $kIsWeb)...');
-        await GoogleSignIn.instance.initialize(
-          clientId: kIsWeb ? Env.googleClientId : null,
-          serverClientId: kIsWeb ? null : Env.googleClientId,
-        );
-        AppLogger.i('Google Sign-In initialized successfully.');
-      } catch (e) {
-        AppLogger.e('Google Sign-In initialization failed: $e');
-      }
-
       final container = ProviderContainer();
+      globalProviderContainer = container;
       try {
         await container.read(cacheInitProvider.future);
         await container.read(mutationQueueInitProvider.future);
+
+        // 🚀 [Critical Runtime Path] Initialize Persistent Runtime
+        await container.read(runtimeInitProvider.future);
+
+        // Initialize Authentication State
+        await container.read(authProvider.notifier).init();
 
         // Start background cache maintenance
         Timer.periodic(const Duration(minutes: 15), (_) {
           container.read(localCacheProvider).cleanupExpired();
         });
+
+        // 🔑 [Critical] Initialize Google Sign-In BEFORE splash dismiss
+        // Must be awaited and isolated from Firebase to guarantee readiness.
+        try {
+          final gId = Env.googleClientId;
+          AppLogger.d(
+            'Initializing Google Sign-In (isWeb: $kIsWeb, clientId: $gId)...',
+          );
+          await GoogleSignIn.instance.initialize(
+            clientId: kIsWeb ? gId : null,
+            serverClientId: kIsWeb ? null : gId,
+          );
+          AppLogger.i('✅ Google Sign-In initialized successfully.');
+        } catch (e) {
+          AppLogger.w('⚠️ Google Sign-In initialization failed: $e');
+        }
+
+        // 🧊 [Premium] Dismiss splash screen after full boot
+        FlutterNativeSplash.remove();
+
+        // 🛰️ [Production Observability] Phase 2: Background Services
+        unawaited(() async {
+          AppLogger.i('🛡️ [Sovereign] Starting background security boot...');
+
+          // 1. Core Security Identity (Mandatory)
+          try {
+            await SecureKeyManager().init();
+            AppLogger.i('🛡️ [Sovereign] Identity active.');
+          } catch (e) {
+            AppLogger.e('🛡️ [SecureKeyManager] Critical Identity failure: $e');
+          }
+
+          // 2. Runtime Trust Evaluation (Mandatory)
+          try {
+            AppLogger.i('🧠 [Sovereign] Evaluating runtime trust...');
+            final stateMachine = TrustStateMachine();
+            await stateMachine.init();
+            final initialScore = await RuntimeTrustService().evaluate();
+            await stateMachine.update(initialScore);
+            AppLogger.i(
+              '🧠 [Sovereign] Trust established: ${initialScore.level.name}',
+            );
+          } catch (e) {
+            AppLogger.e(
+              '🛡️ [TrustEngine] Critical Trust evaluation failure: $e',
+            );
+          }
+
+          // 3. External Observability (Optional/Graceful — Firebase only)
+          try {
+            AppLogger.i('📊 [Sovereign] Connecting external observability...');
+            await Firebase.initializeApp();
+            await TelemetryService().init();
+            RuntimeMetricsService().init();
+            FreezeMonitor().start();
+            ReleaseHealthService().reportSessionStart();
+            AppLogger.i('✅ Firebase observability connected.');
+          } catch (e) {
+            AppLogger.w(
+              '⚠️ Firebase/Observability services failed to start: $e',
+            );
+          }
+        }());
       } catch (e) {
         AppLogger.e('Initialization failed: $e');
       }
@@ -165,7 +235,8 @@ void main() {
         await SentryFlutter.init(
           (options) {
             options.dsn = sentryDsn;
-            options.tracesSampleRate = 1.0;
+            options.tracesSampleRate = 0.25; // Adaptive sampling start
+            options.enableAppHangTracking = true;
           },
           appRunner: () => runApp(
             UncontrolledProviderScope(
@@ -188,12 +259,7 @@ void main() {
       AppLogger.e(
         'Uncaught Zone Error: $error',
         stackTrace: stackTrace,
-        reportToSentry: false,
       );
-      // Ensure app runs even on zone errors during startup
-      try {
-        runApp(const ProviderScope(child: KovariApp()));
-      } catch (_) {}
 
       if (kReleaseMode) {
         Sentry.captureException(error, stackTrace: stackTrace);
@@ -202,464 +268,87 @@ void main() {
   );
 }
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-class KovariApp extends ConsumerStatefulWidget {
+class KovariApp extends ConsumerWidget {
   const KovariApp({super.key});
 
   @override
-  ConsumerState<KovariApp> createState() => _KovariAppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
 
-class _KovariAppState extends ConsumerState<KovariApp> {
-  late AppLinks _appLinks;
-  StreamSubscription<Uri>? _linkSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _initDeepLinks();
-  }
-
-  @override
-  void dispose() {
-    _linkSubscription?.cancel();
-    super.dispose();
-  }
-
-  void _initDeepLinks() {
-    _appLinks = AppLinks();
-    _linkSubscription = _appLinks.uriLinkStream.listen(_handleDeepLink);
-    _appLinks.getInitialLink().then((uri) {
-      if (uri != null) _handleDeepLink(uri);
-    });
-  }
-
-  void _handleDeepLink(Uri uri) {
-    debugPrint('🔗 Deep Link received: $uri');
-    final segments = uri.pathSegments;
-    bool isResetPath =
-        uri.path.contains('forgot-password') || uri.host == 'reset-password';
-    bool isInvitePath =
-        (segments.isNotEmpty && segments.first == 'invite') ||
-        uri.host == 'invite';
-    String? resetToken = uri.queryParameters['token'];
-
-    if (isResetPath && resetToken != null) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (context) => ResetPasswordScreen(token: resetToken),
-          ),
-        );
-      });
-    } else if (isInvitePath) {
-      final inviteToken = uri.host == 'invite' ? segments.first : segments[1];
-      Future.delayed(const Duration(milliseconds: 500), () {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (context) => GroupInviteScreen(token: inviteToken),
-          ),
-        );
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Kovari',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ref.watch(themeProvider),
-      navigatorKey: navigatorKey,
-      routes: AppRoutes.routes,
+      routerConfig: router,
       builder: (context, child) {
-        return GestureDetector(
+        final Widget content = GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-          child: ScrollConfiguration(
-            behavior: const BouncingScrollBehavior(),
-            child: Stack(children: [child!, const GlobalStatusOverlay()]),
-          ),
-        );
-      },
-      home: const AuthWrapper(),
-    );
-  }
-}
-
-class GlobalStatusOverlay extends ConsumerStatefulWidget {
-  const GlobalStatusOverlay({super.key});
-
-  @override
-  ConsumerState<GlobalStatusOverlay> createState() =>
-      _GlobalStatusOverlayState();
-}
-
-class _GlobalStatusOverlayState extends ConsumerState<GlobalStatusOverlay> {
-  Timer? _syncTimer;
-  bool _showRetry = false;
-
-  @override
-  void dispose() {
-    _syncTimer?.cancel();
-    super.dispose();
-  }
-
-  void _resetTimer() {
-    _syncTimer?.cancel();
-    _showRetry = false;
-    final sessionManager = ref.read(sessionManagerProvider);
-    _syncTimer = Timer(sessionManager.adaptiveTimeout, () {
-      if (mounted) setState(() => _showRetry = true);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final connectivity = ref.watch(connectivityProvider);
-    final auth = ref.watch(authProvider);
-
-    debugPrint(
-      '🎨 [UI] Overlay Rebuild - Connectivity: ${connectivity.status.name}, Auth: (degraded: ${auth.isDegraded}, refreshing: ${auth.isRefreshing})',
-    );
-
-    // Manage timer based on refreshing state
-    if (auth.isRefreshing) {
-      if (_syncTimer == null) _resetTimer();
-    } else {
-      _syncTimer?.cancel();
-      _syncTimer = null;
-      _showRetry = false;
-    }
-
-    if (!auth.isDegraded && !auth.isRefreshing && connectivity.isOnline) {
-      return const SizedBox.shrink();
-    }
-
-    return Positioned.fill(
-      key: ValueKey(
-        'overlay_${connectivity.status.name}_${auth.isDegraded}_${auth.isRefreshing}',
-      ),
-      child: Stack(
-        children: [
-          if (!connectivity.isOnline)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Material(
-                color: connectivity.isOffline
-                    ? AppColors.destructive
-                    : Theme.of(context).colorScheme.errorContainer,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 16,
-                  ),
-                  child: SafeArea(
-                    bottom: false,
-                    child: Text(
-                      connectivity.isOffline
-                          ? 'No internet connection'
-                          : 'Server unreachable',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: connectivity.isOffline
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.onErrorContainer,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollUpdateNotification &&
+                  notification.dragDetails != null) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              }
+              return false;
+            },
+            child: ScrollConfiguration(
+              behavior: const BouncingScrollBehavior(),
+              child: Stack(
+                children: [
+                  child!,
+                  // 🧊 [Premium] iOS-style blurred status bar
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 50,
+                    child: IgnorePointer(
+                      child: ClipRect(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: const [0.0, 0.2, 0.5, 0.8, 1.0],
+                              colors: [
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(alpha: 1.0),
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(alpha: 0.8),
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(alpha: 0.4),
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(alpha: 0.2),
+                                (Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.backgroundDark
+                                        : AppColors.background)
+                                    .withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  const DynamicStatusOverlay(),
+                ],
               ),
-            ),
-          if (auth.isDegraded || auth.isRefreshing)
-            Positioned(
-              top:
-                  MediaQuery.of(context).padding.top +
-                  (!connectivity.isOnline ? 45 : 10),
-              left: 20,
-              right: 20,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _showRetry
-                      ? () => ref.read(authProvider.notifier).init()
-                      : null,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: auth.isDegraded
-                          ? Theme.of(context).colorScheme.tertiaryContainer
-                          : AppColors.primary,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: auth.isDegraded
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.onTertiaryContainer
-                                : AppColors.primaryForeground,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _showRetry
-                                ? 'Connection slow. Tap to retry.'
-                                : (auth.isDegraded
-                                      ? 'Degraded Mode: Reconnecting...'
-                                      : 'Syncing...'),
-                            style: TextStyle(
-                              color: auth.isDegraded
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.onTertiaryContainer
-                                  : AppColors.primaryForeground,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (_showRetry)
-                          Icon(
-                            Icons.refresh,
-                            color: auth.isDegraded
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.onTertiaryContainer
-                                : AppColors.primaryForeground,
-                            size: 14,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class AuthWrapper extends ConsumerStatefulWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  ConsumerState<AuthWrapper> createState() => _AuthWrapperState();
-}
-
-class _AuthWrapperState extends ConsumerState<AuthWrapper> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(authProvider.notifier).init();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = ref.watch(authProvider);
-
-    if (auth.isBootstrapping) {
-      return const BrandedLoading();
-    }
-
-    if (!auth.isAuthenticated) {
-      FlutterNativeSplash.remove();
-      return const LoginScreen();
-    }
-
-    final user = auth.user;
-    if (user != null && user.banned) {
-      if (user.banExpiresAt != null) {
-        final expiresAt = DateTime.parse(user.banExpiresAt!).toLocal();
-        if (expiresAt.isAfter(DateTime.now())) {
-          FlutterNativeSplash.remove();
-          return BannedScreen(user: user);
-        }
-      } else {
-        FlutterNativeSplash.remove();
-        return BannedScreen(user: user);
-      }
-    }
-
-    return const AuthHandler();
-  }
-}
-
-class AuthHandler extends ConsumerStatefulWidget {
-  const AuthHandler({super.key});
-
-  @override
-  ConsumerState<AuthHandler> createState() => _AuthHandlerState();
-}
-
-class _AuthHandlerState extends ConsumerState<AuthHandler> {
-  bool _isSyncing = true;
-  bool _needsOnboarding = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeApp();
-  }
-
-  Future<void> _initializeApp() async {
-    try {
-      final apiClient = ref.read(apiClientProvider);
-      final profileService = ProfileService(apiClient);
-      final profileJson = await profileService.getCurrentProfile(
-        ignoreCache: false,
-      );
-
-      AppLogger.d('🔍 [AUTH] Profile fetch result: $profileJson');
-
-      if (mounted) {
-        if (profileJson != null &&
-            (profileJson['onboardingCompleted'] == true ||
-                (profileJson['username'] as String? ?? '').isNotEmpty)) {
-          final userProfile = UserProfile.fromJson(profileJson);
-          ref.read(profileProvider.notifier).setProfile(userProfile);
-        }
-
-        final needsOnboarding =
-            profileJson == null ||
-            (profileJson['onboardingCompleted'] != true &&
-                (profileJson['username'] as String? ?? '').isEmpty);
-
-        if (needsOnboarding) {
-          AppLogger.w(
-            '🚩 [AUTH] Redirecting to Onboarding. Reason: ${profileJson == null ? 'Profile is NULL' : 'Incomplete: completed=${profileJson['onboardingCompleted']}, username="${profileJson['username']}"'}',
-          );
-        } else {
-          AppLogger.i('✅ [AUTH] Onboarding verified. Proceeding to AppShell.');
-        }
-
-        setState(() {
-          _isSyncing = false;
-          _needsOnboarding = needsOnboarding;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSyncing = false;
-          _error = e.toString();
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    ref.listen(connectivityProvider, (previous, next) {
-      if (next.isOnline && _error != null) {
-        AppLogger.i('🌐 Connectivity restored. Retrying initialization...');
-        if (mounted) {
-          setState(() {
-            _isSyncing = true;
-            _error = null;
-          });
-          _initializeApp();
-        }
-      }
-    });
-
-    if (_isSyncing) return const BrandedLoading();
-
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                const SizedBox(height: 16),
-                const Text(
-                  'Initialization Failed',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(_error!, textAlign: TextAlign.center),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _isSyncing = true;
-                      _error = null;
-                    });
-                    _initializeApp();
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
             ),
           ),
-        ),
-      );
-    }
+        );
 
-    FlutterNativeSplash.remove();
-    return _needsOnboarding ? const OnboardingScreen() : const AppShellScreen();
-  }
-}
-
-class BrandedLoading extends StatefulWidget {
-  const BrandedLoading({super.key});
-
-  @override
-  State<BrandedLoading> createState() => _BrandedLoadingState();
-}
-
-class _BrandedLoadingState extends State<BrandedLoading> {
-  @override
-  void initState() {
-    super.initState();
-    FlutterNativeSplash.remove();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Center(
-        child: Image.asset(
-          isDark ? 'assets/logo_dark.webp' : 'assets/logo.webp',
-          width: 140,
-          fit: BoxFit.contain,
-        ),
-      ),
+        return content;
+      },
     );
   }
 }
@@ -668,7 +357,5 @@ class BouncingScrollBehavior extends ScrollBehavior {
   const BouncingScrollBehavior();
 
   @override
-  ScrollPhysics getScrollPhysics(BuildContext context) {
-    return const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
-  }
+  ScrollPhysics getScrollPhysics(BuildContext context) => const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
 }

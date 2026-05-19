@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
+import 'package:mobile/core/theme/app_colors.dart';
 
 class AppTextStyles {
-  static TextStyle get base => GoogleFonts.manrope(color: AppColors.foreground);
+  static bool useSystemFont = false;
+
+  static TextStyle get base => useSystemFont
+      ? const TextStyle(fontFamily: 'Roboto', color: AppColors.foreground)
+      : GoogleFonts.manrope(color: AppColors.foreground);
 
   // Headings
   static TextStyle get h1 => base.copyWith(

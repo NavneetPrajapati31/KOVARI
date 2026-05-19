@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/widgets/common/user_avatar_fallback.dart';
-import '../../core/widgets/common/kovari_image.dart';
+import 'package:mobile/core/widgets/common/kovari_image.dart';
+import 'package:mobile/core/widgets/common/user_avatar_fallback.dart';
 
 class KovariAvatar extends StatelessWidget {
-  final String? imageUrl;
-  final double size;
-  final bool isSelected;
-  final String? fullName;
 
   const KovariAvatar({
     super.key,
@@ -15,6 +11,10 @@ class KovariAvatar extends StatelessWidget {
     this.isSelected = false,
     this.fullName,
   });
+  final String? imageUrl;
+  final double size;
+  final bool isSelected;
+  final String? fullName;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +35,6 @@ class KovariAvatar extends StatelessWidget {
             imageUrl: imageUrl!,
             width: size,
             height: size,
-            fit: BoxFit.cover,
             borderRadius: BorderRadius.circular(size),
             fadeInDuration: const Duration(milliseconds: 500),
             fadeOutDuration: const Duration(milliseconds: 500),
@@ -47,7 +46,5 @@ class KovariAvatar extends StatelessWidget {
     );
   }
 
-  Widget _buildFallback() {
-    return UserAvatarFallback(size: size, name: fullName);
-  }
+  Widget _buildFallback() => UserAvatarFallback(size: size, name: fullName);
 }

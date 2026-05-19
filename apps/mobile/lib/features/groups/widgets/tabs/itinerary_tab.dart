@@ -1,123 +1,129 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
+import 'package:mobile/features/groups/providers/group_details_provider.dart';
+import 'package:mobile/features/groups/widgets/modals/itinerary_form_modal.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_popover.dart';
 import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../shared/widgets/secondary_button.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
-import '../../../../shared/widgets/kovari_popover.dart';
-import '../../models/group.dart';
-import '../../providers/group_details_provider.dart';
-import '../modals/itinerary_form_modal.dart';
 
-class ItineraryTab extends ConsumerWidget {
-  final GroupModel group;
+class ItineraryTab extends ConsumerStatefulWidget {
 
   const ItineraryTab({super.key, required this.group});
+  final GroupModel group;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final itineraryAsync = ref.watch(groupItineraryProvider(group.id));
-    final membersAsync = ref.watch(groupMembersProvider(group.id));
+  ConsumerState<ItineraryTab> createState() => _ItineraryTabState();
+}
+
+class _ItineraryTabState extends ConsumerState<ItineraryTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final itineraryState = ref.watch(
+      itineraryStoreProvider.select((s) => s[widget.group.id]),
+    );
+    final membersState = ref.watch(
+      memberStoreProvider.select((s) => s[widget.group.id]),
+    );
     final optimisticStore = ref.watch(optimisticStoreProvider);
-    final optimisticItinerary = optimisticStore[group.id];
+    final optimisticItinerary = optimisticStore[widget.group.id];
 
-    return itineraryAsync.when(
-      data: (baseItinerary) {
-        // Use optimistic state if it exists, otherwise use base server data
-        final itinerary = optimisticItinerary ?? baseItinerary;
+    if ((itineraryState == null || !itineraryState.hasData) &&
+        optimisticItinerary == null) {
+      return const KovariSkeletonItineraryBoard();
+    }
 
-        final members = membersAsync.value ?? [];
-        // Group by status
-        final todo = itinerary.where((i) => i.status == 'pending').toList();
-        final inProgress = itinerary
-            .where((i) => i.status == 'confirmed')
-            .toList();
-        final done = itinerary.where((i) => i.status == 'completed').toList();
-        final cancelled = itinerary
-            .where((i) => i.status == 'cancelled')
-            .toList();
+    final baseItinerary = itineraryState?.data ?? [];
+    final itinerary = optimisticItinerary ?? baseItinerary;
+    final members = membersState?.data ?? [];
 
-        return KovariRefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(groupItineraryProvider(group.id));
-            ref.invalidate(groupMembersProvider(group.id));
-          },
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    const Text(
-                      "Itinerary Board",
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Plan and organize your group's travel activities",
-                      style: TextStyle(
-                        color: AppColors.text(context, isMuted: true),
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildItinerarySection(
-                      context,
-                      ref,
-                      "To do",
-                      "pending",
-                      todo,
-                      const Color(0xFFF59E0B),
-                      members,
-                    ),
-                    _buildItinerarySection(
-                      context,
-                      ref,
-                      "In Progress",
-                      "confirmed",
-                      inProgress,
-                      const Color(0xFF007AFF),
-                      members,
-                    ),
-                    _buildItinerarySection(
-                      context,
-                      ref,
-                      "Done",
-                      "completed",
-                      done,
-                      const Color(0xFF34C759),
-                      members,
-                    ),
-                    _buildItinerarySection(
-                      context,
-                      ref,
-                      "Cancelled",
-                      "cancelled",
-                      cancelled,
-                      const Color(0xFFF31260),
-                      members,
-                    ),
-                  ]),
-                ),
-              ),
-            ],
-          ),
-        );
+    // Group by status
+    final todo = itinerary.where((i) => i.status == 'pending').toList();
+    final inProgress = itinerary.where((i) => i.status == 'confirmed').toList();
+    final done = itinerary.where((i) => i.status == 'completed').toList();
+    final cancelled = itinerary.where((i) => i.status == 'cancelled').toList();
+
+    return KovariRefreshIndicator(
+      onRefresh: () async {
+        // Hydration logic is handled by the scheduler; just request intent
+        ref.read(itineraryStoreProvider.notifier).subscribe(widget.group.id);
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Center(child: Text("Error: $e")),
+      child: CustomScrollView(
+        key: PageStorageKey(
+          'itinerary_${widget.group.id}',
+        ), // 🛡️ [Replay Engine] Scroll restoration
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                const Text(
+                  'Itinerary Board',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Plan and organize your group's travel activities",
+                  style: TextStyle(
+                    color: AppColors.text(context, isMuted: true),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _buildItinerarySection(
+                  context,
+                  ref,
+                  'To do',
+                  'pending',
+                  todo,
+                  const Color(0xFFF59E0B),
+                  members,
+                ),
+                _buildItinerarySection(
+                  context,
+                  ref,
+                  'In Progress',
+                  'confirmed',
+                  inProgress,
+                  const Color(0xFF007AFF),
+                  members,
+                ),
+                _buildItinerarySection(
+                  context,
+                  ref,
+                  'Done',
+                  'completed',
+                  done,
+                  const Color(0xFF34C759),
+                  members,
+                ),
+                _buildItinerarySection(
+                  context,
+                  ref,
+                  'Cancelled',
+                  'cancelled',
+                  cancelled,
+                  const Color(0xFFF31260),
+                  members,
+                ),
+              ]),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -129,18 +135,17 @@ class ItineraryTab extends ConsumerWidget {
     List<ItineraryItem> items,
     Color dotColor,
     List<GroupMember> groupMembers,
-  ) {
-    return DragTarget<ItineraryItem>(
+  ) => DragTarget<ItineraryItem>(
       onWillAcceptWithDetails: (details) => details.data.status != targetStatus,
       onAcceptWithDetails: (details) async {
         final item = details.data;
         final messenger = ScaffoldMessenger.of(context);
         try {
           await ref
-              .read(groupActionsProvider(group.id))
+              .read(groupActionsProvider(widget.group.id))
               .updateItineraryStatus(item, targetStatus);
         } catch (e) {
-          String errorMessage = "Failed to update item";
+          var errorMessage = 'Failed to update item';
           if (e is DioException) {
             final data = e.response?.data;
             if (data is Map && data.containsKey('error')) {
@@ -159,7 +164,7 @@ class ItineraryTab extends ConsumerWidget {
         }
       },
       builder: (context, candidateData, rejectedData) {
-        final bool isOver = candidateData.isNotEmpty;
+        final isOver = candidateData.isNotEmpty;
         return Container(
           margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
@@ -177,11 +182,8 @@ class ItineraryTab extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.only(
-                  left: 16,
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.surface(context, level: 1),
@@ -215,14 +217,13 @@ class ItineraryTab extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        "${items.length}",
+                        '${items.length}',
                         style: TextStyle(
                           color: AppColors.text(context, isMuted: true),
                           fontSize: 11,
@@ -237,10 +238,13 @@ class ItineraryTab extends ConsumerWidget {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
-                        showDialog(
+                        showModalBottomSheet<void>(
                           context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          useRootNavigator: true,
                           builder: (context) => ItineraryFormModal(
-                            groupId: group.id,
+                            groupId: widget.group.id,
                             initialStatus: targetStatus,
                           ),
                         );
@@ -250,7 +254,7 @@ class ItineraryTab extends ConsumerWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Column(
                   children: [
                     if (items.isEmpty)
@@ -258,7 +262,7 @@ class ItineraryTab extends ConsumerWidget {
                     else
                       ...items.map(
                         (item) => Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 2, 14, 2),
+                          padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
                           child: _buildDraggableItineraryItem(
                             context,
                             ref,
@@ -275,17 +279,14 @@ class ItineraryTab extends ConsumerWidget {
         );
       },
     );
-  }
 
   Widget _buildDraggableItineraryItem(
     BuildContext context,
     WidgetRef ref,
     ItineraryItem item,
     List<GroupMember> groupMembers,
-  ) {
-    return LongPressDraggable<ItineraryItem>(
+  ) => LongPressDraggable<ItineraryItem>(
       data: item,
-      hapticFeedbackOnStart: true,
       feedback: SizedBox(
         width: 300, // Approximate width of the card
         child: Material(
@@ -300,7 +301,6 @@ class ItineraryTab extends ConsumerWidget {
       ),
       child: _buildItineraryItemCard(context, ref, item, groupMembers),
     );
-  }
 
   Widget _buildItineraryItemCard(
     BuildContext context,
@@ -318,7 +318,7 @@ class ItineraryTab extends ConsumerWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.borderColor(context), width: 1),
+        side: BorderSide(color: AppColors.borderColor(context)),
       ),
       color: AppColors.surface(context, level: 1),
       child: Padding(
@@ -350,10 +350,13 @@ class ItineraryTab extends ConsumerWidget {
                       label: 'Edit',
                       labelFontSize: 14,
                       onTap: () {
-                        showDialog(
+                        showModalBottomSheet<void>(
                           context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          useRootNavigator: true,
                           builder: (context) => ItineraryFormModal(
-                            groupId: group.id,
+                            groupId: widget.group.id,
                             initialItem: item,
                           ),
                         );
@@ -364,92 +367,27 @@ class ItineraryTab extends ConsumerWidget {
                       label: 'Delete',
                       labelFontSize: 14,
                       isDestructive: true,
-                      onTap: () async {
-                        final confirmed = await showDialog<bool>(
+                      onTap: () {
+                        showKovariConfirmDialog(
                           context: context,
-                          builder: (context) => Dialog(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 18,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Delete itinerary item?',
-                                          style: AppTextStyles.h2.copyWith(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'Are you sure you want to delete "${item.title}"? This action cannot be undone.',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: AppColors.text(
-                                        context,
-                                        isMuted: true,
-                                      ),
-                                      height: 1.4,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: SecondaryButton(
-                                          text: 'Cancel',
-                                          height: 36,
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: PrimaryButton(
-                                          text: 'Delete',
-                                          height: 36,
-                                          isDestructive: true,
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          title: 'Delete itinerary item?',
+                          content:
+                              'Are you sure you want to delete "${item.title}"? This action cannot be undone.',
+                          confirmLabel: 'Delete',
+                          isDestructive: true,
+                          onConfirm: () async {
+                            try {
+                              await ref
+                                  .read(groupActionsProvider(widget.group.id))
+                                  .deleteItineraryItem(item.id);
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to delete: $e')),
+                              );
+                            }
+                          },
                         );
-
-                        if (confirmed == true) {
-                          try {
-                            await ref
-                                .read(groupActionsProvider(group.id))
-                                .deleteItineraryItem(item.id);
-                          } catch (e) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Failed to delete: $e')),
-                            );
-                          }
-                        }
                       },
                     ),
                   ],
@@ -539,7 +477,6 @@ class ItineraryTab extends ConsumerWidget {
             const SizedBox(height: 6),
             if (item.notes != null && item.notes!.isNotEmpty) ...[
               Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     LucideIcons.fileText,
@@ -566,7 +503,7 @@ class ItineraryTab extends ConsumerWidget {
             Row(
               children: [
                 Text(
-                  "Assignees :",
+                  'Assignees :',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.text(context, isMuted: true),
@@ -578,7 +515,7 @@ class ItineraryTab extends ConsumerWidget {
                   _buildAvatarStack(context, item.assignedTo, groupMembers)
                 else
                   Text(
-                    "No assignees",
+                    'No assignees',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.text(context, isMuted: true),
@@ -617,8 +554,8 @@ class ItineraryTab extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final idsToShow = assignedIds.take(3).toList();
-    final List<Widget> avatars = [];
-    for (int i = 0; i < idsToShow.length; i++) {
+    final avatars = <Widget>[];
+    for (var i = 0; i < idsToShow.length; i++) {
       final assignedId = idsToShow[i];
       final member = allMembers.cast<GroupMember?>().firstWhere(
         (m) => m?.id == assignedId || m?.username == assignedId,
@@ -627,7 +564,7 @@ class ItineraryTab extends ConsumerWidget {
       avatars.add(
         Positioned(
           left: i * 16.0,
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
@@ -657,7 +594,7 @@ class ItineraryTab extends ConsumerWidget {
             ),
             child: Center(
               child: Text(
-                "+${assignedIds.length - 3}",
+                '+${assignedIds.length - 3}',
                 style: const TextStyle(
                   fontSize: 10,
                   color: Colors.white,
@@ -677,9 +614,9 @@ class ItineraryTab extends ConsumerWidget {
   }
 
   Widget _buildPriorityBadge(BuildContext context, String priority) {
-    Color bgColor = const Color(0xFFF4F4F5);
-    Color textColor = const Color(0xFF71717A);
-    String label = priority.toUpperCase();
+    var bgColor = const Color(0xFFF4F4F5);
+    var textColor = const Color(0xFF71717A);
+    var label = priority.toUpperCase();
     final isDark = AppColors.isDark(context);
     switch (priority.toLowerCase()) {
       case 'medium':
@@ -689,19 +626,19 @@ class ItineraryTab extends ConsumerWidget {
         textColor = isDark
             ? const Color(0xFFFACC15)
             : const Color.fromARGB(255, 193, 148, 0);
-        label = "Medium";
+        label = 'Medium';
         break;
       case 'high':
         bgColor = isDark
             ? const Color(0xFF064E3B).withValues(alpha: 0.3)
             : const Color(0xFFDCFCE7);
         textColor = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
-        label = "High";
+        label = 'High';
         break;
       case 'low':
         bgColor = isDark ? const Color(0xFF27272A) : const Color(0xFFF4F4F5);
         textColor = isDark ? const Color(0xFFA1A1AA) : const Color(0xFF71717A);
-        label = "Low";
+        label = 'Low';
         break;
     }
     return Container(
@@ -723,8 +660,8 @@ class ItineraryTab extends ConsumerWidget {
 
   Widget _buildStatusBadge(BuildContext context, String status) {
     Color color = Colors.grey;
-    Color bgColor = Colors.grey.withValues(alpha: 0.1);
-    String label = status.toUpperCase();
+    var bgColor = Colors.grey.withValues(alpha: 0.1);
+    var label = status.toUpperCase();
     final isDark = AppColors.isDark(context);
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -732,14 +669,14 @@ class ItineraryTab extends ConsumerWidget {
         bgColor = isDark
             ? const Color(0xFF1E3A8A).withValues(alpha: 0.3)
             : const Color(0xFFEFF6FF);
-        label = "In Progress";
+        label = 'In Progress';
         break;
       case 'completed':
         color = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
         bgColor = isDark
             ? const Color(0xFF064E3B).withValues(alpha: 0.3)
             : const Color(0xFFF0FDF4);
-        label = "Completed";
+        label = 'Completed';
         break;
       case 'pending':
         color = isDark
@@ -748,14 +685,14 @@ class ItineraryTab extends ConsumerWidget {
         bgColor = isDark
             ? const Color(0xFF422006).withValues(alpha: 0.3)
             : const Color.fromARGB(255, 255, 247, 216);
-        label = "Not Started";
+        label = 'Not Started';
         break;
       case 'cancelled':
         color = isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C);
         bgColor = isDark
             ? const Color(0xFF7F1D1D).withValues(alpha: 0.3)
             : const Color(0xFFFEF2F2);
-        label = "Cancelled";
+        label = 'Cancelled';
         break;
     }
     return Container(

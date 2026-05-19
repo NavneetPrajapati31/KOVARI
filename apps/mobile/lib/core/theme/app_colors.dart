@@ -39,9 +39,7 @@ class AppColors {
       Theme.of(context).brightness == Brightness.dark;
 
   /// Returns the appropriate background color based on the context theme.
-  static Color backgroundColor(BuildContext context) {
-    return isDark(context) ? backgroundDark : background;
-  }
+  static Color backgroundColor(BuildContext context) => isDark(context) ? backgroundDark : background;
 
   /// Returns the appropriate surface color based on the context theme.
   static Color surface(BuildContext context, {int level = 0}) {
@@ -61,18 +59,18 @@ class AppColors {
   }
 
   /// Returns the standard border color for the current theme.
-  static Color borderColor(BuildContext context) {
-    return Theme.of(context).colorScheme.outline;
-  }
+  static Color borderColor(BuildContext context) => Theme.of(context).colorScheme.outline;
 
   /// Returns the muted background color for the current theme.
-  static Color mutedColor(BuildContext context) {
-    return isDark(context) ? mutedDark : AppColors.muted;
-  }
+  static Color mutedColor(BuildContext context) => isDark(context) ? mutedDark : AppColors.muted;
 
   /// Returns the input background color for the current theme.
   static Color inputColor(BuildContext context) {
     final dark = isDark(context);
     return dark ? inputDark : AppColors.input;
   }
+
+  static Color cardColor(BuildContext context) => isDark(context) ? cardDark : card;
+
+  static Color elevatedColor(BuildContext context) => isDark(context) ? elevatedDark : elevated;
 }

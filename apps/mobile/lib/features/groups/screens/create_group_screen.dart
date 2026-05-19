@@ -1,21 +1,24 @@
 import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:intl/intl.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/network/cloudinary_service.dart';
-import '../../../shared/widgets/location_autocomplete.dart';
-import '../../../shared/widgets/text_input_field.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/kovari_switch_tile.dart';
-import '../providers/group_provider.dart';
-import '../../../shared/widgets/app_card.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/network/cloudinary_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
+import 'package:mobile/features/groups/providers/group_provider.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
+import 'package:mobile/shared/widgets/kovari_switch_tile.dart';
+import 'package:mobile/shared/widgets/location_autocomplete.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class CreateGroupScreen extends ConsumerStatefulWidget {
   const CreateGroupScreen({super.key});
@@ -28,7 +31,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
-  final _budgetController = TextEditingController(text: "10000");
+  final _budgetController = TextEditingController(text: '10000');
   final _descriptionController = TextEditingController();
 
   String? _destination;
@@ -76,28 +79,25 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         );
 
         setState(() {
-          _coverImageUrl = result['secure_url'];
+          _coverImageUrl = result['secure_url'] as String?;
           _isUploadingImage = false;
         });
       } catch (e) {
         setState(() => _isUploadingImage = false);
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Image upload failed: $e')));
+          KovariSnackbar.error(context, 'Image upload failed: $e');
         }
       }
     }
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: isStartDate ? _startDate : _endDate,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
+      builder: (context, child) => Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.fromSeed(
               seedColor: AppColors.primary,
@@ -109,8 +109,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
             ),
           ),
           child: child!,
-        );
-      },
+        ),
     );
 
     if (picked != null) {
@@ -131,9 +130,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_destination == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a destination')),
-      );
+      KovariSnackbar.info(context, 'Please select a destination');
       return;
     }
 
@@ -155,22 +152,24 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       };
 
       final groupService = ref.read(groupServiceProvider);
-      await groupService.createGroup(payload);
+      final newGroup = await groupService.createGroup(payload);
 
-      // Refresh groups list
-      ref.invalidate(myGroupsProvider);
+      // 🚀 Optimistic injection: Add the new group to the list immediately
+      ref.read(myGroupsStoreProvider.notifier).patch((groups) {
+        if (groups.any((g) => g.id == newGroup.id)) return groups;
+        return [newGroup, ...groups];
+      });
+
+      // Refresh to ensure server sync (SWR will maintain our optimistic list)
+      await ref.read(myGroupsStoreProvider.notifier).refresh();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Group created successfully!')),
-        );
-        Navigator.pop(context);
+        KovariSnackbar.success(context, 'Group created successfully!');
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to create group: $e')));
+        KovariSnackbar.error(context, 'Failed to create group: $e');
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -178,16 +177,15 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
         elevation: 0,
         leading: IconButton(
           icon: Icon(LucideIcons.x, color: AppColors.text(context), size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         title: Text(
-          "Create a new group",
+          'Create a new group',
           style: TextStyle(
             color: AppColors.text(context),
             fontSize: 16,
@@ -204,15 +202,21 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextInputField(
-                label: "Group name",
+                label: 'Group name',
                 controller: _nameController,
-                hintText: "Enter group name",
-                validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                hintText: 'Enter group name',
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  if (v.trim().length < 3) {
+                    return 'Name must be at least 3 characters';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: AppSpacing.md),
 
               LocationAutocomplete(
-                label: "Destination",
+                label: 'Destination',
                 onSelect: (result) {
                   setState(() {
                     _destination = result.city.isNotEmpty
@@ -233,24 +237,24 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
               const SizedBox(height: AppSpacing.md),
 
               TextInputField(
-                label: "Budget per person (INR)",
+                label: 'Budget per person (INR)',
                 controller: _budgetController,
                 keyboardType: TextInputType.number,
-                hintText: "e.g. 10000",
-                validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                hintText: 'e.g. 10000',
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: AppSpacing.md),
 
               _buildDatePicker(
                 context,
-                "Start date",
+                'Start date',
                 _startDate,
                 () => _selectDate(context, true),
               ),
               const SizedBox(height: AppSpacing.md),
               _buildDatePicker(
                 context,
-                "End date",
+                'End date',
                 _endDate,
                 () => _selectDate(context, false),
               ),
@@ -260,33 +264,33 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
               const SizedBox(height: AppSpacing.md),
 
               TextInputField(
-                label: "Description",
+                label: 'Description',
                 controller: _descriptionController,
-                hintText: "Tell people what your group is about...",
+                hintText: 'Tell people what your group is about...',
                 maxLines: 4,
                 maxLength: 500,
               ),
               const SizedBox(height: AppSpacing.md),
 
               KovariSwitchTile(
-                label: "Make group public",
+                label: 'Make group public',
                 value: _isPublic,
                 onChanged: (e) => setState(() => _isPublic = e),
               ),
               KovariSwitchTile(
-                label: "Strictly non-smoking group",
+                label: 'Strictly non-smoking group',
                 value: _nonSmoking,
                 onChanged: (e) => setState(() => _nonSmoking = e),
               ),
               KovariSwitchTile(
-                label: "Strictly non-drinking group",
+                label: 'Strictly non-drinking group',
                 value: _nonDrinking,
                 onChanged: (e) => setState(() => _nonDrinking = e),
               ),
 
               // const SizedBox(height: AppSpacing.xs),
               PrimaryButton(
-                text: "Create Group",
+                text: 'Create Group',
                 onPressed: _submit,
                 isLoading: _isSubmitting,
                 height: 42,
@@ -297,15 +301,13 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         ),
       ),
     );
-  }
 
   Widget _buildDatePicker(
     BuildContext context,
     String label,
     DateTime date,
     VoidCallback onTap,
-  ) {
-    return Column(
+  ) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
@@ -346,16 +348,14 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         ),
       ],
     );
-  }
 
-  Widget _buildImagePicker(BuildContext context) {
-    return Column(
+  Widget _buildImagePicker(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4),
           child: Text(
-            "Upload Group Cover Image",
+            'Upload Group Cover Image',
             style: AppTextStyles.label.copyWith(
               color: AppColors.text(context, isMuted: true),
               fontSize: 12,
@@ -397,7 +397,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "Tap to select image",
+                          'Tap to select image',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.text(context, isMuted: true),
                           ),
@@ -409,5 +409,4 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         ),
       ],
     );
-  }
 }

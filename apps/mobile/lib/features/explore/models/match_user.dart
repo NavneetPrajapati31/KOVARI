@@ -6,29 +6,6 @@
 /// - Lists are always non-null
 /// - No raw json field exposed to UI
 class MatchUser {
-  final String id;
-  final String name;
-  final String image;
-  final String location;
-  final String destination;
-  // Nullable: meaningful absence (user didn't fill)
-  final int? age;
-  final double? score;
-  final String? bio;
-  final String? gender;
-  final String? nationality;
-  final String? personality;
-  final String? religion;
-  final String? smoking;
-  final String? drinking;
-  final String? foodPreference;
-  final String? profession;
-  // Non-null collections
-  final List<String> interests;
-  final List<String> languages;
-  final DateTime? startDate;
-  final DateTime? endDate;
-  final double? budget;
 
   const MatchUser({
     required this.id,
@@ -65,10 +42,16 @@ class MatchUser {
           .toString(),
       name: (userMap['name'] ?? userMap['username'] ?? 'Traveler').toString(),
       image: (userMap['avatar'] ?? userMap['profilePhoto'] ?? '').toString(),
-      location: (userMap['locationDisplay'] ?? userMap['location'] ?? 'Unknown location')
-          .toString(),
-      destination: (json['destination'] ?? json['destination_id'] ?? 'Unknown destination')
-          .toString(),
+      location:
+          (userMap['locationDisplay'] ??
+                  userMap['location'] ??
+                  'Unknown location')
+              .toString(),
+      destination:
+          (json['destination'] ??
+                  json['destination_id'] ??
+                  'Unknown destination')
+              .toString(),
       age: _asInt(userMap['age']),
       score: _asDouble(json['score']),
       bio: _asStringOrNull(userMap['bio']),
@@ -82,11 +65,62 @@ class MatchUser {
       profession: _asStringOrNull(userMap['profession']),
       interests: _asStringList(userMap['interests']),
       languages: _asStringList(userMap['languages']),
-      startDate: _asDateTime(json['startDate'] ?? json['start_date'] ?? userMap['start_date']),
-      endDate: _asDateTime(json['endDate'] ?? json['end_date'] ?? userMap['end_date']),
+      startDate: _asDateTime(
+        json['startDate'] ?? json['start_date'] ?? userMap['start_date'],
+      ),
+      endDate: _asDateTime(
+        json['endDate'] ?? json['end_date'] ?? userMap['end_date'],
+      ),
       budget: _asDouble(json['budget'] ?? userMap['budget']),
     );
   }
+  final String id;
+  final String name;
+  final String image;
+  final String location;
+  final String destination;
+  // Nullable: meaningful absence (user didn't fill)
+  final int? age;
+  final double? score;
+  final String? bio;
+  final String? gender;
+  final String? nationality;
+  final String? personality;
+  final String? religion;
+  final String? smoking;
+  final String? drinking;
+  final String? foodPreference;
+  final String? profession;
+  // Non-null collections
+  final List<String> interests;
+  final List<String> languages;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final double? budget;
+
+  Map<String, dynamic> toJson() => {
+      'id': id,
+      'name': name,
+      'image': image,
+      'location': location,
+      'destination': destination,
+      'age': age,
+      'score': score,
+      'bio': bio,
+      'gender': gender,
+      'nationality': nationality,
+      'personality': personality,
+      'religion': religion,
+      'smoking': smoking,
+      'drinking': drinking,
+      'foodPreference': foodPreference,
+      'profession': profession,
+      'interests': interests,
+      'languages': languages,
+      'startDate': startDate?.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
+      'budget': budget,
+    };
 
   // ── Safe coercion helpers ──────────────────
 

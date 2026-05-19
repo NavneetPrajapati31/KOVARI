@@ -1,19 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/utils/safe_parser.dart';
-import '../models/safety_report.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/utils/safe_parser.dart';
+import 'package:mobile/features/profile/models/safety_report.dart';
 
 class SafetyService {
-  final ApiClient _apiClient;
 
   SafetyService(this._apiClient);
+  final ApiClient _apiClient;
 
   Future<List<SafetyReport>> fetchMyReports() async {
     final response = await _apiClient.get<List<SafetyReport>>(
       'reports/my-reports',
       parser: (data) {
-        final List<dynamic> reportsJson =
-            data is Map<String, dynamic> ? (data['reports'] ?? []) : [];
+        final reportsJson =
+            data is Map<String, dynamic> ? (data['reports'] as List? ?? <dynamic>[]) : <dynamic>[];
         return safeParseList(reportsJson, SafetyReport.fromJson);
       },
     );
@@ -25,8 +25,8 @@ class SafetyService {
       'reports/targets',
       queryParameters: {'type': type, 'q': query},
       parser: (data) {
-        final List<dynamic> targetsJson =
-            data is Map<String, dynamic> ? (data['targets'] ?? []) : [];
+        final targetsJson =
+            data is Map<String, dynamic> ? (data['targets'] as List? ?? <dynamic>[]) : <dynamic>[];
         return safeParseList(targetsJson, SafetyTarget.fromJson);
       },
     );
@@ -51,9 +51,9 @@ class SafetyService {
     final response = await _apiClient.post<Map<String, dynamic>>(
       'flags',
       data: payload,
-      parser: (data) => data is Map<String, dynamic> ? data : {},
+      parser: (data) => data is Map<String, dynamic> ? data : <String, dynamic>{},
     );
-    return response.data ?? {};
+    return response.data ?? <String, dynamic>{};
   }
 }
 

@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/widgets/interactive_wrapper.dart';
 
 class AuthSocialButton extends StatelessWidget {
-  final String text;
-  final Widget icon;
-  final VoidCallback? onPressed;
-  final bool isLoading;
 
   const AuthSocialButton({
     super.key,
@@ -15,32 +12,34 @@ class AuthSocialButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
   });
+  final String text;
+  final Widget icon;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 40,
-      child: OutlinedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppColors.borderColor(context)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          backgroundColor: AppColors.surface(context, level: 2),
-          elevation: 0,
-          shadowColor: Colors.transparent,
+  Widget build(BuildContext context) => InteractiveWrapper(
+      onPressed: isLoading ? null : onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.surface(context, level: 2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: isLoading
-            ? SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.text(context),
+            ? Center(
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.text(context),
+                    ),
                   ),
                 ),
               )
@@ -63,5 +62,4 @@ class AuthSocialButton extends StatelessWidget {
               ),
       ),
     );
-  }
 }

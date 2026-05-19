@@ -1,12 +1,12 @@
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/utils/api_error_handler.dart';
 import 'package:dio/dio.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/utils/api_error_handler.dart';
 
 class ProfileService {
-  final ApiClient _apiClient;
 
   ProfileService(this._apiClient);
+  final ApiClient _apiClient;
 
   /// GET /api/profile/current
   /// Fetches the profile of the currently authenticated user.
@@ -26,10 +26,7 @@ class ProfileService {
         ignoreCache: ignoreCache,
       );
 
-      if (response.isDegraded) {
-        throw Exception('Network error: ${response.meta.reason}');
-      }
-
+      // Allow degraded (cached) responses to proceed if we have data
       if (response.success && response.data != null) {
         return response.data;
       }

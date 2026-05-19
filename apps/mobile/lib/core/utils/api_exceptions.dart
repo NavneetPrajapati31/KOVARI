@@ -1,9 +1,9 @@
 class ApiException implements Exception {
+
+  ApiException(this.message, {this.statusCode, this.originalError});
   final String message;
   final int? statusCode;
   final dynamic originalError;
-
-  ApiException(this.message, {this.statusCode, this.originalError});
 
   @override
   String toString() => 'ApiException: $message (Status: $statusCode)';

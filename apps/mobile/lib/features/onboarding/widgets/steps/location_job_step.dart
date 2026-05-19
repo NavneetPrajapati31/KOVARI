@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../shared/widgets/secondary_button.dart';
-import '../../../../shared/widgets/text_input_field.dart';
-import '../../../../shared/widgets/location_autocomplete.dart';
-import '../../../../shared/widgets/nationality_autocomplete.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../providers/onboarding_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/onboarding/providers/onboarding_provider.dart';
+import 'package:mobile/shared/widgets/location_autocomplete.dart';
+import 'package:mobile/shared/widgets/nationality_autocomplete.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class LocationJobStep extends ConsumerWidget {
   const LocationJobStep({super.key});
@@ -24,13 +24,13 @@ class LocationJobStep extends ConsumerWidget {
         children: [
           const SizedBox(height: AppSpacing.sm),
           Text(
-            "Where are you from?",
+            'Where are you from?',
             style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            "Help us connect you locally",
+            'Help us connect you locally',
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.mutedForeground,
             ),

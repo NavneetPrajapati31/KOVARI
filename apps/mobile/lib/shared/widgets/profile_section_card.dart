@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import 'app_card.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
 
 class ProfileSectionCard extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final List<Widget> children;
-  final EdgeInsets? padding;
 
   const ProfileSectionCard({
     super.key,
@@ -16,10 +12,13 @@ class ProfileSectionCard extends StatelessWidget {
     required this.children,
     this.padding,
   });
+  final String title;
+  final String? subtitle;
+  final List<Widget> children;
+  final EdgeInsets? padding;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
@@ -62,5 +61,4 @@ class ProfileSectionCard extends StatelessWidget {
         ),
       ],
     );
-  }
 }

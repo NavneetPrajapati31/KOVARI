@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../models/group.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
 
 class ChatsTab extends StatelessWidget {
-  final GroupModel group;
 
   const ChatsTab({super.key, required this.group});
+  final GroupModel group;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
+  Widget build(BuildContext context) => Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -29,22 +28,22 @@ class ChatsTab extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           const Text(
-            "Group Chat",
+            'Group Chat',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
-            "Connect with your travel buddies here.",
+            'Connect with your travel buddies here.',
             style: TextStyle(color: AppColors.text(context, isMuted: true), fontSize: 14),
           ),
           const SizedBox(height: 32),
           PrimaryButton(
-            text: "Open Chat",
+            text: 'Open Chat',
             onPressed: () {
               // Navigation to chat screen would go here
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text("Chat feature integration coming soon!"),
+                  content: Text('Chat feature integration coming soon!'),
                 ),
               );
             },
@@ -52,5 +51,4 @@ class ChatsTab extends StatelessWidget {
         ],
       ),
     );
-  }
 }

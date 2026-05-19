@@ -1,21 +1,22 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mobile/core/navigation/routes.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
-import '../providers/onboarding_provider.dart';
-import '../widgets/steps/identity_step.dart';
-import '../widgets/steps/media_bio_step.dart';
-import '../widgets/steps/gender_birth_step.dart';
-import '../widgets/steps/location_job_step.dart';
-import '../widgets/steps/languages_interests_step.dart';
-import '../widgets/steps/lifestyle_step.dart';
-import '../widgets/steps/policy_step.dart';
-import '../widgets/steps/success_step.dart';
-import 'package:flutter/foundation.dart';
-import '../../../core/config/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/onboarding/providers/onboarding_provider.dart';
+import 'package:mobile/features/onboarding/widgets/steps/gender_birth_step.dart';
+import 'package:mobile/features/onboarding/widgets/steps/identity_step.dart';
+import 'package:mobile/features/onboarding/widgets/steps/languages_interests_step.dart';
+import 'package:mobile/features/onboarding/widgets/steps/lifestyle_step.dart';
+import 'package:mobile/features/onboarding/widgets/steps/location_job_step.dart';
+import 'package:mobile/features/onboarding/widgets/steps/media_bio_step.dart';
+import 'package:mobile/features/onboarding/widgets/steps/policy_step.dart';
+import 'package:mobile/features/onboarding/widgets/steps/success_step.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -31,9 +32,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await ref.read(authProvider.notifier).logout();
 
     if (mounted) {
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      const LoginRouteData().go(context);
     }
   }
 
@@ -57,7 +56,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     });
 
     // List of active onboarding steps
-    final List<Widget> steps = const [
+    const steps = <Widget>[
       IdentityStep(),
       MediaBioStep(),
       GenderBirthStep(),
@@ -98,7 +97,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           GestureDetector(
                             onLongPress: () {
                               if (kDebugMode) {
-                                showDialog(
+                                showDialog<void>(
                                   context: context,
                                   builder: (context) => AlertDialog(
                                     title: const Text('Dev Reset'),
@@ -107,12 +106,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.pop(context),
+                                        onPressed: () => context.pop(),
                                         child: const Text('Cancel'),
                                       ),
                                       TextButton(
                                         onPressed: () {
-                                          Navigator.pop(context);
+                                          context.pop();
                                           _handleDevReset();
                                         },
                                         child: const Text(

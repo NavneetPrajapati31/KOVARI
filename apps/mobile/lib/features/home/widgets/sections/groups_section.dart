@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/common/skeleton.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 class MockGroup {
-  final String id;
-  final String name;
-  final String destination;
-  final int members;
-  final String? imageUrl;
 
   MockGroup({
     required this.id,
@@ -20,21 +15,30 @@ class MockGroup {
     required this.members,
     this.imageUrl,
   });
+  final String id;
+  final String name;
+  final String destination;
+  final int members;
+  final String? imageUrl;
 }
 
 class GroupsSection extends StatelessWidget {
-  final List<MockGroup> groups;
-  final bool isLoading;
 
   const GroupsSection({
     super.key,
     required this.groups,
     this.isLoading = false,
+    this.onGroupTap,
   });
+  final List<MockGroup> groups;
+  final bool isLoading;
+  final void Function(String)? onGroupTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final showSkeleton = isLoading && groups.isEmpty;
+
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         border: Border.all(color: AppColors.borderColor(context)),
@@ -49,23 +53,30 @@ class GroupsSection extends StatelessWidget {
             // Header
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Travel Groups',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.text(context),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Manage your collaborative travel experiences',
-                    style: AppTextStyles.label.copyWith(
-                      fontSize: 12,
-                      color: AppColors.text(context, isMuted: true),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Travel Groups',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text(context),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Manage your collaborative travel experiences',
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 11,
+                            color: AppColors.text(context, isMuted: true),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -73,7 +84,7 @@ class GroupsSection extends StatelessWidget {
             ),
             Divider(height: 1, color: AppColors.borderColor(context)),
 
-            if (isLoading)
+            if (showSkeleton)
               _buildSkeleton(context)
             else if (groups.isEmpty)
               _buildEmptyState(context)
@@ -81,7 +92,10 @@ class GroupsSection extends StatelessWidget {
               Column(
                 children: [
                   for (int i = 0; i < groups.length; i++) ...[
-                    _GroupCard(group: groups[i]),
+                    _GroupCard(
+                      group: groups[i],
+                      onTap: () => onGroupTap?.call(groups[i].id),
+                    ),
                     if (i < groups.length - 1)
                       Divider(
                         height: 1,
@@ -98,23 +112,20 @@ class GroupsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildSkeleton(BuildContext context) {
-    return Column(
+  Widget _buildSkeleton(BuildContext context) => Column(
       children: List.generate(
-        7,
+        4,
         (i) => Column(
           children: [
-            _GroupCardSkeleton(),
-            if (i < 6)
+            const KovariSkeletonGroupListItem(),
+            if (i < 3)
               Divider(height: 1, color: AppColors.borderColor(context)),
           ],
         ),
       ),
     );
-  }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Padding(
+  Widget _buildEmptyState(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
         child: Column(
@@ -137,18 +148,17 @@ class GroupsSection extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _GroupCard extends StatelessWidget {
-  final MockGroup group;
 
-  const _GroupCard({required this.group});
+  const _GroupCard({required this.group, this.onTap});
+  final MockGroup group;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {},
+  Widget build(BuildContext context) => InkWell(
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
@@ -213,52 +223,9 @@ class _GroupCard extends StatelessWidget {
         ),
       ),
     );
-  }
 
   String _getCityOnly(String destination) {
     if (destination.isEmpty) return '';
     return destination.split(',')[0].trim();
-  }
-}
-
-class _GroupCardSkeleton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: 12,
-      ),
-      child: Row(
-        children: [
-          const Skeleton.circle(size: 40),
-          const SizedBox(width: AppSpacing.sm * 1.5),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Skeleton(
-                      width: 96,
-                      height: 12,
-                      borderRadius: AppRadius.small,
-                    ),
-                    Skeleton(
-                      width: 48,
-                      height: 12,
-                      borderRadius: AppRadius.small,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Skeleton(width: 64, height: 12, borderRadius: AppRadius.small),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../models/user_connection.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/profile/models/user_connection.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 class UserListItem extends StatelessWidget {
-  final UserConnection user;
-  final String type; // 'followers' or 'following'
-  final bool isOwnProfile;
-  final VoidCallback? onActionPressed;
-  final VoidCallback? onRemovePressed;
-  final VoidCallback? onTap;
-  final bool isLoading;
 
   const UserListItem({
     super.key,
@@ -23,11 +17,18 @@ class UserListItem extends StatelessWidget {
     this.onTap,
     this.isLoading = false,
   });
+  final UserConnection user;
+  final String type; // 'followers' or 'following'
+  final bool isOwnProfile;
+  final VoidCallback? onActionPressed;
+  final VoidCallback? onRemovePressed;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     // Logic for button label matching the web card
-    String buttonLabel = '';
+    var buttonLabel = '';
     if (isOwnProfile) {
       if (type == 'followers') {
         buttonLabel = user.isFollowing ? 'Message' : 'Follow Back';
@@ -55,7 +56,9 @@ class UserListItem extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: AppColors.surface(context),
-          border: Border(bottom: BorderSide(color: AppColors.borderColor(context), width: 1)),
+          border: Border(
+            bottom: BorderSide(color: AppColors.borderColor(context)),
+          ),
         ),
         child: Row(
           children: [
@@ -72,9 +75,8 @@ class UserListItem extends StatelessWidget {
                 children: [
                   Text(
                     user.name,
-                    style: TextStyle(
+                    style: AppTextStyles.bodySmall.copyWith(
                       fontWeight: FontWeight.w600,
-                      fontSize: 12,
                       color: AppColors.text(context),
                       height: 1.2,
                     ),
@@ -84,10 +86,8 @@ class UserListItem extends StatelessWidget {
                   const SizedBox(height: 3), // Tight gap matching web
                   Text(
                     user.username,
-                    style: const TextStyle(
-                      color: AppColors.mutedForeground,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.text(context, isMuted: true),
                       height: 1.2,
                     ),
                     maxLines: 1,
@@ -103,13 +103,14 @@ class UserListItem extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildButton(
+                  context: context,
                   label: buttonLabel,
                   onPressed: onActionPressed,
                   isPrimary: isPrimaryAction,
                 ),
                 if (isOwnProfile && onRemovePressed != null) ...[
                   const SizedBox(width: 6),
-                  _buildRemoveButton(onRemovePressed!),
+                  _buildRemoveButton(context, onRemovePressed!),
                 ],
               ],
             ),
@@ -120,16 +121,18 @@ class UserListItem extends StatelessWidget {
   }
 
   Widget _buildButton({
+    required BuildContext context,
     required String label,
     VoidCallback? onPressed,
     bool isPrimary = false,
-  }) {
-    return SizedBox(
+  }) => SizedBox(
       height: 32,
       child: TextButton(
         onPressed: isLoading ? null : onPressed,
         style: TextButton.styleFrom(
-          backgroundColor: isPrimary ? AppColors.primary : AppColors.secondary,
+          backgroundColor: isPrimary
+              ? AppColors.primary
+              : AppColors.mutedColor(context),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -148,28 +151,26 @@ class UserListItem extends StatelessWidget {
               )
             : Text(
                 label,
-                style: TextStyle(
+                style: AppTextStyles.button.copyWith(
                   color: isPrimary
                       ? AppColors.primaryForeground
-                      : AppColors.secondaryForeground,
+                      : AppColors.text(context),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
       ),
     );
-  }
 
-  Widget _buildRemoveButton(VoidCallback onPressed) {
-    return SizedBox(
+  Widget _buildRemoveButton(BuildContext context, VoidCallback onPressed) => SizedBox(
       width: 32,
       height: 32,
       child: IconButton(
         onPressed: isLoading ? null : onPressed,
         icon: const Icon(LucideIcons.x, size: 16),
         style: IconButton.styleFrom(
-          backgroundColor: AppColors.secondary,
-          foregroundColor: AppColors.mutedForeground,
+          backgroundColor: AppColors.mutedColor(context),
+          foregroundColor: AppColors.text(context, isMuted: true),
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -177,5 +178,4 @@ class UserListItem extends StatelessWidget {
         ),
       ),
     );
-  }
 }

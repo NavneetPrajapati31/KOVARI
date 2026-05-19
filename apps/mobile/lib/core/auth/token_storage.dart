@@ -1,5 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../utils/app_logger.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 
 class TokenStorage {
   static const _storage = FlutterSecureStorage();
@@ -7,6 +7,7 @@ class TokenStorage {
   static const _accessTokenKey = 'kovari_access_token';
   static const _refreshTokenKey = 'kovari_refresh_token';
   static const _expiryKey = 'kovari_token_expiry';
+  static const _deviceIdKey = 'kovari_device_id';
   static const _userKey = 'kovari_user_data';
 
   // Constants for request classification
@@ -59,8 +60,8 @@ class TokenStorage {
     }
   }
 
-  Future<String?> getAccessToken() async => await _storage.read(key: _accessTokenKey);
-  Future<String?> getRefreshToken() async => await _storage.read(key: _refreshTokenKey);
+  Future<String?> getAccessToken() async => _storage.read(key: _accessTokenKey);
+  Future<String?> getRefreshToken() async => _storage.read(key: _refreshTokenKey);
   
   Future<int?> getExpiry() async {
     final val = await _storage.read(key: _expiryKey);
@@ -105,5 +106,11 @@ class TokenStorage {
     await _storage.write(key: _userKey, value: userDataJson);
   }
 
-  Future<String?> getUserData() async => await _storage.read(key: _userKey);
+  Future<String?> getUserData() async => _storage.read(key: _userKey);
+
+  Future<void> saveDeviceId(String deviceId) async {
+    await _storage.write(key: _deviceIdKey, value: deviceId);
+  }
+
+  Future<String?> getDeviceId() async => _storage.read(key: _deviceIdKey);
 }

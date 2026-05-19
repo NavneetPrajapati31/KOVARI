@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
-
-import '../widgets/notification_item.dart';
-import '../../../core/widgets/common/skeleton.dart';
-import '../providers/notification_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/notifications/providers/notification_provider.dart';
+import 'package:mobile/features/notifications/widgets/notification_item.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -94,7 +93,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 ),
 
               // 3. Pagination Loading Indicator
-              if (notificationsAsync.isFetchingNextPage)
+              if (!notificationsAsync.isLoading &&
+                  notificationsAsync.notifications.isNotEmpty &&
+                  notificationsAsync.isFetchingNextPage)
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
@@ -160,9 +161,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
+      onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -172,10 +172,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Center(
+  Widget _buildEmptyState(BuildContext context) => Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -194,10 +192,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildErrorState(BuildContext context, WidgetRef ref) {
-    return Center(
+  Widget _buildErrorState(BuildContext context, WidgetRef ref) => Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -221,45 +217,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildSliverSkeleton(BuildContext context) {
-    return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        return Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: AppColors.borderColor(context)),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Skeleton.circle(size: 40),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Skeleton(width: 96, height: 12),
-                        Skeleton(width: 40, height: 12),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Skeleton(width: 128, height: 12),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }, childCount: 12),
+  Widget _buildSliverSkeleton(BuildContext context) => SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) => const KovariSkeletonNotificationItem(), childCount: 12),
     );
-  }
 }

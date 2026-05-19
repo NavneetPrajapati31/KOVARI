@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
-import 'app_text_styles.dart';
-import 'app_radius.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
 
 class AppTheme {
   static ThemeData get lightTheme => _buildTheme(Brightness.light);
@@ -25,6 +25,7 @@ class AppTheme {
             onSecondary: AppColors.secondaryForeground,
             outline: AppColors.borderDark,
             outlineVariant: AppColors.borderDark.withValues(alpha: 0.5),
+            onSurfaceVariant: AppColors.foregroundDark,
           )
         : ColorScheme.light(
             primary: AppColors.primary,
@@ -34,10 +35,10 @@ class AppTheme {
             surfaceContainer: AppColors.card,
             surfaceContainerHigh: AppColors.elevated,
             error: AppColors.destructive,
-            onPrimary: AppColors.primaryForeground,
             onSecondary: AppColors.secondaryForeground,
             outline: AppColors.border,
             outlineVariant: AppColors.border.withValues(alpha: 0.5),
+            onSurfaceVariant: AppColors.foreground,
           );
 
     final textTheme =
@@ -88,7 +89,27 @@ class AppTheme {
       splashColor: Colors.transparent,
       hoverColor: Colors.transparent,
 
-      textTheme: textTheme,
+      iconTheme: IconThemeData(color: colorScheme.onSurface),
+      primaryIconTheme: IconThemeData(color: colorScheme.onPrimary),
+      textTheme: textTheme.copyWith(
+        titleMedium: AppTextStyles.bodyLarge.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        titleSmall: AppTextStyles.bodySmall.copyWith(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+        bodyMedium: AppTextStyles.bodyMedium.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        labelMedium: AppTextStyles.label.copyWith(color: colorScheme.onSurface),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
 
       appBarTheme: AppBarThemeData(
         backgroundColor: colorScheme.surface,
@@ -107,7 +128,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.defaultRadius,
-          side: BorderSide(color: colorScheme.outline, width: 1),
+          side: BorderSide(color: colorScheme.outline),
         ),
         clipBehavior: Clip.antiAlias,
       ),
@@ -164,7 +185,7 @@ class AppTheme {
           foregroundColor: colorScheme.onPrimary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
           textStyle: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -176,7 +197,7 @@ class AppTheme {
           foregroundColor: colorScheme.onSurface,
           side: BorderSide(color: colorScheme.outline),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
           textStyle: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -187,7 +208,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.defaultRadius),
           textStyle: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -242,6 +263,57 @@ class AppTheme {
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: colorScheme.primary,
         linearTrackColor: colorScheme.primary.withValues(alpha: 0.1),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        headerBackgroundColor: colorScheme.surfaceContainerHigh,
+        headerForegroundColor: colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+        todayForegroundColor: WidgetStateProperty.all(colorScheme.primary),
+        dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.onPrimary;
+          }
+          return colorScheme.onSurface;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.primary;
+          }
+          return null;
+        }),
+        yearForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return colorScheme.onPrimary;
+          }
+          return colorScheme.onSurface;
+        }),
+        yearStyle: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+        dayStyle: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+        weekdayStyle: textTheme.bodySmall?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        headerHeadlineStyle: textTheme.headlineMedium?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        headerHelpStyle: textTheme.labelLarge?.copyWith(
+          color: colorScheme.onSurface,
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        dayPeriodColor: colorScheme.primary.withValues(alpha: 0.1),
+        dayPeriodTextColor: colorScheme.primary,
+        dialBackgroundColor: colorScheme.surfaceContainer,
+        dialHandColor: colorScheme.primary,
+        dialTextColor: colorScheme.onSurface,
+        entryModeIconColor: colorScheme.primary,
+        helpTextStyle: textTheme.labelLarge,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
     );
   }

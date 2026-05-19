@@ -3,27 +3,21 @@ enum ContractState { clean, filtered, degraded }
 
 /// 🛡️ API Error Shape
 class ApiError {
-  final String message;
-  final String code;
-  final String? requestId;
 
   const ApiError({required this.message, required this.code, this.requestId});
 
-  factory ApiError.fromJson(Map<String, dynamic> json) {
-    return ApiError(
+  factory ApiError.fromJson(Map<String, dynamic> json) => ApiError(
       message: (json['message'] ?? 'Unknown error').toString(),
       code: (json['code'] ?? 'UNKNOWN').toString(),
       requestId: json['requestId']?.toString(),
     );
-  }
+  final String message;
+  final String code;
+  final String? requestId;
 }
 
 /// 🛡️ API Meta Shape
 class ApiMeta {
-  final bool degraded;
-  final ContractState contractState;
-  final String reason;
-  final int? droppedCount;
 
   const ApiMeta({
     this.degraded = false,
@@ -46,23 +40,19 @@ class ApiMeta {
     );
   }
 
-  factory ApiMeta.degraded({String reason = 'unknown'}) {
-    return ApiMeta(
+  factory ApiMeta.degraded({String reason = 'unknown'}) => ApiMeta(
       degraded: true,
       contractState: ContractState.degraded,
       reason: reason,
     );
-  }
+  final bool degraded;
+  final ContractState contractState;
+  final String reason;
+  final int? droppedCount;
 }
 
 /// 🛡️ Standardized API Response
 class ApiResponse<T> {
-  final bool success;
-  final T? data;
-  final dynamic raw;
-  final ApiMeta meta;
-  final ApiError? error;
-  final String? requestId;
 
   const ApiResponse({
     required this.success,
@@ -72,9 +62,6 @@ class ApiResponse<T> {
     this.error,
     this.requestId,
   });
-
-  bool get isDegraded => meta.degraded;
-  bool get isClean => meta.contractState == ContractState.clean;
 
   /// Parse a full standard response envelope
   factory ApiResponse.fromJson(
@@ -124,14 +111,19 @@ class ApiResponse<T> {
     String reason = 'network',
     String? requestId,
     dynamic raw,
-  }) {
-    return ApiResponse(
+  }) => ApiResponse(
       success: true, // flow continues safely
-      data: null,
       raw: raw,
       meta: ApiMeta.degraded(reason: reason),
-      error: null,
       requestId: requestId,
     );
-  }
+  final bool success;
+  final T? data;
+  final dynamic raw;
+  final ApiMeta meta;
+  final ApiError? error;
+  final String? requestId;
+
+  bool get isDegraded => meta.degraded;
+  bool get isClean => meta.contractState == ContractState.clean;
 }

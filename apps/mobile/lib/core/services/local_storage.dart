@@ -16,9 +16,7 @@ class LocalStorage {
   }
 
   /// Retrieve access token from secure storage
-  Future<String?> getAccessToken() async {
-    return await _storage.read(key: _accessTokenKey);
-  }
+  Future<String?> getAccessToken() async => _storage.read(key: _accessTokenKey);
 
   /// Save refresh token securely
   Future<void> saveRefreshToken(String token) async {
@@ -26,9 +24,7 @@ class LocalStorage {
   }
 
   /// Retrieve refresh token from secure storage
-  Future<String?> getRefreshToken() async {
-    return await _storage.read(key: _refreshTokenKey);
-  }
+  Future<String?> getRefreshToken() async => _storage.read(key: _refreshTokenKey);
 
   /// Clear all stored auth data (Logout)
   Future<void> clear() async {
@@ -68,9 +64,7 @@ class LocalStorage {
   }
 
   /// Get saved email
-  Future<String?> getRememberedEmail() async {
-    return await _storage.read(key: _rememberedEmailKey);
-  }
+  Future<String?> getRememberedEmail() async => _storage.read(key: _rememberedEmailKey);
 
   /// Clear saved email
   Future<void> clearRememberedEmail() async {

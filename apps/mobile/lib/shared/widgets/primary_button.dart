@@ -1,23 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import 'interactive_wrapper.dart';
-import '../../core/config/interaction_config.dart';
+import 'package:mobile/core/config/interaction_config.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/widgets/interactive_wrapper.dart';
 
 class PrimaryButton extends StatelessWidget {
-  final String? text;
-  final FutureOr<void> Function()? onPressed;
-  final bool isLoading;
-  final bool isSuccess;
-  final bool isError;
-  final IconData? icon;
-  final double? height;
-  final double width;
-  final Color? backgroundColor;
-  final Color? foregroundColor;
-  final bool isDestructive;
-  final double borderRadius;
 
   const PrimaryButton({
     super.key,
@@ -34,6 +23,18 @@ class PrimaryButton extends StatelessWidget {
     this.isDestructive = false,
     this.borderRadius = 12,
   });
+  final String? text;
+  final FutureOr<void> Function()? onPressed;
+  final bool isLoading;
+  final bool isSuccess;
+  final bool isError;
+  final IconData? icon;
+  final double? height;
+  final double width;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final bool isDestructive;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {

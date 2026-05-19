@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
 
 class FlatDatePicker extends StatefulWidget {
-  final DateTime initialDate;
-  final ValueChanged<DateTime> onDateChanged;
 
   const FlatDatePicker({
     super.key,
     required this.initialDate,
     required this.onDateChanged,
   });
+  final DateTime initialDate;
+  final ValueChanged<DateTime> onDateChanged;
 
   @override
   State<FlatDatePicker> createState() => _FlatDatePickerState();
@@ -59,7 +59,7 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
   @override
   Widget build(BuildContext context) {
     const double itemHeight = 45;
-    const double diameterRatio = 10.0;
+    const diameterRatio = 10.0;
 
     return Stack(
       children: [
@@ -105,7 +105,7 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
                 },
                 childDelegate: ListWheelChildBuilderDelegate(
                   childCount: DateTime(_selectedYear, _selectedMonth + 1, 0).day,
-                  builder: (context, i) => _buildItem(context, "${i + 1}"),
+                  builder: (context, i) => _buildItem(context, '${i + 1}'),
                 ),
               ),
             ),
@@ -122,7 +122,7 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
                 },
                 childDelegate: ListWheelChildBuilderDelegate(
                   childCount: _years.length,
-                  builder: (context, i) => _buildItem(context, "${_years[i]}"),
+                  builder: (context, i) => _buildItem(context, '${_years[i]}'),
                 ),
               ),
             ),
@@ -132,8 +132,7 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
     );
   }
 
-  Widget _buildItem(BuildContext context, String text) {
-    return Center(
+  Widget _buildItem(BuildContext context, String text) => Center(
       child: Text(
         text,
         style: AppTextStyles.bodyMedium.copyWith(
@@ -143,7 +142,6 @@ class _FlatDatePickerState extends State<FlatDatePicker> {
         ),
       ),
     );
-  }
 
   @override
   void dispose() {

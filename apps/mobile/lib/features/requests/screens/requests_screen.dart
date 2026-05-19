@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/common/skeleton.dart';
-import '../providers/request_provider.dart';
-import '../models/request_model.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/secondary_button.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/requests/models/request_model.dart';
+import 'package:mobile/features/requests/providers/request_provider.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -36,8 +39,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: AppColors.backgroundColor(context),
       body: SafeArea(
         child: Column(
@@ -54,10 +56,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
+  Widget _buildHeader(BuildContext context) => Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: const BoxDecoration(),
       child: Row(
@@ -77,11 +77,9 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ],
       ),
     );
-  }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
+      onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -91,10 +89,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildTabs() {
-    return Padding(
+  Widget _buildTabs() => Padding(
       padding: const EdgeInsets.only(
         left: AppSpacing.md,
         right: AppSpacing.md,
@@ -109,11 +105,12 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
         child: TabBar(
           controller: _tabController,
+          onTap: (index) => HapticService.selection(),
           overlayColor: WidgetStateProperty.all(Colors.transparent),
           splashFactory: NoSplash.splashFactory,
           indicator: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.primary, width: 1),
           ),
           labelColor: AppColors.primary,
           unselectedLabelColor: AppColors.text(context, isMuted: true),
@@ -132,7 +129,6 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
       ),
     );
-  }
 }
 
 class _InterestsList extends ConsumerWidget {
@@ -164,24 +160,22 @@ class _InterestsList extends ConsumerWidget {
           ),
         );
       },
-      loading: () => _buildSkeleton(),
+      loading: _buildSkeleton,
       error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
 
-  Widget _buildSkeleton() {
-    return ListView.builder(
+  Widget _buildSkeleton() => ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: 5,
-      itemBuilder: (context, index) => const _RequestCardSkeleton(),
+      itemBuilder: (context, index) => const KovariSkeletonRequestCard(),
     );
-  }
 }
 
 class _InterestCard extends ConsumerStatefulWidget {
-  final InterestModel interest;
 
   const _InterestCard({required this.interest});
+  final InterestModel interest;
 
   @override
   ConsumerState<_InterestCard> createState() => _InterestCardState();
@@ -208,20 +202,16 @@ class _InterestCardState extends ConsumerState<_InterestCard> {
           }
         } else {
           setState(() => _loadingAction = null);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to perform action. Please try again.'),
-              backgroundColor: Colors.red,
-            ),
+          KovariSnackbar.error(
+            context,
+            'Failed to perform action. Please try again.',
           );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loadingAction = null);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        KovariSnackbar.error(context, 'Error: $e');
       }
     }
   }
@@ -387,24 +377,22 @@ class _InvitationsList extends ConsumerWidget {
           ),
         );
       },
-      loading: () => _buildSkeleton(),
+      loading: _buildSkeleton,
       error: (err, stack) => Center(child: Text('Error: $err')),
     );
   }
 
-  Widget _buildSkeleton() {
-    return ListView.builder(
+  Widget _buildSkeleton() => ListView.builder(
       padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: 5,
-      itemBuilder: (context, index) => const _RequestCardSkeleton(),
+      itemBuilder: (context, index) => const KovariSkeletonRequestCard(),
     );
-  }
 }
 
 class _InvitationCard extends ConsumerStatefulWidget {
-  final InvitationModel invitation;
 
   const _InvitationCard({required this.invitation});
+  final InvitationModel invitation;
 
   @override
   ConsumerState<_InvitationCard> createState() => _InvitationCardState();
@@ -431,20 +419,16 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
           }
         } else {
           setState(() => _loadingAction = null);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to perform action. Please try again.'),
-              backgroundColor: Colors.red,
-            ),
+          KovariSnackbar.error(
+            context,
+            'Failed to perform action. Please try again.',
           );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loadingAction = null);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        KovariSnackbar.error(context, 'Error: $e');
       }
     }
   }
@@ -547,7 +531,7 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
           // Actions
           if (_isAccepted)
             PrimaryButton(
-              text: "Accepted! Joining group...",
+              text: 'Accepted! Joining group...',
               onPressed: () {
                 // Navigate to group
               },
@@ -576,77 +560,6 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
               ],
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _RequestCardSkeleton extends StatelessWidget {
-  const _RequestCardSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 185,
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context, level: 1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderColor(context)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          children: [
-            // Header: Avatar + Info
-            Row(
-              children: [
-                const Skeleton.circle(size: 40),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Skeleton(width: 100, height: 12),
-                      const SizedBox(height: 8),
-                      const Skeleton(width: 60, height: 12),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Content
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Skeleton(width: 100, height: 12),
-                SizedBox(height: 8),
-                Skeleton(width: double.infinity, height: 12),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Actions
-            Row(
-              children: [
-                Expanded(
-                  child: Skeleton(
-                    height: 36,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Skeleton(
-                    height: 36,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

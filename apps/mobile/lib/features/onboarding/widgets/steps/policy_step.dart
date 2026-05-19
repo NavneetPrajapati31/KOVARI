@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/onboarding/providers/onboarding_provider.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../shared/widgets/secondary_button.dart';
-import '../../../../shared/widgets/app_card.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../providers/onboarding_provider.dart';
 
 class PolicyStep extends ConsumerWidget {
   const PolicyStep({super.key});
@@ -24,13 +24,13 @@ class PolicyStep extends ConsumerWidget {
         children: [
           const SizedBox(height: AppSpacing.sm),
           Text(
-            "Almost there!",
+            'Almost there!',
             style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            "Please review and accept our policies to join the community.",
+            'Please review and accept our policies to join the community.',
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.mutedForeground,
             ),
@@ -82,7 +82,7 @@ class PolicyStep extends ConsumerWidget {
                     .read(onboardingProvider.notifier)
                     .setPolicyAccepted(v ?? false),
                 activeColor: AppColors.primary,
-                side: BorderSide(color: AppColors.muted),
+                side: const BorderSide(color: AppColors.muted),
               ),
               Expanded(
                 child: Text(
@@ -142,8 +142,7 @@ class PolicyStep extends ConsumerWidget {
     required BuildContext context,
     required String title,
     required VoidCallback onTap,
-  }) {
-    return InkWell(
+  }) => InkWell(
       onTap: onTap,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -162,5 +161,4 @@ class PolicyStep extends ConsumerWidget {
         ],
       ),
     );
-  }
 }

@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/providers/theme_provider.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/utils/api_error_handler.dart';
+import 'package:mobile/features/auth/services/auth_service.dart';
+import 'package:mobile/features/profile/providers/settings_provider.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
 import 'package:mobile/shared/widgets/primary_button.dart';
 import 'package:mobile/shared/widgets/secondary_button.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/providers/profile_provider.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../providers/settings_provider.dart';
-import '../../auth/services/auth_service.dart';
-import '../../../core/utils/api_error_handler.dart';
-import '../../../core/providers/theme_provider.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/kovari_confirm_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -99,13 +103,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontSize: 14)),
-        backgroundColor: isError ? AppColors.destructive : Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (isError) {
+      KovariSnackbar.error(context, message);
+    } else {
+      KovariSnackbar.success(context, message);
+    }
   }
 
   Future<void> _handleRequestVerification() async {
@@ -120,14 +122,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           .read(settingsServiceProvider)
           .updateEmail(_emailController.text);
 
-      if (response['verificationRequired'] == true) {
+      final isRequired = response['verificationRequired'] as bool?;
+      if (isRequired == true) {
         setState(() {
           _pendingNewEmail = _emailController.text;
           _verificationStep = true;
         });
-        _showSnackBar(
-          response['message'] ?? 'Verification code sent to your new email.',
-        );
+        final msg = response['message'] as String?;
+        _showSnackBar(msg ?? 'Verification code sent to your new email.');
       } else {
         // Direct update succeeded (unlikely now)
         final currentProfile = ref.read(profileProvider);
@@ -242,7 +244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           _showSnackBar('Account deleted successfully');
           await ref.read(authProvider.notifier).logout();
           if (!mounted) return;
-          Navigator.of(context).popUntil((route) => route.isFirst);
+          const OnboardingRouteData().go(context);
         } catch (e) {
           _showSnackBar(
             e.toString().replaceAll('Exception: ', ''),
@@ -302,20 +304,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       _buildAppearanceSection(),
                       const SizedBox(height: 32),
                       _buildSectionHeader(
+                        'Legal & Policies',
+                        "Review Kovari's policies and your acceptance history.",
+                      ),
+                      const SizedBox(height: 16),
+                      _buildLegalSection(),
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
                         'Delete account',
                         'This action is permanent and cannot be undone.',
                         isDestructive: true,
                       ),
                       const SizedBox(height: 16),
                       _buildDangerZoneSection(),
-                      const SizedBox(height: 32),
-                      _buildSectionHeader(
-                        'Legal & Policies',
-                        'Review Kovari\'s policies and your acceptance history.',
-                      ),
-                      const SizedBox(height: 16),
-                      _buildLegalSection(),
-                      // const SizedBox(height: 32),
                     ],
                   ),
                 ),
@@ -327,8 +328,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
+  Widget _buildHeader(BuildContext context) => Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
@@ -353,11 +353,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ],
       ),
     );
-  }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
+      onTap: () {
+        HapticService.selection();
+        context.pop();
+      },
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -367,14 +368,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
       ),
     );
-  }
 
   Widget _buildSectionHeader(
     String title,
     String subtitle, {
     bool isDestructive = false,
-  }) {
-    return SizedBox(
+  }) => SizedBox(
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,10 +399,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ],
       ),
     );
-  }
 
-  Widget _buildCard({required Widget child, Color? borderColor}) {
-    return Container(
+  Widget _buildCard({required Widget child, Color? borderColor}) => Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
@@ -414,7 +411,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       ),
       child: child,
     );
-  }
 
   Widget _buildAccountSection(String currentEmail) {
     if (!_showEmailForm) {
@@ -444,7 +440,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               const SizedBox(height: 12),
               _buildOutlineButton(
                 'Change Email',
-                onPressed: () => setState(() => _showEmailForm = true),
+                onPressed: () {
+                  HapticService.light();
+                  setState(() => _showEmailForm = true);
+                },
               ),
             ],
           ),
@@ -528,7 +527,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   'Continue',
                   onPressed: _handleRequestVerification,
                   isLoading: _isEmailLoading,
-                  width: null, // Allow intrinsic width
                 ),
                 const SizedBox(width: 8),
                 _buildCancelButton(
@@ -565,7 +563,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               const SizedBox(height: 12),
               _buildOutlineButton(
                 'Change Password',
-                onPressed: () => setState(() => _showPasswordForm = true),
+                onPressed: () {
+                  HapticService.light();
+                  setState(() => _showPasswordForm = true);
+                },
               ),
             ],
           ),
@@ -621,7 +622,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       'Save',
                       onPressed: _handleChangePassword,
                       isLoading: _isPasswordLoading,
-                      width: null,
                     ),
                     const SizedBox(width: 8),
                     _buildCancelButton(
@@ -661,7 +661,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           color: AppColors.primary.withValues(alpha: 0.1),
-          border: Border.all(color: AppColors.primary, width: 1),
+          border: Border.all(color: Colors.transparent, width: 0),
         ),
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.text(context, isMuted: true),
@@ -673,6 +673,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
+        onTap: (index) => HapticService.selection(),
         tabs: const [
           Tab(text: 'Light'),
           Tab(text: 'System'),
@@ -682,8 +683,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     );
   }
 
-  Widget _buildDangerZoneSection() {
-    return _buildCard(
+  Widget _buildDangerZoneSection() => _buildCard(
       borderColor: AppColors.borderColor(context),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -719,10 +719,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildLegalSection() {
-    return Column(
+  Widget _buildLegalSection() => Column(
       children: [
         _buildExpandingList(
           title: 'POLICY DOCUMENTS',
@@ -774,13 +772,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
       ],
     );
-  }
 
   Widget _buildExpandingList({
     required String title,
     required List<Widget> children,
-  }) {
-    return _buildCard(
+  }) => _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -810,20 +806,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ],
       ),
     );
-  }
 
   Widget _buildStatusTile(
     String title,
     String accepted,
     String version, {
     bool isLast = false,
-  }) {
-    return Column(
+  }) => Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
@@ -867,15 +860,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         if (!isLast) Divider(height: 1, color: AppColors.borderColor(context)),
       ],
     );
-  }
 
   Widget _buildLegalTile(
     String title,
     IconData icon, {
     required String url,
     bool isLast = false,
-  }) {
-    return Column(
+  }) => Column(
       children: [
         ListTile(
           leading: Icon(
@@ -896,15 +887,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             size: 14,
             color: AppColors.text(context, isMuted: true),
           ),
-          onTap: () =>
-              launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+          onTap: () {
+            HapticService.selection();
+            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+          },
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           visualDensity: VisualDensity.compact,
         ),
         if (!isLast) Divider(height: 1, color: AppColors.borderColor(context)),
       ],
     );
-  }
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -912,8 +904,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     required String hint,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Column(
+  }) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -962,17 +953,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
       ],
     );
-  }
 
-  Widget _buildOutlineButton(String label, {required VoidCallback onPressed}) {
-    return SizedBox(
+  Widget _buildOutlineButton(String label, {required VoidCallback onPressed}) => SizedBox(
       width: double.infinity,
-      height: 36,
+      height: 40,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.borderColor(context)),
-          backgroundColor: AppColors.surface(context),
+          backgroundColor: AppColors.cardColor(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -988,16 +977,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildCancelButton(VoidCallback onPressed) {
-    return SecondaryButton(
+  Widget _buildCancelButton(VoidCallback onPressed) => SecondaryButton(
       onPressed: onPressed,
       icon: LucideIcons.x,
       width: 32,
       height: 32,
     );
-  }
 
   Widget _buildActionButton(
     String label, {
@@ -1006,8 +992,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     bool isDestructive = false,
     double? width,
     double? height,
-  }) {
-    return PrimaryButton(
+  }) => PrimaryButton(
       text: label,
       onPressed: onPressed,
       isLoading: isLoading,
@@ -1019,5 +1004,4 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       foregroundColor: AppColors.primaryForeground,
       isDestructive: isDestructive,
     );
-  }
 }

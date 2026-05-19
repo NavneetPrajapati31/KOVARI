@@ -27,20 +27,54 @@ export const generateSalt = (): string => {
 };
 
 /**
+ * Helper to decode a string that might be Hex or Base64
+ */
+const autoDecode = (str: string): CryptoJS.lib.WordArray => {
+  if (!str) return CryptoJS.lib.WordArray.create();
+  
+  // Very basic heuristic: Hex is only 0-9a-f. 
+  // Base64 often ends with = or contains +, /
+  const isHex = /^[0-9a-fA-F]+$/.test(str) && str.length % 2 === 0;
+  
+  if (isHex) {
+    return CryptoJS.enc.Hex.parse(str);
+  }
+  
+  // Fallback to Base64
+  try {
+    return CryptoJS.enc.Base64.parse(str);
+  } catch (e) {
+    console.error("Failed to parse encryption metadata:", str);
+    return CryptoJS.lib.WordArray.create();
+  }
+};
+
+/**
  * Derive a key from a password using PBKDF2
  */
 export const deriveKeyFromPassword = (
   password: string,
   salt: string
-): string => {
-  return CryptoJS.PBKDF2(password, salt, {
+): CryptoJS.lib.WordArray => {
+  if (!password || !salt) {
+    console.error("Encryption error: Missing password or salt for PBKDF2");
+    // Return a dummy WordArray to prevent crash, but decryption will naturally fail
+    return CryptoJS.lib.WordArray.create();
+  }
+
+  // Parse the salt using autoDecode to handle both Hex and Base64
+  const saltWords = autoDecode(salt);
+  console.log(`🛡️ [Encryption] Derived key from password: "${password}", saltWords:`, saltWords.toString());
+
+  return CryptoJS.PBKDF2(password, saltWords, {
     keySize: 256 / 32,
     iterations: 10000,
-  }).toString();
+    hasher: CryptoJS.algo.SHA256,
+  });
 };
 
 /**
- * Encrypt a message using AES-256-GCM
+ * Encrypt a message using AES-256-CBC
  */
 export const encryptMessage = (
   message: string,
@@ -63,26 +97,40 @@ export const encryptMessage = (
   };
 };
 
+
 /**
- * Decrypt a message using AES-256-GCM
+ * Decrypt a message using AES-256-CBC
  */
 export const decryptMessage = (
   encryptedMessage: EncryptedMessage,
   key: string
 ): string => {
+  if (!key) return "";
+  
+  console.log(`🛡️ [Encryption] Decrypting with key: "${key}", salt: "${encryptedMessage.salt}"`);
   const derivedKey = deriveKeyFromPassword(key, encryptedMessage.salt);
+  
+  // Decrypt using CryptoJS
+  // Note: CryptoJS.AES.decrypt expects the first argument to be a CipherParams object 
+  // or a WordArray representing the ciphertext.
+  const ciphertext = autoDecode(encryptedMessage.encryptedContent);
+  const iv = autoDecode(encryptedMessage.iv);
 
   const decrypted = CryptoJS.AES.decrypt(
-    encryptedMessage.encryptedContent,
+    { ciphertext } as CryptoJS.lib.CipherParams,
     derivedKey,
     {
-      iv: CryptoJS.enc.Hex.parse(encryptedMessage.iv),
+      iv,
       mode: CryptoJS.mode.CBC,
       padding: CryptoJS.pad.Pkcs7,
     }
   );
 
-  return decrypted.toString(CryptoJS.enc.Utf8);
+  try {
+    return decrypted.toString(CryptoJS.enc.Utf8);
+  } catch (e) {
+    return "";
+  }
 };
 
 /**

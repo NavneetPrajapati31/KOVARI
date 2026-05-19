@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../profile/screens/profile_screen.dart';
+import 'package:mobile/features/profile/screens/profile_screen.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -12,8 +12,7 @@ class _ProfileTabState extends State<ProfileTab> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
-  Widget build(BuildContext context) {
-    return PopScope(
+  Widget build(BuildContext context) => PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
@@ -26,13 +25,10 @@ class _ProfileTabState extends State<ProfileTab> {
       },
       child: Navigator(
         key: _navigatorKey,
-        onGenerateRoute: (settings) {
-          return MaterialPageRoute(
+        onGenerateRoute: (settings) => MaterialPageRoute(
             settings: settings,
             builder: (context) => const ProfileScreen(),
-          );
-        },
+          ),
       ),
     );
-  }
 }

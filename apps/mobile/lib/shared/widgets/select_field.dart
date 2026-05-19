@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/theme/app_radius.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class SelectField<T> extends StatefulWidget {
-  final String label;
-  final T? value;
-  final String hintText;
-  final List<T> options;
-  final String Function(T) itemLabelBuilder;
-  final ValueChanged<T?>? onChanged;
-  final String? errorText;
-  final Color? fillColor;
 
   const SelectField({
     super.key,
@@ -25,6 +17,14 @@ class SelectField<T> extends StatefulWidget {
     this.errorText,
     this.fillColor,
   });
+  final String label;
+  final T? value;
+  final String hintText;
+  final List<T> options;
+  final String Function(T) itemLabelBuilder;
+  final ValueChanged<T?>? onChanged;
+  final String? errorText;
+  final Color? fillColor;
 
   @override
   State<SelectField<T>> createState() => _SelectFieldState<T>();
@@ -34,10 +34,8 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
   final MenuController _controller = MenuController();
 
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Column(
+  Widget build(BuildContext context) => LayoutBuilder(
+      builder: (context, constraints) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (widget.label.isNotEmpty) ...[
@@ -66,7 +64,7 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                 shape: WidgetStateProperty.all(
                   RoundedRectangleBorder(
                     borderRadius: AppRadius.large,
-                    side: BorderSide(color: AppColors.borderColor(context), width: 1),
+                    side: BorderSide(color: AppColors.borderColor(context)),
                   ),
                 ),
                 padding: WidgetStateProperty.all(const EdgeInsets.all(8)),
@@ -95,7 +93,6 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                       vertical: 16,
                     ),
                     visualDensity: const VisualDensity(
-                      horizontal: 0,
                       vertical: -2,
                     ),
                     // Fix: Explicitly reduce height and density to remove spacing
@@ -114,8 +111,7 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                   ),
                 );
               }).toList(),
-              builder: (context, controller, child) {
-                return InkWell(
+              builder: (context, controller, child) => InkWell(
                   onTap: () {
                     if (controller.isOpen) {
                       controller.close();
@@ -137,7 +133,6 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                         color: widget.errorText != null
                             ? AppColors.destructive
                             : AppColors.borderColor(context),
-                        width: 1,
                       ),
                     ),
                     child: Row(
@@ -167,8 +162,7 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
                       ],
                     ),
                   ),
-                );
-              },
+                ),
             ),
             if (widget.errorText != null) ...[
               const SizedBox(height: 4),
@@ -180,8 +174,6 @@ class _SelectFieldState<T> extends State<SelectField<T>> {
               ),
             ],
           ],
-        );
-      },
+        ),
     );
-  }
 }

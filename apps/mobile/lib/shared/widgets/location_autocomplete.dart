@@ -1,19 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:async';
-import '../../core/network/location_service.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import '../../core/theme/app_radius.dart';
-import 'text_input_field.dart';
+import 'package:mobile/core/network/location_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class LocationAutocomplete extends ConsumerStatefulWidget {
-  final String label;
-  final String? initialValue;
-  final String? hintText;
-  final Function(GeoapifyResult) onSelect;
-  final Color? fillColor;
-  final EdgeInsetsGeometry? contentPadding;
 
   const LocationAutocomplete({
     super.key,
@@ -24,6 +19,12 @@ class LocationAutocomplete extends ConsumerStatefulWidget {
     this.fillColor,
     this.contentPadding,
   });
+  final String label;
+  final String? initialValue;
+  final String? hintText;
+  final void Function(GeoapifyResult) onSelect;
+  final Color? fillColor;
+  final EdgeInsetsGeometry? contentPadding;
 
   @override
   ConsumerState<LocationAutocomplete> createState() =>
@@ -77,7 +78,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
     _updateOverlay();
 
     final service = LocationService();
-    var results = await service.searchLocation(query);
+    final results = await service.searchLocation(query);
 
     if (mounted) {
       setState(() {
@@ -97,7 +98,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
     final overlay = Overlay.of(context);
     _overlayEntry = OverlayEntry(
       builder: (context) {
-        final RenderBox? renderBox =
+        final renderBox =
             _fieldKey.currentContext?.findRenderObject() as RenderBox?;
         final size = renderBox?.size ?? Size.zero;
 
@@ -234,8 +235,7 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return TapRegion(
+  Widget build(BuildContext context) => TapRegion(
       groupId: 'location_autocomplete',
       onTapOutside: (_) => _hideOverlay(),
       child: CompositedTransformTarget(
@@ -252,7 +252,6 @@ class _LocationAutocompleteState extends ConsumerState<LocationAutocomplete> {
         ),
       ),
     );
-  }
 
   @override
   void dispose() {

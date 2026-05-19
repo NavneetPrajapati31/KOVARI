@@ -1,18 +1,20 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/text_input_field.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/app_card.dart';
-import '../../../core/utils/api_error_handler.dart';
-import '../services/auth_service.dart';
-import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/utils/api_error_handler.dart';
+import 'package:mobile/features/auth/services/auth_service.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
-  final String token;
 
   const ResetPasswordScreen({super.key, required this.token});
+  final String token;
 
   @override
   ConsumerState<ResetPasswordScreen> createState() =>
@@ -89,12 +91,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: AppColors.text(context)),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
       ),
       body: SafeArea(
@@ -102,7 +103,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Logo
                 // Image.asset(
@@ -131,10 +131,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildFormState() {
-    return Column(
+  Widget _buildFormState() => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Create New Password', style: AppTextStyles.h3),
@@ -170,11 +168,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         ),
       ],
     );
-  }
 
-  Widget _buildSuccessState() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _buildSuccessState() => Column(
       children: [
         // const Icon(Icons.check, size: 30, color: AppColors.primary),
         // const SizedBox(height: 16),
@@ -191,12 +186,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         PrimaryButton(
           text: 'Proceed to Login',
           onPressed: () {
-            Navigator.of(
-              context,
-            ).pushNamedAndRemoveUntil('/login', (route) => false);
+            const LoginRouteData().go(context);
           },
         ),
       ],
     );
-  }
 }

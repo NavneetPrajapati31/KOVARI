@@ -75,9 +75,10 @@ export const formatMessageDate = (date: Date | string): string => {
  * @returns True if both dates are on the same day
  */
 export const isSameDay = (
-  date1: Date | string,
-  date2: Date | string
+  date1: Date | string | undefined | null,
+  date2: Date | string | undefined | null
 ): boolean => {
+  if (!date1 || !date2) return false;
   const d1 = typeof date1 === "string" ? new Date(date1) : date1;
   const d2 = typeof date2 === "string" ? new Date(date2) : date2;
 

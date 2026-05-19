@@ -1,20 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
-import 'interactive_wrapper.dart';
-import '../../core/config/interaction_config.dart';
+import 'package:mobile/core/config/interaction_config.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/widgets/interactive_wrapper.dart';
 
 class SecondaryButton extends StatelessWidget {
-  final String text;
-  final FutureOr<void> Function()? onPressed;
-  final bool isLoading;
-  final bool isSuccess;
-  final bool isError;
-  final IconData? icon;
-  final double height;
-  final double? width;
-  final bool isDate;
 
   const SecondaryButton({
     super.key,
@@ -27,7 +19,18 @@ class SecondaryButton extends StatelessWidget {
     this.height = 44.0, // Elite standard
     this.width,
     this.isDate = false,
+    this.backgroundColor,
   });
+  final String text;
+  final FutureOr<void> Function()? onPressed;
+  final bool isLoading;
+  final bool isSuccess;
+  final bool isError;
+  final IconData? icon;
+  final double height;
+  final double? width;
+  final bool isDate;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -42,12 +45,11 @@ class SecondaryButton extends StatelessWidget {
       isSuccess: isSuccess,
       isError: isError,
       borderRadius: BorderRadius.circular(12),
-      hapticType: HapticType.light,
       child: Container(
         height: height,
         width: width,
         decoration: BoxDecoration(
-          color: AppColors.surface(context, level: 2),
+          color: backgroundColor ?? AppColors.mutedColor(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.borderColor(context)),
         ),
@@ -84,9 +86,9 @@ class SecondaryButton extends StatelessWidget {
     }
 
     if (isError) {
-      return Icon(
+      return const Icon(
         Icons.close_rounded,
-        key: const ValueKey('error'),
+        key: ValueKey('error'),
         color: Colors.red,
         size: 20,
       );

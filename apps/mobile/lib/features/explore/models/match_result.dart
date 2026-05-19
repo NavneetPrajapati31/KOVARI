@@ -1,8 +1,5 @@
 /// ⚡ Result wrapper for explore matches with pagination metadata.
 class MatchResult {
-  final List<dynamic> matches;
-  final bool hasMore;
-  final int totalCount;
 
   MatchResult({
     required this.matches,
@@ -12,4 +9,7 @@ class MatchResult {
 
   /// Empty fallback result
   factory MatchResult.empty() => MatchResult(matches: []);
+  final List<dynamic> matches;
+  final bool hasMore;
+  final int totalCount;
 }

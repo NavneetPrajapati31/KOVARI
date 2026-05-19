@@ -1,22 +1,23 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/common/kovari_image.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../../../core/utils/app_logger.dart';
-import '../providers/group_details_provider.dart';
-import '../providers/group_provider.dart';
-import '../../../core/providers/auth_provider.dart';
-import 'group_details_screen.dart';
-import '../../auth/screens/login_screen.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/core/widgets/common/kovari_image.dart';
+import 'package:mobile/features/groups/providers/group_details_provider.dart';
+import 'package:mobile/features/groups/providers/group_provider.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
 
 class GroupInviteScreen extends ConsumerStatefulWidget {
-  final String token;
   const GroupInviteScreen({super.key, required this.token});
+  final String token;
 
   @override
   ConsumerState<GroupInviteScreen> createState() => _GroupInviteScreenState();
@@ -35,16 +36,13 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
     final user = ref.read(authStateProvider);
     if (user == null) {
       _isLoading = false;
-      _error = "auth_required";
+      _error = 'auth_required';
 
       // Directly redirect to Login and remove this screen from stack
       // so they return to Dashboard/Home after login.
       Future.microtask(() {
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
-          );
+          const LoginRouteData().go(context);
         }
       });
     } else {
@@ -61,12 +59,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
         // 2. Membership Guard: If already a member, skip invite
         if (response['isMember'] == true) {
           final groupId = response['id'] as String;
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => GroupDetailsScreen(groupId: groupId),
-            ),
-          );
+          GroupDetailsRouteData(groupId: groupId).go(context);
           return;
         }
 
@@ -86,36 +79,31 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   }
 
   Future<void> _handleJoin() async {
-    AppLogger.d("Join Group initiated...");
+    AppLogger.d('Join Group initiated...');
     if (_groupInfo == null) {
-      AppLogger.d("Error: _groupInfo is null");
+      AppLogger.d('Error: _groupInfo is null');
       return;
     }
     setState(() => _isJoining = true);
     try {
       final groupId = _groupInfo!['id'] as String;
-      AppLogger.d("Joining Group ID: $groupId");
+      AppLogger.d('Joining Group ID: $groupId');
       await ref.read(groupActionsProvider(groupId)).joinViaInvite();
-      AppLogger.d("Join Successful!");
+      AppLogger.d('Join Successful!');
 
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text("Welcome to the group!")));
+        ).showSnackBar(const SnackBar(content: Text('Welcome to the group!')));
         // Replace current screen with group details
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => GroupDetailsScreen(groupId: groupId),
-          ),
-        );
+        GroupDetailsRouteData(groupId: groupId).go(context);
       }
     } catch (e) {
-      AppLogger.e("Join Error: $e");
+      AppLogger.e('Join Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
         setState(() => _isJoining = false);
       }
     }
@@ -123,7 +111,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final coverImage = _groupInfo?['coverImage'];
+    final coverImage = _groupInfo?['coverImage'] as String?;
     final fullImageUrl = UrlUtils.getFullImageUrl(coverImage);
 
     return Scaffold(
@@ -136,10 +124,11 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 opacity: 0.4,
                 child: KovariImage(
                   imageUrl: fullImageUrl,
-                  fit: BoxFit.cover,
                   fadeInDuration: const Duration(milliseconds: 500),
                   fadeOutDuration: const Duration(milliseconds: 500),
-                  placeholder: Container(color: Colors.white.withValues(alpha: 0.05)),
+                  placeholder: Container(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
                 ),
               ),
             ),
@@ -172,11 +161,11 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                           size: 20,
                           color: Colors.white,
                         ),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => context.pop(),
                       ),
                       const Spacer(),
                       Text(
-                        "Invitation",
+                        'Invitation',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -214,27 +203,25 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
     );
   }
 
-  Widget _buildActionButton() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(32, 22, 32, 22),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-        ),
+  Widget _buildActionButton() => Container(
+    padding: const EdgeInsets.fromLTRB(32, 22, 32, 22),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
       ),
-      child: PrimaryButton(
-        text: "Join Group",
-        onPressed: _handleJoin,
-        isLoading: _isJoining,
-        height: 48,
-      ),
-    );
-  }
+    ),
+    child: PrimaryButton(
+      text: 'Join Group',
+      onPressed: _handleJoin,
+      isLoading: _isJoining,
+      height: 48,
+    ),
+  );
 
   Widget _buildErrorState() {
-    final isAuthError = _error == "auth_required";
+    final isAuthError = _error == 'auth_required';
 
     if (isAuthError) {
       return Center(
@@ -249,7 +236,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                  ),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -271,7 +260,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     ),
                     const SizedBox(height: 32),
                     Text(
-                      "Authentication Required",
+                      'Authentication Required',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.h2.copyWith(
                         color: Colors.white,
@@ -282,7 +271,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      "This group is private. You need to log in to view and join this journey.",
+                      'This group is private. You need to log in to view and join this journey.',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyMedium.copyWith(
                         color: Colors.white.withValues(alpha: 0.5),
@@ -293,12 +282,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     const SizedBox(height: 48),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
+                        const LoginRouteData().push<void>(context);
                       },
                       child: Container(
                         width: double.infinity,
@@ -316,7 +300,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                         ),
                         alignment: Alignment.center,
                         child: const Text(
-                          "Login to access",
+                          'Login to access',
                           style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w700,
@@ -328,9 +312,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                     ),
                     const SizedBox(height: 20),
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       child: Text(
-                        "Go Back",
+                        'Go Back',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.5),
                           fontWeight: FontWeight.w500,
@@ -365,12 +349,12 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              "Invalid Link",
+              'Invalid Link',
               style: AppTextStyles.h2.copyWith(color: Colors.white),
             ),
             const SizedBox(height: 12),
             Text(
-              "This invitation has expired or been revoked.",
+              'This invitation has expired or been revoked.',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium.copyWith(
                 color: Colors.white.withValues(alpha: 0.6),
@@ -378,9 +362,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
             ),
             const SizedBox(height: 32),
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.pop(),
               child: const Text(
-                "Go Back",
+                'Go Back',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -394,8 +378,10 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   }
 
   Widget _buildSocialProof() {
-    final avatars = List<String>.from(_groupInfo?['memberAvatars'] ?? []);
-    final count = _groupInfo?['memberCount'] ?? 0;
+    final avatars = List<String>.from(
+      _groupInfo?['memberAvatars'] as List<dynamic>? ?? [],
+    );
+    final count = _groupInfo?['memberCount'] as int? ?? 0;
 
     if (count == 0) return const SizedBox.shrink();
 
@@ -413,12 +399,12 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
 
                 return Positioned(
                   left: index * 16.0,
-                  child: Container(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black, width: 2),
+                      border: Border.all(width: 2),
                     ),
-                    child: KovariAvatar(imageUrl: url, size: 24),
+                    child: KovariAvatar(imageUrl: url),
                   ),
                 );
               }).toList(),
@@ -429,14 +415,14 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   }
 
   Widget _buildInviteContent() {
-    final name = _groupInfo?['name'] ?? "Trip Group";
-    final destination = _groupInfo?['destination'] ?? "World";
+    final name = _groupInfo?['name'] ?? 'Trip Group';
+    final destination = _groupInfo?['destination'] ?? 'World';
     final rawDescription = _groupInfo?['description'];
     final description =
         (rawDescription != null && rawDescription.toString().trim().isNotEmpty)
         ? rawDescription.toString()
-        : "Join us in exploring $destination! This trip is all about creating memories, discovering new places, and enjoying the journey together with amazing people.";
-    final coverImage = _groupInfo?['coverImage'];
+        : 'Join us in exploring $destination! This trip is all about creating memories, discovering new places, and enjoying the journey together with amazing people.';
+    final coverImage = _groupInfo?['coverImage'] as String?;
     final fullImageUrl = UrlUtils.getFullImageUrl(coverImage);
 
     return SingleChildScrollView(
@@ -466,20 +452,23 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                         imageUrl: fullImageUrl,
                         width: 85,
                         height: 85,
-                        fit: BoxFit.cover,
                         fadeInDuration: const Duration(milliseconds: 500),
                         fadeOutDuration: const Duration(milliseconds: 500),
                         placeholder: Container(
                           color: Colors.white.withValues(alpha: 0.1),
                         ),
                       )
-                    : KovariAvatar(imageUrl: null, size: 85, fullName: name),
+                    : KovariAvatar(
+                        imageUrl: null,
+                        size: 85,
+                        fullName: name as String? ?? '',
+                      ),
               ),
             ),
             // Labels
             const SizedBox(height: 10),
             Text(
-              name,
+              name as String,
               style: AppTextStyles.h1.copyWith(
                 color: Colors.white,
                 fontSize: 26,
@@ -507,7 +496,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    destination,
+                    destination as String,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.85),
                       fontWeight: FontWeight.w600,
@@ -536,7 +525,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   Row(
                     children: [
                       Text(
-                        "ABOUT",
+                        'ABOUT',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.4),
                           fontWeight: FontWeight.w800,
@@ -572,7 +561,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "GROUP FEATURES",
+                    'GROUP FEATURES',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.4),
                       fontWeight: FontWeight.w800,
@@ -583,14 +572,14 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   const SizedBox(height: 12),
                   _buildHighlightItem(
                     LucideIcons.messageSquare,
-                    "Group Chat",
-                    "Real-time coordination with members",
+                    'Group Chat',
+                    'Real-time coordination with members',
                   ),
                   const SizedBox(height: 12),
                   _buildHighlightItem(
                     LucideIcons.calendarDays,
-                    "Collaborative Itinerary",
-                    "Plan activities together",
+                    'Collaborative Itinerary',
+                    'Plan activities together',
                   ),
                 ],
               ),
@@ -604,11 +593,11 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
   }
 
   Widget _buildInviterCard() {
-    final inviter = _groupInfo?['inviter'];
+    final inviter = _groupInfo?['inviter'] as Map<String, dynamic>?;
     if (inviter == null) return const SizedBox.shrink();
 
-    final name = inviter['name'] ?? "A Traveler";
-    final username = inviter['username'] ?? "traveler";
+    final name = inviter['name'] ?? 'A Traveler';
+    final username = inviter['username'] ?? 'traveler';
     final avatar = inviter['avatar'];
 
     return Container(
@@ -623,7 +612,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "INVITED BY",
+            'INVITED BY',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.4),
               fontWeight: FontWeight.w800,
@@ -635,9 +624,9 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
           Row(
             children: [
               KovariAvatar(
-                imageUrl: UrlUtils.getFullImageUrl(avatar),
+                imageUrl: UrlUtils.getFullImageUrl(avatar as String?),
                 size: 38,
-                fullName: name,
+                fullName: name as String?,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -645,7 +634,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name,
+                      name as String,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.85),
                         fontWeight: FontWeight.w600,
@@ -653,7 +642,7 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
                       ),
                     ),
                     Text(
-                      "@$username",
+                      '@$username',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.5),
                         fontSize: 12,
@@ -670,41 +659,44 @@ class _GroupInviteScreenState extends ConsumerState<GroupInviteScreen> {
     );
   }
 
-  Widget _buildHighlightItem(IconData icon, String title, String subtitle) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(8),
+  Widget _buildHighlightItem(IconData icon, String title, String subtitle) =>
+      Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 15,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
           ),
-          child: Icon(icon, size: 15, color: Colors.white.withValues(alpha: 0.7)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 12,
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      );
 }

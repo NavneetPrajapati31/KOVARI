@@ -1,25 +1,32 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/network/api_client.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/kovari_image_modal.dart';
-import '../../onboarding/data/profile_service.dart';
-import '../models/user_profile.dart';
-import '../data/connections_service.dart';
-import '../../../core/providers/profile_provider.dart';
-import '../../../shared/widgets/kovari_confirm_dialog.dart';
-import 'connections_screen.dart';
-import '../../../shared/widgets/app_card.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/chat/models/conversation_entity.dart';
+import 'package:mobile/features/chat/providers/conversation_store.dart';
+import 'package:mobile/features/chat/screens/chat_screen.dart';
+import 'package:mobile/features/chat/utils/direct_chat_id.dart';
+import 'package:mobile/features/onboarding/data/profile_service.dart';
+import 'package:mobile/features/profile/data/connections_service.dart';
+import 'package:mobile/features/profile/models/user_profile.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_image_modal.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
-  final String userId;
 
   const PublicProfileScreen({super.key, required this.userId});
+  final String userId;
 
   @override
   ConsumerState<PublicProfileScreen> createState() =>
@@ -80,14 +87,51 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         context: context,
         title: 'Unfollow?',
         content:
-            'Kovari won\'t tell @${_profile!.username} they were unfollowed.',
+            "Kovari won't tell @${_profile!.username} they were unfollowed.",
         confirmLabel: 'Unfollow',
         isDestructive: true,
         onConfirm: () => _executeFollowToggle(wasFollowing),
       );
     } else {
-      _executeFollowToggle(wasFollowing);
+      unawaited(_executeFollowToggle(wasFollowing));
     }
+  }
+
+  void _openDirectMessage(UserProfile profile) {
+    final myId = ref.read(profileProvider)?.userId;
+    if (myId == null || myId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please wait for your profile to load.')),
+      );
+      return;
+    }
+    final partnerId =
+        profile.userId.isNotEmpty ? profile.userId : widget.userId;
+    if (partnerId.isEmpty || partnerId == myId) {
+      return;
+    }
+
+    final chatId = directChatId(myId, partnerId);
+    final avatar = UrlUtils.getFullImageUrl(profile.profileImage);
+
+    ref.read(conversationStoreProvider.notifier).upsertConversation(
+      ConversationEntity(
+        chatId: chatId,
+        participantIds: [myId, partnerId],
+        partnerName: profile.name,
+        partnerAvatar: avatar,
+        partnerUserId: partnerId,
+        partnerClerkId: partnerId,
+      ),
+    );
+
+    unawaited(
+      Navigator.of(context, rootNavigator: true).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => ChatScreen(chatId: chatId),
+        ),
+      ),
+    );
   }
 
   Future<void> _executeFollowToggle(bool wasFollowing) async {
@@ -126,29 +170,21 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = ref.watch(profileProvider)?.userId;
-    final bool isMe = widget.userId == currentUserId;
+    final isMe = widget.userId == currentUserId;
 
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: SizedBox(
-            height: 24,
-            width: 24,
-            child: CircularProgressIndicator(strokeWidth: 3),
-          ),
-        ),
-      );
+      return const Scaffold(body: KovariSkeletonProfile());
     }
 
     if (_error != null || _profile == null) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.backgroundColor(context),
         appBar: AppBar(
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.backgroundColor(context),
           elevation: 0,
           leading: IconButton(
             icon: Icon(LucideIcons.arrowLeft, color: AppColors.text(context)),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
           ),
         ),
         body: Center(
@@ -168,8 +204,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.backgroundColor(context),
       appBar: AppBar(
+        backgroundColor: AppColors.backgroundColor(context),
         elevation: 0,
         centerTitle: false,
         titleSpacing: 0,
@@ -179,11 +216,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             color: AppColors.text(context),
             size: 20,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         title: Text(
           _profile!.username,
           style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.text(context),
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -218,15 +256,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     BuildContext context,
     UserProfile profile,
     bool isMe,
-  ) {
-    return AppCard(
+  ) => AppCard(
       padding: const EdgeInsets.all(AppSpacing.md),
       borderRadius: BorderRadius.circular(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: () {
@@ -250,6 +286,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     Text(
                       profile.name,
                       style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.text(context),
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -257,7 +294,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     Text(
                       '@${profile.username}',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.mutedForeground,
+                        color: AppColors.text(context, isMuted: true),
                         fontSize: 12,
                       ),
                     ),
@@ -268,18 +305,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                           profile.followers,
                           'Followers',
                           onTap: profile.isOwnProfile
-                              ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ConnectionsScreen(
-                                        userId: profile.userId,
-                                        username: profile.username,
-                                        initialTab: 'followers',
-                                      ),
-                                    ),
-                                  );
-                                }
+                              ? () => ConnectionsRouteData(
+                                    userId: profile.userId,
+                                    username: profile.username,
+                                    initialTab: 'followers',
+                                  ).push<void>(context)
                               : null,
                         ),
                         const SizedBox(width: 16),
@@ -287,18 +317,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                           profile.following,
                           'Following',
                           onTap: profile.isOwnProfile
-                              ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ConnectionsScreen(
-                                        userId: profile.userId,
-                                        username: profile.username,
-                                        initialTab: 'following',
-                                      ),
-                                    ),
-                                  );
-                                }
+                              ? () => ConnectionsRouteData(
+                                    userId: profile.userId,
+                                    username: profile.username,
+                                    initialTab: 'following',
+                                  ).push<void>(context)
                               : null,
                         ),
                       ],
@@ -312,7 +335,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           Text(
             profile.bio.isEmpty ? 'No bio added.' : profile.bio,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.mutedForeground,
+              color: AppColors.text(context, isMuted: true),
               fontSize: 12,
             ),
           ),
@@ -327,10 +350,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                         : (profile.isFollowingMe ? 'Follow Back' : 'Follow'),
                     onPressed: _toggleFollow,
                     backgroundColor: profile.isFollowing
-                        ? AppColors.secondary
+                        ? AppColors.mutedColor(context)
                         : AppColors.primary,
                     textColor: profile.isFollowing
-                        ? AppColors.secondaryForeground
+                        ? AppColors.text(context)
                         : AppColors.primaryForeground,
                   ),
                 ),
@@ -338,9 +361,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 Expanded(
                   child: _buildActionButton(
                     'Message',
-                    onPressed: () {},
-                    backgroundColor: AppColors.secondary,
-                    textColor: AppColors.secondaryForeground,
+                    onPressed: () => _openDirectMessage(profile),
+                    backgroundColor: AppColors.mutedColor(context),
+                    textColor: AppColors.text(context),
                   ),
                 ),
               ],
@@ -349,10 +372,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildStatItem(String count, String label, {VoidCallback? onTap}) {
-    return GestureDetector(
+  Widget _buildStatItem(String count, String label, {VoidCallback? onTap}) => GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Row(
@@ -377,15 +398,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildActionButton(
     String label, {
     required VoidCallback onPressed,
     required Color backgroundColor,
     required Color textColor,
-  }) {
-    return SizedBox(
+  }) => SizedBox(
       height: 36,
       child: TextButton(
         onPressed: onPressed,
@@ -406,10 +425,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildContentCard(UserProfile profile) {
-    return AppCard(
+  Widget _buildContentCard(UserProfile profile) => AppCard(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -419,9 +436,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          const SizedBox(
             width: 50,
-            child: const Text(
+            child: Text(
               'About',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -476,7 +493,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          const Divider(height: 1, color: AppColors.border),
+          Divider(height: 1, color: AppColors.borderColor(context)),
           const SizedBox(height: 20),
           _buildInfoRow(
             _buildInfoItem(
@@ -505,7 +522,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
           if (profile.interests.isNotEmpty || profile.languages.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: AppColors.borderColor(context)),
             const SizedBox(height: 20),
             if (profile.interests.isNotEmpty) ...[
               _buildChipsSection('INTERESTS', profile.interests),
@@ -518,17 +535,15 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildInfoItem(String label, String value) {
-    return Column(
+  Widget _buildInfoItem(String label, String value) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -544,27 +559,23 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
       ],
     );
-  }
 
-  Widget _buildInfoRow(Widget item1, Widget item2) {
-    return Row(
+  Widget _buildInfoRow(Widget item1, Widget item2) => Row(
       children: [
         Expanded(child: item1),
         const SizedBox(width: 16),
         Expanded(child: item2),
       ],
     );
-  }
 
-  Widget _buildChipsSection(String label, List<String> items) {
-    return Column(
+  Widget _buildChipsSection(String label, List<String> items) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
-            color: AppColors.mutedForeground,
+            color: AppColors.text(context, isMuted: true),
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
@@ -573,11 +584,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 4,
-          children: items.map((item) {
-            return Container(
+          children: items.map((item) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                color: AppColors.mutedColor(context),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -588,10 +598,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   color: AppColors.text(context),
                 ),
               ),
-            );
-          }).toList(),
+            )).toList(),
         ),
       ],
     );
-  }
 }

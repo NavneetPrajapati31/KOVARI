@@ -8,10 +8,12 @@ class AppRadius {
   static const double lg = 20.0;
   static const double xl = 24.0;
 
-  static final BorderRadius extraSmall = BorderRadius.circular(xs);
-  static final BorderRadius small = BorderRadius.circular(sm);
-  static final BorderRadius medium = BorderRadius.circular(md);
-  static final BorderRadius defaultRadius = BorderRadius.circular(def);
-  static final BorderRadius large = BorderRadius.circular(lg);
-  static final BorderRadius extraLarge = BorderRadius.circular(xl);
+  static const BorderRadius extraSmall = BorderRadius.all(Radius.circular(xs));
+  static const BorderRadius small = BorderRadius.all(Radius.circular(sm));
+  static const BorderRadius medium = BorderRadius.all(Radius.circular(md));
+  static const BorderRadius defaultRadius = BorderRadius.all(
+    Radius.circular(def),
+  );
+  static const BorderRadius large = BorderRadius.all(Radius.circular(lg));
+  static const BorderRadius extraLarge = BorderRadius.all(Radius.circular(xl));
 }

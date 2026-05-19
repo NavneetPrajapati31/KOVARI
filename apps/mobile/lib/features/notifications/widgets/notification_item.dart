@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../models/notification_model.dart';
-import '../../../core/widgets/common/user_avatar_fallback.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/common/user_avatar_fallback.dart';
+import 'package:mobile/features/notifications/models/notification_model.dart';
 
 class NotificationItem extends StatelessWidget {
+
+  const NotificationItem({super.key, required this.notification, this.onTap});
   final NotificationModel notification;
   final VoidCallback? onTap;
 
-  const NotificationItem({super.key, required this.notification, this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
@@ -24,7 +23,7 @@ class NotificationItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: notification.isRead
               ? AppColors.surface(context, level: 1)
-              : AppColors.primaryLight,
+              : AppColors.primary.withValues(alpha: 0.2),
           border: Border(
             bottom: BorderSide(color: AppColors.borderColor(context)),
           ),
@@ -86,7 +85,6 @@ class NotificationItem extends StatelessWidget {
         ),
       ),
     );
-  }
 
   Widget _buildAvatar(BuildContext context) {
     if (notification.type == NotificationType.reportSubmitted) {

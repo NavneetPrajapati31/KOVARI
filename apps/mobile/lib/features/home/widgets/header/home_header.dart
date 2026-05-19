@@ -1,24 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/widgets/common/skeleton.dart';
-
-import '../../../notifications/screens/notifications_screen.dart';
-import '../../../notifications/providers/notification_provider.dart';
-import '../../../requests/screens/requests_screen.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/notifications/providers/notification_provider.dart';
 
 class HomeHeader extends ConsumerWidget {
-  final String firstName;
-  final bool isLoading;
 
   const HomeHeader({
     super.key,
     this.firstName = 'User',
     this.isLoading = false,
   });
+  final String firstName;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,12 +31,12 @@ class HomeHeader extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           if (isLoading)
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Skeleton(width: 100, height: 16),
-                const SizedBox(height: 4),
-                const Skeleton(width: 160, height: 14),
+                Skeleton(width: 100, height: 16),
+                SizedBox(height: 4),
+                Skeleton(width: 160, height: 14),
               ],
             )
           else
@@ -71,59 +70,17 @@ class HomeHeader extends ConsumerWidget {
                   icon: LucideIcons.bell,
                   showBadge: unreadCount > 0,
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            const NotificationsScreen(),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                              const begin = Offset(1.0, 0.0);
-                              const end = Offset.zero;
-                              const curve = Curves.easeOutQuart;
-                              var tween = Tween(
-                                begin: begin,
-                                end: end,
-                              ).chain(CurveTween(curve: curve));
-                              var offsetAnimation = animation.drive(tween);
-                              return SlideTransition(
-                                position: offsetAnimation,
-                                child: child,
-                              );
-                            },
-                        transitionDuration: const Duration(milliseconds: 350),
-                      ),
-                    );
+                    AppLogger.d('🔔 [Header] Navigating to Notifications');
+                    const NotificationsRouteData().push<void>(context);
                   },
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: AppSpacing.xs),
                 _buildIconButton(
                   context,
                   icon: LucideIcons.heart,
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            const RequestsScreen(),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                              const begin = Offset(1.0, 0.0);
-                              const end = Offset.zero;
-                              const curve = Curves.easeOutQuart;
-                              var tween = Tween(
-                                begin: begin,
-                                end: end,
-                              ).chain(CurveTween(curve: curve));
-                              var offsetAnimation = animation.drive(tween);
-                              return SlideTransition(
-                                position: offsetAnimation,
-                                child: child,
-                              );
-                            },
-                        transitionDuration: const Duration(milliseconds: 350),
-                      ),
-                    );
+                    AppLogger.d('❤️ [Header] Navigating to Requests');
+                    const RequestsRouteData().push<void>(context);
                   },
                 ),
               ],
@@ -138,21 +95,25 @@ class HomeHeader extends ConsumerWidget {
     required IconData icon,
     bool showBadge = false,
     VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Icon(icon, size: 20, color: AppColors.text(context)),
-          if (showBadge)
-            Positioned(
-              top: -1,
-              right: -0.5,
+  }) => Stack(
+      clipBehavior: Clip.none,
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Icon(icon, size: 20, color: AppColors.text(context)),
+          ),
+        ),
+        if (showBadge)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: IgnorePointer(
               child: Container(
-                width: 12,
-                height: 12,
+                width: 10,
+                height: 10,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
@@ -163,8 +124,7 @@ class HomeHeader extends ConsumerWidget {
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
-  }
 }

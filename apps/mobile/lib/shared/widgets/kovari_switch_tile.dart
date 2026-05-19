@@ -1,16 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
 
 class KovariSwitchTile extends StatelessWidget {
-  final String label;
-  final String? subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final EdgeInsetsGeometry? margin;
-  final Color? fillColor;
-  final TextStyle? subtitleStyle;
-  final TextStyle? titleStyle;
 
   const KovariSwitchTile({
     super.key,
@@ -23,16 +16,23 @@ class KovariSwitchTile extends StatelessWidget {
     this.subtitleStyle,
     this.titleStyle,
   });
+  final String label;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final EdgeInsetsGeometry? margin;
+  final Color? fillColor;
+  final TextStyle? subtitleStyle;
+  final TextStyle? titleStyle;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       margin: margin ?? const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: fillColor ?? AppColors.surface(context, level: 2),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderColor(context), width: 1),
+        border: Border.all(color: AppColors.borderColor(context)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -75,14 +75,19 @@ class KovariSwitchTile extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: CupertinoSwitch(
                 value: value,
-                onChanged: onChanged,
+                onChanged: (val) {
+                  HapticService.selection();
+                  onChanged(val);
+                },
                 activeTrackColor: AppColors.primary,
-                inactiveTrackColor: AppColors.surface(context, level: 3),
+                inactiveTrackColor: AppColors.text(
+                  context,
+                  isMuted: true,
+                ).withValues(alpha: 0.3),
               ),
             ),
           ),
         ],
       ),
     );
-  }
 }

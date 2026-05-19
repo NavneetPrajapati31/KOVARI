@@ -1,24 +1,27 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:intl/intl.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/utils/url_utils.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
-import '../../models/group.dart';
-import '../../providers/group_details_provider.dart';
 
-class OverviewTab extends ConsumerWidget {
-  final GroupModel group;
-  final bool isEditingNotes;
-  final TextEditingController notesController;
-  final VoidCallback onEditNotesToggle;
-  final Function(int) onTabChange;
-  final Function(List<GroupMember>) onViewAllMembers;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/network/cloudinary_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/common/kovari_image.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
+import 'package:mobile/features/groups/providers/group_details_provider.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
+
+class OverviewTab extends ConsumerStatefulWidget {
 
   const OverviewTab({
     super.key,
@@ -29,14 +32,109 @@ class OverviewTab extends ConsumerWidget {
     required this.onTabChange,
     required this.onViewAllMembers,
   });
+  final GroupModel group;
+  final bool isEditingNotes;
+  final TextEditingController notesController;
+  final VoidCallback onEditNotesToggle;
+  final void Function(int) onTabChange;
+  final void Function(List<GroupMember>) onViewAllMembers;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final membersAsync = ref.watch(groupMembersProvider(group.id));
-    final itineraryAsync = ref.watch(groupItineraryProvider(group.id));
+  ConsumerState<OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends ConsumerState<OverviewTab>
+    with AutomaticKeepAliveClientMixin {
+  bool _isUploadingDestinationImage = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  Future<void> _pickDestinationImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (pickedFile != null) {
+      setState(() => _isUploadingDestinationImage = true);
+      unawaited(HapticFeedback.mediumImpact());
+
+      try {
+        final cloudinaryService = ref.read(cloudinaryServiceProvider);
+        final result = await cloudinaryService.uploadImage(
+          File(pickedFile.path),
+          folder: 'kovari-groups',
+        );
+
+        final imageUrl = result['secure_url'];
+        await ref.read(groupActionsProvider(widget.group.id)).updateGroup({
+          'destination_image': imageUrl,
+        });
+
+        if (mounted) {
+          KovariSnackbar.success(context, 'Destination image updated!');
+        }
+      } catch (e) {
+        if (mounted) {
+          KovariSnackbar.error(context, 'Upload failed: $e');
+        }
+      } finally {
+        if (mounted) setState(() => _isUploadingDestinationImage = false);
+      }
+    }
+  }
+
+  Future<void> _deleteDestinationImage() async {
+    unawaited(HapticFeedback.heavyImpact());
+
+    showKovariConfirmDialog(
+      context: context,
+      title: 'Remove Image',
+      content: 'Are you sure you want to remove the destination image?',
+      confirmLabel: 'Remove',
+      isDestructive: true,
+      onConfirm: () async {
+        try {
+          await ref.read(groupActionsProvider(widget.group.id)).updateGroup({
+            'destination_image': null,
+          });
+
+          if (mounted) {
+            KovariSnackbar.success(context, 'Destination image removed');
+          }
+        } catch (e) {
+          if (mounted) {
+            KovariSnackbar.error(context, 'Failed to remove image: $e');
+          }
+        }
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    // Selective subscriptions to avoid parent rebuilds
+    final membersState = ref.watch(
+      memberStoreProvider.select((s) => s[widget.group.id]),
+    );
+    final itineraryState = ref.watch(
+      itineraryStoreProvider.select((s) => s[widget.group.id]),
+    );
+    final group = ref.watch(
+      groupStoreProvider.select(
+        (s) => s[widget.group.id]?.data ?? widget.group,
+      ),
+    );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+      key: PageStorageKey(
+        'overview_${widget.group.id}',
+      ), // 🛡️ [Replay Engine] Scroll restoration
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -44,7 +142,7 @@ class OverviewTab extends ConsumerWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
-              side: BorderSide(color: AppColors.borderColor(context), width: 1),
+              side: BorderSide(color: AppColors.borderColor(context)),
             ),
             color: AppColors.surface(context, level: 1),
             child: Padding(
@@ -70,7 +168,7 @@ class OverviewTab extends ConsumerWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          group.description ?? "No description provided.",
+                          group.description ?? 'No description provided.',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -88,41 +186,62 @@ class OverviewTab extends ConsumerWidget {
                   const SizedBox(height: 10),
                   Divider(color: AppColors.borderColor(context), thickness: 1),
                   const SizedBox(height: 10),
-                  membersAsync.when(
-                    data: (members) =>
-                        _buildMembersVerticalList(context, members),
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
+
+                  // Members Layer
+                  if (membersState != null && membersState.hasData) ...[
+                    _buildMembersVerticalList(context, membersState.data!),
+                    const SizedBox(height: 10),
+                    Divider(
+                      color: AppColors.borderColor(context),
+                      thickness: 1,
+                    ),
+                    const SizedBox(height: 10),
+                  ] else if (membersState != null &&
+                      membersState.isHydrating) ...[
+                    _buildMembersLoading(context),
+                    const SizedBox(height: 10),
+                    Divider(
+                      color: AppColors.borderColor(context),
+                      thickness: 1,
+                    ),
+                    const SizedBox(height: 10),
+                  ] else if (membersState != null &&
+                      !membersState.hasData &&
+                      !membersState.isHydrating) ...[
+                    // 🛡️ Error/Empty Fallback
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        "Couldn't load members",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.text(context, isMuted: true),
+                        ),
                       ),
                     ),
-                    error: (e, s) => Text(
-                      "Error: $e",
-                      style: TextStyle(color: AppColors.text(context)),
+                    const SizedBox(height: 10),
+                    Divider(
+                      color: AppColors.borderColor(context),
+                      thickness: 1,
                     ),
-                  ),
-                  Divider(color: AppColors.borderColor(context), thickness: 1),
-                  const SizedBox(height: 10),
-                  itineraryAsync.when(
-                    data: (itinerary) =>
-                        _buildUpcomingItineraryCard(context, itinerary),
-                    loading: () => const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    error: (e, s) => Text(
-                      "Error: $e",
-                      style: TextStyle(color: AppColors.text(context)),
-                    ),
-                  ),
+                    const SizedBox(height: 10),
+                  ],
+
+                  // Itinerary Layer
+                  if (itineraryState != null && itineraryState.hasData)
+                    _buildUpcomingItineraryCard(context, itineraryState.data!)
+                  else
+                    const SizedBox.shrink(),
+
                   const SizedBox(height: 16),
-                  if (group.destinationImage != null)
-                    _buildDestinationImageCard(group),
+                  _buildDestinationImageCard(group),
                   const SizedBox(height: 16),
                   _buildAiOverviewCard(context, group),
                   const SizedBox(height: 16),
-                  _buildStickyNotesSection(context, ref),
+                  _buildStickyNotesSection(context, ref, group),
                 ],
               ),
             ),
@@ -135,30 +254,18 @@ class OverviewTab extends ConsumerWidget {
 
   Widget _buildCoverImage(BuildContext context, GroupModel group) {
     final coverImageUrl = UrlUtils.getFullImageUrl(group.coverImage);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Stack(
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 10,
-            child: coverImageUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: coverImageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) =>
-                        Container(color: AppColors.mutedColor(context)),
-                    errorWidget: (context, url, error) =>
-                        _buildPlaceholder(context),
-                  )
-                : _buildPlaceholder(context),
-          ),
-        ],
-      ),
+    return AspectRatio(
+      aspectRatio: 16 / 10,
+      child: coverImageUrl != null
+          ? KovariImage(
+              imageUrl: coverImageUrl,
+              borderRadius: BorderRadius.circular(20),
+            )
+          : _buildPlaceholder(context),
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context) {
-    return Container(
+  Widget _buildPlaceholder(BuildContext context) => Container(
       color: AppColors.mutedColor(context),
       child: Center(
         child: Icon(
@@ -168,15 +275,14 @@ class OverviewTab extends ConsumerWidget {
         ),
       ),
     );
-  }
 
   Widget _buildDatesSection(BuildContext context, GroupModel group) {
     final start = group.dateRange.start != null
         ? DateFormat('MMMM d').format(DateTime.parse(group.dateRange.start!))
-        : "";
+        : '';
     final end = group.dateRange.end != null
         ? DateFormat('MMMM d').format(DateTime.parse(group.dateRange.end!))
-        : "";
+        : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -184,12 +290,12 @@ class OverviewTab extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Mark the dates!",
+            'Mark the dates!',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           Text(
-            "$start - $end",
+            '$start - $end',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -207,9 +313,12 @@ class OverviewTab extends ConsumerWidget {
   ) {
     final sortedMembers = [...members]
       ..sort((a, b) {
+        // 1. Role priority (Admin first)
         if (a.role == 'admin' && b.role != 'admin') return -1;
         if (a.role != 'admin' && b.role == 'admin') return 1;
-        return 0;
+
+        // 2. Alphabetical priority
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
 
     return Padding(
@@ -221,7 +330,7 @@ class OverviewTab extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "${members.length} members",
+                "${members.length} member${members.length == 1 ? '' : 's'}",
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -255,7 +364,7 @@ class OverviewTab extends ConsumerWidget {
                               ),
                             ),
                             Text(
-                              "@${sortedMembers[i].username}",
+                              '@${sortedMembers[i].username}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.text(context, isMuted: true),
@@ -275,7 +384,7 @@ class OverviewTab extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Text(
-                            "Admin",
+                            'Admin',
                             style: TextStyle(
                               color: AppColors.primary,
                               fontSize: 11,
@@ -290,14 +399,14 @@ class OverviewTab extends ConsumerWidget {
           ),
           if (members.length > 5)
             TextButton(
-              onPressed: () => onViewAllMembers(members),
+              onPressed: () => widget.onViewAllMembers(members),
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(0, 0),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: const Text(
-                "View all",
+                'View all',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontSize: 13,
@@ -336,7 +445,7 @@ class OverviewTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Upcoming Itinerary",
+                      'Upcoming Itinerary',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
@@ -353,14 +462,14 @@ class OverviewTab extends ConsumerWidget {
                   ],
                 ),
                 TextButton(
-                  onPressed: () => onTabChange(2),
+                  onPressed: () => widget.onTabChange(2),
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: const Size(0, 0),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: const Text(
-                    "View all",
+                    'View all',
                     style: TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,
@@ -479,8 +588,8 @@ class OverviewTab extends ConsumerWidget {
 
   Widget _buildStatusBadge(BuildContext context, String status) {
     Color color = Colors.grey;
-    Color bgColor = Colors.grey.withValues(alpha: 0.1);
-    String label = status.toUpperCase();
+    var bgColor = Colors.grey.withValues(alpha: 0.1);
+    var label = status.toUpperCase();
 
     final isDark = AppColors.isDark(context);
     switch (status.toLowerCase()) {
@@ -489,14 +598,14 @@ class OverviewTab extends ConsumerWidget {
         bgColor = isDark
             ? const Color(0xFF1E3A8A).withValues(alpha: 0.3)
             : const Color(0xFFEFF6FF);
-        label = "In Progress";
+        label = 'In Progress';
         break;
       case 'completed':
         color = isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D);
         bgColor = isDark
             ? const Color(0xFF064E3B).withValues(alpha: 0.3)
             : const Color(0xFFF0FDF4);
-        label = "Completed";
+        label = 'Completed';
         break;
       case 'pending':
         color = isDark
@@ -505,14 +614,14 @@ class OverviewTab extends ConsumerWidget {
         bgColor = isDark
             ? const Color(0xFF422006).withValues(alpha: 0.3)
             : const Color.fromARGB(255, 255, 247, 216);
-        label = "Not Started";
+        label = 'Not Started';
         break;
       case 'cancelled':
         color = isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C);
         bgColor = isDark
             ? const Color(0xFF7F1D1D).withValues(alpha: 0.3)
             : const Color(0xFFFEF2F2);
-        label = "Cancelled";
+        label = 'Cancelled';
         break;
     }
 
@@ -534,29 +643,104 @@ class OverviewTab extends ConsumerWidget {
   }
 
   Widget _buildDestinationImageCard(GroupModel group) {
-    final destinationImageUrl = UrlUtils.getFullImageUrl(
-      group.destinationImage,
-    );
-    if (destinationImageUrl == null) return const SizedBox.shrink();
+    final imageUrl = UrlUtils.getFullImageUrl(group.destinationImage);
+
+    if (imageUrl == null) {
+      return GestureDetector(
+        onTap: _isUploadingDestinationImage ? null : _pickDestinationImage,
+        child: Container(
+          width: double.infinity,
+          height: 180,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            color: Colors.transparent,
+            border: Border.all(color: AppColors.borderColor(context)),
+          ),
+          child: Stack(
+            children: [
+              if (_isUploadingDestinationImage)
+                const Center(
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          LucideIcons.imagePlus,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Add Destination Image',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.text(context),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Personalize your trip overview',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.text(context, isMuted: true),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: Stack(
         children: [
           AspectRatio(
             aspectRatio: 16 / 10,
-            child: CachedNetworkImage(
-              imageUrl: destinationImageUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) =>
-                  Container(color: AppColors.mutedColor(context)),
-              errorWidget: (context, url, error) => const SizedBox.shrink(),
+            child: KovariImage(
+              imageUrl: imageUrl,
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
+          // Gradient overlay for better text contrast
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.1),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.4),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
+              ),
             ),
           ),
           Positioned(
-            bottom: AppSpacing.sm,
-            left: AppSpacing.sm,
-            right: AppSpacing.sm,
+            bottom: 12,
+            left: 12,
+            right: 12,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -566,33 +750,66 @@ class OverviewTab extends ConsumerWidget {
                       group.destination,
                       style: AppTextStyles.label.copyWith(
                         color: Colors.white,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                GestureDetector(
-                  onTap: () {},
-                  child: _buildGlassContainer(
-                    borderRadius: BorderRadius.circular(100),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
+                const SizedBox(width: 8),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        unawaited(HapticFeedback.lightImpact());
+                        try {
+                          await UrlUtils.launchMaps(group.destination);
+                        } catch (e) {
+                          if (context.mounted) {
+                            KovariSnackbar.error(
+                              context,
+                              'Could not open maps',
+                            );
+                          }
+                        }
+                      },
+                      child: _buildGlassContainer(
+                        borderRadius: BorderRadius.circular(100),
+                        child: const Icon(
                           LucideIcons.search,
                           size: 16,
                           color: Colors.white,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _deleteDestinationImage,
+                      child: _buildGlassContainer(
+                        borderRadius: BorderRadius.circular(100),
+                        child: const Icon(
+                          LucideIcons.trash2,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          if (_isUploadingDestinationImage)
+            const Positioned.fill(
+              child: Center(
+                child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -640,16 +857,16 @@ class OverviewTab extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(
+                Icon(
                   LucideIcons.sparkles,
                   size: 16,
                   color: AppColors.primary,
                 ),
-                const SizedBox(width: 8),
-                const Text(
-                  "AI Overview",
+                SizedBox(width: 8),
+                Text(
+                  'AI Overview',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
@@ -674,78 +891,178 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildStickyNotesSection(BuildContext context, WidgetRef ref) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.isDark(context)
-            ? AppColors.mutedDark
-            : const Color(0xFFFFF2C0),
-        borderRadius: BorderRadius.circular(20),
+  Widget _buildStickyNotesSection(
+    BuildContext context,
+    WidgetRef ref,
+    GroupModel group,
+  ) {
+    final isDark = AppColors.isDark(context);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.cardColor(context),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.borderColor(context)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        LucideIcons.stickyNote,
+                        size: 16,
+                        color: AppColors.primary.withValues(
+                          alpha: isDark ? 0.9 : 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Travel Note',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: AppColors.text(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      if (widget.isEditingNotes) {
+                        HapticFeedback.mediumImpact();
+                        ref
+                            .read(groupActionsProvider(group.id))
+                            .updateNotes(widget.notesController.text);
+                      } else {
+                        HapticFeedback.lightImpact();
+                      }
+                      widget.onEditNotesToggle();
+                    },
+                    child: Text(
+                      widget.isEditingNotes ? 'Done' : 'Edit',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Theme(
+                data: Theme.of(context).copyWith(
+                  textSelectionTheme: TextSelectionThemeData(
+                    cursorColor: AppColors.primary,
+                    selectionColor: AppColors.primary.withValues(alpha: 0.2),
+                    selectionHandleColor: AppColors.primary,
+                  ),
+                ),
+                child: widget.isEditingNotes
+                    ? TextField(
+                        controller: widget.notesController,
+                        maxLines: null,
+                        autofocus: true,
+                        style: TextStyle(
+                          color: AppColors.text(context),
+                          fontSize: 12,
+                          height: 1.6,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          hintText: 'Start typing your plans...',
+                          hintStyle: TextStyle(
+                            color: AppColors.text(context, isMuted: true),
+                            fontSize: 12,
+                            height: 1.6,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      )
+                    : Text(
+                        widget.notesController.text.isEmpty
+                            ? 'No notes added yet.'
+                            : widget.notesController.text,
+                        style: TextStyle(
+                          color: AppColors.text(context),
+                          fontSize: 12,
+                          height: 1.6,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+              ),
+              if (widget.notesController.text.isNotEmpty ||
+                  widget.isEditingNotes) ...[
+                const SizedBox(height: 12),
+                Text(
+                  DateFormat('MMMM d, h:mm a').format(DateTime.now()),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.text(
+                      context,
+                      isMuted: true,
+                    ).withValues(alpha: 0.4),
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildMembersLoading(BuildContext context) => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          isEditingNotes
-              ? TextField(
-                  controller: notesController,
-                  maxLines: null,
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.6,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.text(context, isMuted: true),
-                  ),
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: "Enter your travel note...",
-                  ),
-                )
-              : Text(
-                  notesController.text.isEmpty
-                      ? "Enter your travel note..."
-                      : notesController.text,
-                  style: TextStyle(
-                    color: AppColors.text(context, isMuted: true),
-                    height: 1.6,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-          const SizedBox(height: 24),
+          Container(
+            width: 100,
+            height: 14,
+            decoration: BoxDecoration(
+              color: AppColors.mutedColor(context).withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                DateFormat('MMM d, yyyy').format(DateTime.now()),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.text(context, isMuted: true),
+              for (int i = 0; i < 3; i++)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.mutedColor(
+                        context,
+                      ).withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: Icon(
-                  isEditingNotes ? LucideIcons.check : LucideIcons.pencil,
-                  size: 16,
-                  color: AppColors.text(context, isMuted: true),
-                ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () {
-                  if (isEditingNotes) {
-                    ref
-                        .read(groupActionsProvider(group.id))
-                        .updateNotes(notesController.text);
-                  }
-                  onEditNotesToggle();
-                },
-              ),
             ],
           ),
         ],
       ),
     );
-  }
 }

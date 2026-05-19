@@ -1,19 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/utils/app_logger.dart';
 import 'package:uuid/uuid.dart';
-import '../utils/app_logger.dart';
-import 'api_client.dart';
-import '../providers/connectivity_provider.dart';
 
 class QueuedMutation {
-  final String id;
-  final String path;
-  final String method;
-  final dynamic data;
-  final DateTime createdAt;
-  int retryCount;
 
   QueuedMutation({
     required this.id,
@@ -24,6 +19,21 @@ class QueuedMutation {
     this.retryCount = 0,
   });
 
+  factory QueuedMutation.fromJson(Map<String, dynamic> json) => QueuedMutation(
+    id: json['id'] as String,
+    path: json['path'] as String,
+    method: json['method'] as String,
+    data: json['data'] != null ? Map<String, dynamic>.from(json['data'] as Map) : null,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+    retryCount: (json['retryCount'] as int?) ?? 0,
+  );
+  final String id;
+  final String path;
+  final String method;
+  final Map<String, dynamic>? data;
+  final DateTime createdAt;
+  int retryCount;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'path': path,
@@ -32,20 +42,9 @@ class QueuedMutation {
     'createdAt': createdAt.toIso8601String(),
     'retryCount': retryCount,
   };
-
-  factory QueuedMutation.fromJson(Map<String, dynamic> json) => QueuedMutation(
-    id: json['id'],
-    path: json['path'],
-    method: json['method'],
-    data: json['data'],
-    createdAt: DateTime.parse(json['createdAt']),
-    retryCount: json['retryCount'] ?? 0,
-  );
 }
 
-final mutationQueueInitProvider = FutureProvider<Box<String>>((ref) async {
-  return await Hive.openBox<String>('mutation_queue');
-});
+final mutationQueueInitProvider = FutureProvider<Box<String>>((ref) async => Hive.openBox<String>('mutation_queue'));
 
 class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
   late Box<String> _box;
@@ -59,21 +58,21 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
       data: (box) {
         _box = box;
         final items = _box.values
-            .map((v) => QueuedMutation.fromJson(jsonDecode(v)))
+            .map((v) => QueuedMutation.fromJson(jsonDecode(v) as Map<String, dynamic>))
             .toList();
         items.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
         // Background process on build if online
-        Future.microtask(() {
+        unawaited(Future.microtask(() {
           if (ref.read(connectivityProvider).isOnline) {
             processQueue();
           }
-        });
+        }));
 
         // Listen for future connectivity changes
         ref.listen(connectivityProvider, (prev, next) {
-          if (next.isOnline && !(_isProcessing)) {
-            processQueue();
+          if (next.isOnline && !_isProcessing) {
+            unawaited(processQueue());
           }
         });
 
@@ -87,7 +86,7 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
   Future<void> enqueue({
     required String path,
     required String method,
-    dynamic data,
+    Map<String, dynamic>? data,
   }) async {
     final mutation = QueuedMutation(
       id: const Uuid().v4(),
@@ -102,7 +101,7 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
     AppLogger.i('📥 Mutation enqueued: ${mutation.method} ${mutation.path}');
 
     if (ref.read(connectivityProvider).isOnline) {
-      processQueue();
+      unawaited(processQueue());
     }
   }
 
@@ -121,28 +120,28 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
       try {
         switch (mutation.method.toUpperCase()) {
           case 'POST':
-            await apiClient.post(
+            await apiClient.post<dynamic>(
               mutation.path,
               data: mutation.data,
               parser: (d) => d,
             );
             break;
           case 'PUT':
-            await apiClient.put(
+            await apiClient.put<dynamic>(
               mutation.path,
               data: mutation.data,
               parser: (d) => d,
             );
             break;
           case 'PATCH':
-            await apiClient.patch(
+            await apiClient.patch<dynamic>(
               mutation.path,
               data: mutation.data,
               parser: (d) => d,
             );
             break;
           case 'DELETE':
-            await apiClient.delete(
+            await apiClient.delete<dynamic>(
               mutation.path,
               data: mutation.data,
               parser: (d) => d,
@@ -177,6 +176,4 @@ class MutationQueueNotifier extends Notifier<List<QueuedMutation>> {
 }
 
 final mutationQueueProvider =
-    NotifierProvider<MutationQueueNotifier, List<QueuedMutation>>(() {
-      return MutationQueueNotifier();
-    });
+    NotifierProvider<MutationQueueNotifier, List<QueuedMutation>>(MutationQueueNotifier.new);

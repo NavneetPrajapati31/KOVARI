@@ -1,17 +1,15 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../auth/auth_repository.dart';
-import '../auth/session_manager.dart';
-import '../auth/token_storage.dart';
-import '../../shared/models/kovari_user.dart';
 import 'dart:convert';
 
-class AuthState {
-  final KovariUser? user;
-  final bool isAuthenticated;
-  final bool isDegraded;
-  final bool isRefreshing;
-  final bool isBootstrapping;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/auth/auth_repository.dart';
+import 'package:mobile/core/auth/session_manager.dart';
+import 'package:mobile/core/auth/token_storage.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/shared/models/kovari_user.dart';
 
+class AuthState {
   AuthState({
     this.user,
     this.isAuthenticated = false,
@@ -19,6 +17,11 @@ class AuthState {
     this.isRefreshing = false,
     this.isBootstrapping = true,
   });
+  final KovariUser? user;
+  final bool isAuthenticated;
+  final bool isDegraded;
+  final bool isRefreshing;
+  final bool isBootstrapping;
 
   AuthState copyWith({
     KovariUser? user,
@@ -26,15 +29,13 @@ class AuthState {
     bool? isDegraded,
     bool? isRefreshing,
     bool? isBootstrapping,
-  }) {
-    return AuthState(
-      user: user ?? this.user,
-      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-      isDegraded: isDegraded ?? this.isDegraded,
-      isRefreshing: isRefreshing ?? this.isRefreshing,
-      isBootstrapping: isBootstrapping ?? this.isBootstrapping,
-    );
-  }
+  }) => AuthState(
+    user: user ?? this.user,
+    isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+    isDegraded: isDegraded ?? this.isDegraded,
+    isRefreshing: isRefreshing ?? this.isRefreshing,
+    isBootstrapping: isBootstrapping ?? this.isBootstrapping,
+  );
 }
 
 class AuthNotifier extends Notifier<AuthState> {
@@ -59,7 +60,9 @@ class AuthNotifier extends Notifier<AuthState> {
     KovariUser? user;
     if (userJson != null) {
       try {
-        user = KovariUser.fromJson(jsonDecode(userJson));
+        user = KovariUser.fromJson(
+          jsonDecode(userJson) as Map<String, dynamic>,
+        );
       } catch (_) {}
     }
 
@@ -70,6 +73,44 @@ class AuthNotifier extends Notifier<AuthState> {
       isRefreshing: session.isRefreshing,
       isBootstrapping: false,
     );
+
+    // 💎 Instagram-Pro: Eagerly heal the profile if UUID is missing from cache
+    if (user != null && user.resolvedUuid == null) {
+      AppLogger.w(
+        '🛡️ [AuthNotifier] UUID missing for ClerkID: ${user.id}. Triggering profile sync...',
+      );
+      syncProfile();
+    }
+  }
+
+  /// Eagerly fetch the latest profile to ensure we have the UUID for encryption.
+  Future<void> syncProfile() async {
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final response = await apiClient.get<KovariUser>(
+        ApiEndpoints.currentProfile,
+        ignoreCache: true, // 💎 Force network fetch to heal missing UUID
+        parser: (data) {
+          final map = data as Map<String, dynamic>;
+          final innerData = map['data'] ?? map;
+          return KovariUser.fromJson(innerData as Map<String, dynamic>);
+        },
+      );
+
+      if (response.success && response.data != null) {
+        final freshUser = response.data!;
+        if (freshUser.uuid != null) {
+          AppLogger.i(
+            '🛡️ [AuthNotifier] Profile sync successful. UUID resolved: ${freshUser.uuid}',
+          );
+          final storage = TokenStorage();
+          await storage.saveUserData(jsonEncode(freshUser.toJson()));
+          state = state.copyWith(user: freshUser);
+        }
+      }
+    } catch (e) {
+      AppLogger.e('🛡️ [AuthNotifier] Profile sync failed', error: e);
+    }
   }
 
   void setUser(KovariUser? user) {
@@ -84,7 +125,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
   void syncSessionState() {
     final session = ref.read(sessionManagerProvider);
-    if (state.isDegraded != session.isDegraded || 
+    if (state.isDegraded != session.isDegraded ||
         state.isRefreshing != session.isRefreshing ||
         state.isAuthenticated != session.isAuthenticated) {
       state = state.copyWith(
@@ -96,9 +137,16 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 }
 
-final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
 
 /// Legacy compatibility provider if needed
-final authStateProvider = Provider<KovariUser?>((ref) => ref.watch(authProvider).user);
+final authStateProvider = Provider<KovariUser?>(
+  (ref) => ref.watch(authProvider).user,
+);
 
-final logoutProvider = Provider((ref) => () => ref.read(authProvider.notifier).logout());
+final logoutProvider = Provider(
+  (ref) =>
+      () => ref.read(authProvider.notifier).logout(),
+);

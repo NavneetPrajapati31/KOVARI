@@ -1,17 +1,20 @@
+import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
-import '../../../../shared/widgets/text_input_field.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../shared/widgets/secondary_button.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../providers/onboarding_provider.dart';
-import '../../../../core/widgets/common/user_avatar_fallback.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/common/user_avatar_fallback.dart';
+import 'package:mobile/features/onboarding/providers/onboarding_provider.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
+import 'package:mobile/shared/widgets/text_input_field.dart';
 
 class MediaBioStep extends ConsumerStatefulWidget {
   const MediaBioStep({super.key});
@@ -32,8 +35,8 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
     );
   }
 
-  Future<void> _showImageSourceModal() async {
-    showModalBottomSheet(
+  void _showImageSourceModal() {
+    unawaited(showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -53,7 +56,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
             ),
             const SizedBox(height: 24),
             Text(
-              "Profile Picture",
+              'Profile Picture',
               style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -69,14 +72,14 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                 ),
               ),
               title: Text(
-                "Take Photo",
+                'Take Photo',
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedForeground,
                 ),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _pickImage(ImageSource.camera);
               },
             ),
@@ -92,14 +95,14 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                 ),
               ),
               title: Text(
-                "Choose from Gallery",
+                'Choose from Gallery',
                 style: AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedForeground,
                 ),
               ),
               onTap: () {
-                Navigator.pop(context);
+                context.pop();
                 _pickImage(ImageSource.gallery);
               },
             ),
@@ -117,14 +120,14 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                   ),
                 ),
                 title: Text(
-                  "Remove Photo",
+                  'Remove Photo',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.destructive,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 onTap: () {
-                  Navigator.pop(context);
+                  context.pop();
                   ref
                       .read(onboardingProvider.notifier)
                       .updateMediaBio(url: null, localPath: null);
@@ -134,17 +137,17 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(source: source);
+      final pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         await _cropImage(pickedFile.path);
       }
     } catch (e) {
-      debugPrint("Error picking image: $e");
+      debugPrint('Error picking image: $e');
     }
   }
 
@@ -188,7 +191,7 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
             .updateMediaBio(localPath: croppedFile.path);
       }
     } catch (e) {
-      debugPrint("Error cropping image: $e");
+      debugPrint('Error cropping image: $e');
     }
   }
 
@@ -202,13 +205,13 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
         children: [
           const SizedBox(height: AppSpacing.sm),
           Text(
-            "Profile picture",
+            'Profile picture',
             style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            "Add a photo and short bio",
+            'Add a photo and short bio',
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.mutedForeground,
             ),
@@ -229,7 +232,6 @@ class _MediaBioStepState extends ConsumerState<MediaBioStep> {
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: AppColors.borderColor(context),
-                      width: 1,
                     ),
                     image: state.localProfilePicPath != null
                         ? DecorationImage(

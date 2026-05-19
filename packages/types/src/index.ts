@@ -10,6 +10,7 @@ export interface UserProfile {
   username?: string;
   profile_photo?: string;
   deleted?: boolean;
+  clerk_id?: string;
 }
 
 export interface Group {

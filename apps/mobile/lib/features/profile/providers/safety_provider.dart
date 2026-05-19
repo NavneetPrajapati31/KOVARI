@@ -1,17 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/safety_report.dart';
-import '../services/safety_service.dart';
+import 'package:mobile/features/profile/models/safety_report.dart';
+import 'package:mobile/features/profile/services/safety_service.dart';
 
 class SafetyState {
-  final List<SafetyReport> reports;
-  final bool isLoadingReports;
-  final String? reportsError;
-  final List<SafetyTarget> searchResults;
-  final bool isSearchLoading;
-  final String? searchError;
-  final bool isSubmitting;
-  final String? submissionError;
-  final bool isSubmissionSuccess;
 
   SafetyState({
     this.reports = const [],
@@ -24,6 +15,15 @@ class SafetyState {
     this.submissionError,
     this.isSubmissionSuccess = false,
   });
+  final List<SafetyReport> reports;
+  final bool isLoadingReports;
+  final String? reportsError;
+  final List<SafetyTarget> searchResults;
+  final bool isSearchLoading;
+  final String? searchError;
+  final bool isSubmitting;
+  final String? submissionError;
+  final bool isSubmissionSuccess;
 
   SafetyState copyWith({
     List<SafetyReport>? reports,
@@ -35,8 +35,7 @@ class SafetyState {
     bool? isSubmitting,
     String? submissionError,
     bool? isSubmissionSuccess,
-  }) {
-    return SafetyState(
+  }) => SafetyState(
       reports: reports ?? this.reports,
       isLoadingReports: isLoadingReports ?? this.isLoadingReports,
       reportsError: reportsError ?? this.reportsError,
@@ -47,19 +46,16 @@ class SafetyState {
       submissionError: submissionError ?? this.submissionError,
       isSubmissionSuccess: isSubmissionSuccess ?? this.isSubmissionSuccess,
     );
-  }
 }
 
 class SafetyNotifier extends Notifier<SafetyState> {
   @override
-  SafetyState build() {
-    return SafetyState();
-  }
+  SafetyState build() => SafetyState();
 
   SafetyService get _service => ref.read(safetyServiceProvider);
 
   Future<void> fetchMyReports() async {
-    state = state.copyWith(isLoadingReports: true, reportsError: null);
+    state = state.copyWith(isLoadingReports: true);
     try {
       final reports = await _service.fetchMyReports();
       state = state.copyWith(reports: reports, isLoadingReports: false);
@@ -72,7 +68,7 @@ class SafetyNotifier extends Notifier<SafetyState> {
   }
 
   Future<void> searchTargets(String type, String query) async {
-    state = state.copyWith(isSearchLoading: true, searchError: null);
+    state = state.copyWith(isSearchLoading: true);
     try {
       final targets = await _service.searchTargets(type, query);
       state = state.copyWith(searchResults: targets, isSearchLoading: false);
@@ -93,7 +89,6 @@ class SafetyNotifier extends Notifier<SafetyState> {
   }) async {
     state = state.copyWith(
       isSubmitting: true,
-      submissionError: null,
       isSubmissionSuccess: false,
     );
     try {
@@ -118,12 +113,9 @@ class SafetyNotifier extends Notifier<SafetyState> {
   void resetSubmissionState() {
     state = state.copyWith(
       isSubmitting: false,
-      submissionError: null,
       isSubmissionSuccess: false,
     );
   }
 }
 
-final safetyProvider = NotifierProvider<SafetyNotifier, SafetyState>(() {
-  return SafetyNotifier();
-});
+final safetyProvider = NotifierProvider<SafetyNotifier, SafetyState>(SafetyNotifier.new);

@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/providers/profile_provider.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/widgets/app_card.dart';
-import '../models/user_profile.dart';
-import '../../app_shell/providers/app_shell_provider.dart';
-import 'connections_screen.dart';
-import 'edit_profile_screen.dart';
-import 'settings_screen.dart';
-import 'safety_screen.dart';
-
-import '../../../shared/widgets/kovari_image_modal.dart';
-import '../../../shared/widgets/kovari_popover.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/app_shell/providers/app_shell_provider.dart';
+import 'package:mobile/features/profile/models/user_profile.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
+import 'package:mobile/shared/widgets/kovari_image_modal.dart';
+import 'package:mobile/shared/widgets/kovari_popover.dart';
+import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -27,29 +25,37 @@ class ProfileScreen extends ConsumerWidget {
     final profile = ref.watch(profileProvider);
 
     if (profile == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: KovariSkeletonProfile());
     }
 
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
+      body: KovariRefreshIndicator(
+        onRefresh: () =>
+            ref.read(profileProvider.notifier).fetchProfile(ignoreCache: true),
         child: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  MediaQuery.of(context).padding.top + AppSpacing.sm,
+                  AppSpacing.md,
+                  AppSpacing.sm,
                 ),
                 child: Column(
                   children: [
                     _buildHeaderCard(context, ref, profile),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.mds),
                     _buildContentCard(context, profile),
                   ],
                 ),
               ),
             ),
+            const SliverToBoxAdapter(child: SizedBox(height: 110)),
           ],
         ),
       ),
@@ -68,7 +74,6 @@ class ProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: () {
@@ -103,31 +108,18 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         KovariPopover(
+                          width: 140,
+                          offset: const Offset(-115, 30),
                           items: [
                             KovariMenuAction(
                               icon: LucideIcons.settings,
                               label: 'Settings',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const SettingsScreen(),
-                                  ),
-                                );
-                              },
+                              onTap: () => const SettingsRouteData().push<void>(context),
                             ),
                             KovariMenuAction(
                               icon: LucideIcons.shieldCheck,
                               label: 'Safety',
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const SafetyScreen(),
-                                  ),
-                                );
-                              },
+                              onTap: () => const SafetyRouteData().push<void>(context),
                             ),
                             KovariMenuAction(
                               icon: LucideIcons.logOut,
@@ -159,36 +151,22 @@ class ProfileScreen extends ConsumerWidget {
                           context,
                           profile.followers,
                           'Followers',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ConnectionsScreen(
-                                  userId: profile.userId,
-                                  username: profile.username,
-                                  initialTab: 'followers',
-                                ),
-                              ),
-                            );
-                          },
+                          onTap: () => ConnectionsRouteData(
+                            userId: profile.userId,
+                            username: profile.username,
+                            initialTab: 'followers',
+                          ).push<void>(context),
                         ),
                         const SizedBox(width: 16),
                         _buildStatItem(
                           context,
                           profile.following,
                           'Following',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ConnectionsScreen(
-                                  userId: profile.userId,
-                                  username: profile.username,
-                                  initialTab: 'following',
-                                ),
-                              ),
-                            );
-                          },
+                          onTap: () => ConnectionsRouteData(
+                            userId: profile.userId,
+                            username: profile.username,
+                            initialTab: 'following',
+                          ).push<void>(context),
                         ),
                       ],
                     ),
@@ -212,33 +190,9 @@ class ProfileScreen extends ConsumerWidget {
                 child: _buildActionButton(
                   context,
                   'Edit Profile',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      PageRouteBuilder(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            EditProfileScreen(profile: profile),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                              const begin = Offset(0.0, 1.0);
-                              const end = Offset.zero;
-                              const curve = Curves.easeOutCubic;
-                              var tween = Tween(
-                                begin: begin,
-                                end: end,
-                              ).chain(CurveTween(curve: curve));
-                              return SlideTransition(
-                                position: animation.drive(tween),
-                                child: child,
-                              );
-                            },
-                        fullscreenDialog: true,
-                      ),
-                    );
-                  },
+                  onPressed: () => const EditProfileRouteData().push<void>(context),
                   backgroundColor: AppColors.primary,
                   textColor: Colors.white,
-                  border: false,
                 ),
               ),
               const SizedBox(width: 8),
@@ -263,20 +217,12 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget safeAreas({required Widget child}) {
-    return Material(
-      color: Colors.transparent,
-      child: SafeArea(child: child),
-    );
-  }
-
   Widget _buildStatItem(
     BuildContext context,
     String count,
     String label, {
     VoidCallback? onTap,
-  }) {
-    return GestureDetector(
+  }) => GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Row(
@@ -301,7 +247,6 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
 
   Widget _buildActionButton(
     BuildContext context,
@@ -310,8 +255,7 @@ class ProfileScreen extends ConsumerWidget {
     required Color backgroundColor,
     required Color textColor,
     bool border = false,
-  }) {
-    return SizedBox(
+  }) => SizedBox(
       height: 32, // Controlled height for "sm" button
       child: TextButton(
         onPressed: onPressed,
@@ -320,7 +264,7 @@ class ProfileScreen extends ConsumerWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: border
-                ? BorderSide(color: AppColors.borderColor(context), width: 1)
+                ? BorderSide(color: AppColors.borderColor(context))
                 : BorderSide.none,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -335,10 +279,8 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
 
-  Widget _buildContentCard(BuildContext context, UserProfile profile) {
-    return AppCard(
+  Widget _buildContentCard(BuildContext context, UserProfile profile) => AppCard(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -347,9 +289,9 @@ class ProfileScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          const SizedBox(
             width: 50,
-            child: const Text(
+            child: Text(
               'About',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -458,10 +400,8 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
-  }
 
-  Widget _buildInfoItem(BuildContext context, String label, String value) {
-    return Column(
+  Widget _buildInfoItem(BuildContext context, String label, String value) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -484,17 +424,14 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ],
     );
-  }
 
-  Widget _buildInfoRow(Widget item1, Widget item2) {
-    return Row(
+  Widget _buildInfoRow(Widget item1, Widget item2) => Row(
       children: [
         Expanded(child: item1),
         const SizedBox(width: 16),
         Expanded(child: item2),
       ],
     );
-  }
 
   Widget _buildChipsSection(
     BuildContext context,
@@ -518,8 +455,7 @@ class ProfileScreen extends ConsumerWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: items.map((item) {
-            return Container(
+          children: items.map((item) => Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.mutedDark : AppColors.muted,
@@ -533,8 +469,7 @@ class ProfileScreen extends ConsumerWidget {
                   color: AppColors.text(context),
                 ),
               ),
-            );
-          }).toList(),
+            )).toList(),
         ),
       ],
     );

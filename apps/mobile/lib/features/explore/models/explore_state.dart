@@ -1,12 +1,6 @@
 enum TravelMode { solo, group }
 
 class SearchData {
-  final String destination;
-  final double budget;
-  final DateTime startDate;
-  final DateTime endDate;
-  final TravelMode travelMode;
-  final Map<String, dynamic>? destinationDetails;
 
   SearchData({
     required this.destination,
@@ -16,6 +10,12 @@ class SearchData {
     required this.travelMode,
     this.destinationDetails,
   });
+  final String destination;
+  final double budget;
+  final DateTime startDate;
+  final DateTime endDate;
+  final TravelMode travelMode;
+  final Map<String, dynamic>? destinationDetails;
 
   SearchData copyWith({
     String? destination,
@@ -24,8 +24,7 @@ class SearchData {
     DateTime? endDate,
     TravelMode? travelMode,
     Map<String, dynamic>? destinationDetails,
-  }) {
-    return SearchData(
+  }) => SearchData(
       destination: destination ?? this.destination,
       budget: budget ?? this.budget,
       startDate: startDate ?? this.startDate,
@@ -33,20 +32,9 @@ class SearchData {
       travelMode: travelMode ?? this.travelMode,
       destinationDetails: destinationDetails ?? this.destinationDetails,
     );
-  }
 }
 
 class ExploreFilters {
-  final List<int> ageRange;
-  final String gender;
-  final List<String> interests;
-  final String travelStyle;
-  final List<double> budgetRange;
-  final String personality;
-  final String smoking;
-  final String drinking;
-  final String nationality;
-  final List<String> languages;
 
   ExploreFilters({
     required this.ageRange,
@@ -61,8 +49,7 @@ class ExploreFilters {
     required this.languages,
   });
 
-  factory ExploreFilters.initial() {
-    return ExploreFilters(
+  factory ExploreFilters.initial() => ExploreFilters(
       ageRange: [18, 65],
       gender: 'Any',
       interests: [],
@@ -74,7 +61,16 @@ class ExploreFilters {
       nationality: 'Any',
       languages: [],
     );
-  }
+  final List<int> ageRange;
+  final String gender;
+  final List<String> interests;
+  final String travelStyle;
+  final List<double> budgetRange;
+  final String personality;
+  final String smoking;
+  final String drinking;
+  final String nationality;
+  final List<String> languages;
 
   ExploreFilters copyWith({
     List<int>? ageRange,
@@ -87,8 +83,7 @@ class ExploreFilters {
     String? drinking,
     String? nationality,
     List<String>? languages,
-  }) {
-    return ExploreFilters(
+  }) => ExploreFilters(
       ageRange: ageRange ?? this.ageRange,
       gender: gender ?? this.gender,
       interests: interests ?? this.interests,
@@ -100,22 +95,9 @@ class ExploreFilters {
       nationality: nationality ?? this.nationality,
       languages: languages ?? this.languages,
     );
-  }
 }
 
 class ExploreState {
-  final SearchData searchData;
-  final ExploreFilters filters;
-  final List<dynamic> matches;
-  final int currentIndex;
-  final bool isLoading;
-  final String? error;
-  final bool hasSearched;
-  final DateTime? lastFetchTime;
-  final int page;
-  final bool hasMore;
-  final bool isPending;
-  final bool isFetchingNextPage;
 
   ExploreState({
     required this.searchData,
@@ -132,8 +114,7 @@ class ExploreState {
     this.isFetchingNextPage = false,
   });
 
-  factory ExploreState.initial() {
-    return ExploreState(
+  factory ExploreState.initial() => ExploreState(
       searchData: SearchData(
         destination: '',
         budget: 20000,
@@ -146,13 +127,21 @@ class ExploreState {
       currentIndex: 0,
       isLoading: false,
       hasSearched: false,
-      lastFetchTime: null,
       page: 1,
       hasMore: true,
-      isPending: false,
-      isFetchingNextPage: false,
     );
-  }
+  final SearchData searchData;
+  final ExploreFilters filters;
+  final List<dynamic> matches;
+  final int currentIndex;
+  final bool isLoading;
+  final String? error;
+  final bool hasSearched;
+  final DateTime? lastFetchTime;
+  final int page;
+  final bool hasMore;
+  final bool isPending;
+  final bool isFetchingNextPage;
 
   ExploreState copyWith({
     SearchData? searchData,
@@ -167,8 +156,7 @@ class ExploreState {
     bool? hasMore,
     bool? isPending,
     bool? isFetchingNextPage,
-  }) {
-    return ExploreState(
+  }) => ExploreState(
       searchData: searchData ?? this.searchData,
       filters: filters ?? this.filters,
       matches: matches ?? this.matches,
@@ -182,5 +170,4 @@ class ExploreState {
       isPending: isPending ?? this.isPending,
       isFetchingNextPage: isFetchingNextPage ?? this.isFetchingNextPage,
     );
-  }
 }

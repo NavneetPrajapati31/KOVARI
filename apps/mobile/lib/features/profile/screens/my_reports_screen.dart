@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../shared/widgets/kovari_avatar.dart';
-import '../../../shared/utils/url_utils.dart';
-import '../providers/safety_provider.dart';
-import '../models/safety_report.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/profile/models/safety_report.dart';
+import 'package:mobile/features/profile/providers/safety_provider.dart';
+import 'package:mobile/shared/utils/url_utils.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 class MyReportsScreen extends ConsumerStatefulWidget {
   const MyReportsScreen({super.key});
@@ -41,12 +42,13 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, SafetyState state) {
-    return Container(
+  Widget _buildHeader(BuildContext context, SafetyState state) => Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainer,
-        border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outline),
+        ),
       ),
       child: Row(
         children: [
@@ -55,7 +57,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
           Expanded(
             child: Text(
               'My Reports',
-              style: AppTextStyles.h3,
+              style: AppTextStyles.h3.copyWith(color: AppColors.text(context)),
             ),
           ),
           if (state.reports.isNotEmpty)
@@ -77,11 +79,9 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
+      onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -91,7 +91,6 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
         ),
       ),
     );
-  }
 
   Widget _buildBody(BuildContext context, SafetyState state) {
     if (state.isLoadingReports && state.reports.isEmpty) {
@@ -120,9 +119,14 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                   ref.read(safetyProvider.notifier).fetchMyReports(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('Try Again', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Try Again',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -143,7 +147,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
             Text(
               'No active reports',
               style: TextStyle(
-                fontSize: 18, 
+                fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: AppColors.text(context),
               ),
@@ -160,8 +164,8 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
     }
 
     // Group reports by date
-    final Map<String, List<SafetyReport>> groupedReports = {};
-    for (var report in state.reports) {
+    final groupedReports = <String, List<SafetyReport>>{};
+    for (final report in state.reports) {
       final dateKey = _formatDate(report.createdAt);
       groupedReports.putIfAbsent(dateKey, () => []).add(report);
     }
@@ -186,7 +190,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
                 ),
               ),
             ),
-            Container(
+            DecoratedBox(
               decoration: BoxDecoration(
                 color: AppColors.surface(context, level: 1),
                 borderRadius: BorderRadius.circular(12),
@@ -217,8 +221,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
     );
   }
 
-  Widget _buildReportCard(BuildContext context, SafetyReport report) {
-    return Padding(
+  Widget _buildReportCard(BuildContext context, SafetyReport report) => Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,7 +354,6 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildStatusBadge(BuildContext context, String status) {
     Color color;
@@ -376,7 +378,7 @@ class _MyReportsScreenState extends ConsumerState<MyReportsScreen> {
     }
 
     // Capitalize status
-    final String label = status.toLowerCase() == 'pending'
+    final label = status.toLowerCase() == 'pending'
         ? 'Pending'
         : status.toLowerCase() == 'ongoing' ||
               status.toLowerCase() == 'reviewed'

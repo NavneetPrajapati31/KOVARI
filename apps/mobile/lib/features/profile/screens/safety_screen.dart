@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/providers/profile_provider.dart';
-import '../providers/safety_provider.dart';
-import 'report_target_search_screen.dart';
-import 'my_reports_screen.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/profile/models/user_profile.dart';
+import 'package:mobile/features/profile/providers/safety_provider.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SafetyScreen extends ConsumerStatefulWidget {
   const SafetyScreen({super.key});
@@ -69,12 +71,13 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
+  Widget _buildHeader(BuildContext context) => Container(
       padding: const EdgeInsets.only(left: 4, right: 16, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
-        border: Border(bottom: BorderSide(color: AppColors.borderColor(context))),
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderColor(context)),
+        ),
       ),
       child: Row(
         children: [
@@ -93,11 +96,9 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildBackButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pop(context),
+  Widget _buildBackButton(BuildContext context) => GestureDetector(
+      onTap: () => context.pop(),
       child: Container(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -107,10 +108,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildHero(BuildContext context) {
-    return Padding(
+  Widget _buildHero(BuildContext context) => Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
         AppSpacing.md,
@@ -147,10 +146,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
+  Widget _buildSectionTitle(BuildContext context, String title) => Padding(
       padding: const EdgeInsets.only(left: 30, right: 20, bottom: 10, top: 8),
       child: Align(
         alignment: Alignment.centerLeft,
@@ -165,10 +162,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildGroupedList(BuildContext context, List<Widget> children) {
-    return Container(
+  Widget _buildGroupedList(BuildContext context, List<Widget> children) => Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
@@ -189,10 +184,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         }),
       ),
     );
-  }
 
-  Widget _buildActions(BuildContext context) {
-    return Column(
+  Widget _buildActions(BuildContext context) => Column(
       children: [
         _buildSectionTitle(context, 'Actions'),
         _buildGroupedList(context, [
@@ -212,14 +205,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             context,
             icon: LucideIcons.fileText,
             label: 'View My Reports',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MyReportsScreen(),
-                ),
-              );
-            },
+            onTap: () => const MyReportsRouteData().push<void>(context),
           ),
           _buildActionRow(
             context,
@@ -239,7 +225,6 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ]),
       ],
     );
-  }
 
   Widget _buildActionRow(
     BuildContext context, {
@@ -247,8 +232,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     required String label,
     required VoidCallback onTap,
     bool isDestructive = false,
-  }) {
-    return Material(
+  }) => Material(
       color: Colors.transparent,
       child: InkWell(
         overlayColor: WidgetStateProperty.all(Colors.transparent),
@@ -291,10 +275,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildStatus(BuildContext context, dynamic profile) {
-    return Column(
+  Widget _buildStatus(BuildContext context, UserProfile profile) => Column(
       children: [
         _buildSectionTitle(context, 'Your Status'),
         _buildGroupedList(context, [
@@ -329,15 +311,13 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ]),
       ],
     );
-  }
 
   Widget _buildStatusRow(
     BuildContext context, {
     required IconData icon,
     required String label,
     required Widget trailing,
-  }) {
-    return Padding(
+  }) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -360,10 +340,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ],
       ),
     );
-  }
 
-  Widget _buildVerifiedBadge() {
-    return Container(
+  Widget _buildVerifiedBadge() => Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: Colors.green.withValues(alpha: 0.1),
@@ -393,7 +371,6 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ],
       ),
     );
-  }
 
   Widget _buildHowItWorks(BuildContext context) {
     final steps = [
@@ -410,8 +387,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
       children: [
         _buildSectionTitle(context, 'How Reporting Works'),
         _buildGroupedList(context, [
-          ...steps.map((step) {
-            return Padding(
+          ...steps.map((step) => Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 24.0,
                 vertical: 16.0,
@@ -438,8 +414,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                   ),
                 ],
               ),
-            );
-          }),
+            )),
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 24.0,
@@ -452,20 +427,20 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                   fontSize: 14,
                   height: 1.5,
                 ),
-                children: [
-                  const TextSpan(
+                children: const [
+                  TextSpan(
                     text: 'Reporting and enforcement are governed by our ',
                   ),
                   TextSpan(
                     text: 'Terms of Service',
-                    style: const TextStyle(color: AppColors.primary),
+                    style: TextStyle(color: AppColors.primary),
                   ),
-                  const TextSpan(text: ' and '),
+                  TextSpan(text: ' and '),
                   TextSpan(
                     text: 'Community Guidelines',
-                    style: const TextStyle(color: AppColors.primary),
+                    style: TextStyle(color: AppColors.primary),
                   ),
-                  const TextSpan(text: '.'),
+                  TextSpan(text: '.'),
                 ],
               ),
             ),
@@ -475,8 +450,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     );
   }
 
-  Widget _buildGuidelines(BuildContext context) {
-    return Column(
+  Widget _buildGuidelines(BuildContext context) => Column(
       children: [
         _buildGuidelineSection(context, 'Solo Travel Guidelines', [
           'Share full itinerary with a trusted friend',
@@ -497,10 +471,12 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ]),
       ],
     );
-  }
 
-  Widget _buildGuidelineSection(BuildContext context, String title, List<String> tips) {
-    return Column(
+  Widget _buildGuidelineSection(
+    BuildContext context,
+    String title,
+    List<String> tips,
+  ) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle(context, title),
@@ -513,8 +489,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             border: Border.all(color: AppColors.borderColor(context)),
           ),
           child: Column(
-            children: tips.map((tip) {
-              return Padding(
+            children: tips.map((tip) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,16 +515,13 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     ),
                   ],
                 ),
-              );
-            }).toList(),
+              )).toList(),
           ),
         ),
       ],
     );
-  }
 
-  Widget _buildEmergencyHelp(BuildContext context, String userId) {
-    return Column(
+  Widget _buildEmergencyHelp(BuildContext context, String userId) => Column(
       key: _emergencyKey,
       children: [
         _buildSectionTitle(context, 'Emergency Contact'),
@@ -585,8 +557,8 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                   fontSize: 14,
                   height: 1.5,
                 ),
-                children: [
-                  const TextSpan(
+                children: const [
+                  TextSpan(
                     text:
                         'If in immediate danger, contact local authorities immediately.',
                   ),
@@ -597,7 +569,6 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ]),
       ],
     );
-  }
 
   Widget _buildEmergencyRow(
     BuildContext context, {
@@ -606,8 +577,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     String? subtitle,
     bool isCall = true,
     required VoidCallback onTap,
-  }) {
-    return InkWell(
+  }) => InkWell(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -622,7 +592,9 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w400,
                       fontSize: 15,
-                      color: isCall ? AppColors.text(context) : AppColors.primary,
+                      color: isCall
+                          ? AppColors.text(context)
+                          : AppColors.primary,
                     ),
                   ),
                   if (isCall && number != null) ...[
@@ -658,15 +630,17 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ),
       ),
     );
-  }
 
-  Widget _buildSafetyFooter(BuildContext context) {
-    return Padding(
+  Widget _buildSafetyFooter(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(LucideIcons.eye, size: 14, color: AppColors.text(context, isMuted: true)),
+          Icon(
+            LucideIcons.eye,
+            size: 14,
+            color: AppColors.text(context, isMuted: true),
+          ),
           const SizedBox(width: 6),
           Text(
             'REVIEWED',
@@ -687,7 +661,11 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          Icon(LucideIcons.lock, size: 14, color: AppColors.text(context, isMuted: true)),
+          Icon(
+            LucideIcons.lock,
+            size: 14,
+            color: AppColors.text(context, isMuted: true),
+          ),
           const SizedBox(width: 6),
           Text(
             'ENCRYPTED',
@@ -701,15 +679,9 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
         ],
       ),
     );
-  }
 
   void _navigateToSearch(BuildContext context, String type) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ReportTargetSearchScreen(targetType: type),
-      ),
-    );
+    ReportTargetSearchRouteData(targetType: type).push<void>(context);
   }
 
   String _formatDate(String dateStr) {
@@ -736,7 +708,7 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    final launchUri = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(launchUri)) {
       await launchUrl(launchUri);
     }
@@ -746,8 +718,6 @@ class _SafetyScreenState extends ConsumerState<SafetyScreen> {
     final link = 'https://kovari.in/profile/$userId';
     // ignore: deprecated_member_use
     Share.share(link, subject: 'My Kovari Profile Link');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile link copied to clipboard')),
-    );
+    KovariSnackbar.success(context, 'Profile link copied to clipboard');
   }
 }

@@ -1,80 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile/core/theme/app_colors.dart';
-import '../../home/screens/home_screen.dart';
-import '../../explore/screens/explore_screen.dart';
-import '../../chat/screens/chat_inbox_screen.dart';
-import '../../groups/screens/groups_screen.dart';
-import '../widgets/profile_tab.dart';
-import '../../../shared/widgets/kovari_bottom_nav.dart';
-import '../providers/app_shell_provider.dart';
-import '../../../core/providers/connectivity_provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mobile/core/providers/connectivity_provider.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/features/chat/providers/chat_runtime_providers.dart';
+import 'package:mobile/features/home/providers/home_provider.dart';
+import 'package:mobile/shared/widgets/kovari_bottom_nav.dart';
 
-class AppShellScreen extends ConsumerWidget {
-  const AppShellScreen({super.key});
+class AppShellScreen extends ConsumerStatefulWidget {
+  const AppShellScreen({super.key, required this.navigationShell});
+  final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentIndex = ref.watch(appShellIndexProvider);
-    final isOffline = ref.watch(
-      connectivityProvider.select((s) => s.isOffline),
-    );
-    final isDegraded = ref.watch(
-      connectivityProvider.select((s) => s.isDegraded),
-    );
+  ConsumerState<AppShellScreen> createState() => _AppShellScreenState();
+}
+
+class _AppShellScreenState extends ConsumerState<AppShellScreen> {
+  @override
+  Widget build(BuildContext context) {
+    // Global connectivity listener
+    ref.listen(connectivityProvider, (previous, next) {
+      if (next.isOnline && previous?.isOnline == false) {
+        AppLogger.i(
+          '🌐 Connectivity restored in AppShell. Refreshing current data...',
+        );
+        ref.read(homeDataProvider.notifier).refresh(isSilent: true);
+        ref.read(profileProvider.notifier).fetchProfile();
+      }
+    });
+
+    final activeChatId = ref.watch(activeConversationProvider);
+
+    // 🛡️ Location-Aware Visibility: Always show on root branches
+    // This prevents the "vanishing nav bar" bug if a sub-screen fails to reset activeChatId.
+    final bool isRootBranch = widget.navigationShell.currentIndex >= 0;
+    final bool showBottomNav = activeChatId == null || isRootBranch;
 
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          if (isOffline)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              color: AppColors.destructive,
-              child: const Text(
-                'No Internet Connection',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          else if (isDegraded)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              color: Colors.amber.shade900,
-              child: const Text(
-                'Connecting...',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+          Positioned.fill(child: widget.navigationShell),
+          if (showBottomNav)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: KovariBottomNav(
+                currentIndex: widget.navigationShell.currentIndex,
+                onTap: (index) {
+                  widget.navigationShell.goBranch(
+                    index,
+                    initialLocation:
+                        index == widget.navigationShell.currentIndex,
+                  );
+                },
               ),
             ),
-          Expanded(
-            child: IndexedStack(
-              index: currentIndex,
-              children: const [
-                HomeScreen(),
-                ExploreScreen(),
-                ChatInboxScreen(),
-                GroupsScreen(),
-                ProfileTab(),
-              ],
-            ),
-          ),
         ],
-      ),
-      bottomNavigationBar: KovariBottomNav(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          ref.read(appShellIndexProvider.notifier).setIndex(index);
-        },
       ),
     );
   }

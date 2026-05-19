@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../theme/motion_tokens.dart';
+import 'package:mobile/core/theme/motion_tokens.dart';
 
 class PremiumPageRoute<T> extends PageRouteBuilder<T> {
-  final WidgetBuilder builder;
 
   PremiumPageRoute({required this.builder})
       : super(
@@ -43,4 +42,5 @@ class PremiumPageRoute<T> extends PageRouteBuilder<T> {
           transitionDuration: MotionTokens.normal,
           reverseTransitionDuration: MotionTokens.fast,
         );
+  final WidgetBuilder builder;
 }

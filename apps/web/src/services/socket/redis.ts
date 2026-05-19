@@ -6,34 +6,45 @@ dotenv.config({ path: ".env.local" });
 dotenv.config();
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-console.log(`[Redis] Using Redis URL: ${REDIS_URL.startsWith('redis://localhost') ? 'LOCALHOST (FALLBACK)' : 'PRODUCTION_URL'}`);
+const isLocalhost = REDIS_URL.includes("localhost") || REDIS_URL.includes("127.0.0.1");
+console.log(`[Redis] URL: ${isLocalhost ? "LOCALHOST" : "REMOTE (checking connectivity…)"}`);
 
 export const pubClient = createClient({ url: REDIS_URL });
 export const subClient = pubClient.duplicate();
 
-// Graceful error handling for Redis disconnects
-pubClient.on("error", (err) => console.error("[Redis PubClient] Error:", err));
-subClient.on("error", (err) => console.error("[Redis SubClient] Error:", err));
+// Silent error handlers — we log in connectRedis, not here
+pubClient.on("error", () => {});
+subClient.on("error", () => {});
 
-// Async connect helper function
-export const connectRedis = async () => {
+/**
+ * Attempt to connect Redis clients.
+ * Returns `true` if both connected, `false` if unavailable.
+ * Fails fast with a 5-second timeout so the server isn't blocked.
+ */
+export const connectRedis = async (): Promise<boolean> => {
+  const TIMEOUT_MS = 5_000;
+
+  const withTimeout = <T>(promise: Promise<T>, label: string): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timed out after ${TIMEOUT_MS}ms`)), TIMEOUT_MS)
+      ),
+    ]);
+
+  try {
     if (!pubClient.isOpen) {
-        try {
-            await pubClient.connect();
-            console.log("[Redis] PubClient connected");
-        } catch (err) {
-            console.error("[Redis] PubClient connection failed:", err);
-        }
+      await withTimeout(pubClient.connect(), "Redis PubClient");
     }
     if (!subClient.isOpen) {
-        try {
-            await subClient.connect();
-            console.log("[Redis] SubClient connected");
-        } catch (err) {
-            console.error("[Redis] SubClient connection failed:", err);
-        }
+      await withTimeout(subClient.connect(), "Redis SubClient");
     }
-}
+    console.log("[Redis] ✅ Connected");
+    return true;
+  } catch (err: any) {
+    console.warn(`[Redis] ⚠️  Unavailable: ${err?.message ?? err}`);
+    return false;
+  }
+};
 
 export const redisAdapter = createAdapter(pubClient, subClient);
-

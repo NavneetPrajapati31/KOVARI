@@ -1,28 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../../../core/widgets/common/skeleton.dart';
-import '../../../../shared/widgets/kovari_avatar.dart';
-import '../../../../features/requests/screens/requests_screen.dart';
-import '../../../../features/requests/providers/request_provider.dart';
-import '../../../../features/requests/models/request_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/requests/models/request_model.dart';
+import 'package:mobile/features/requests/providers/request_provider.dart';
+import 'package:mobile/shared/widgets/kovari_avatar.dart';
 
 // MockRequest removed to use InterestModel directly
 
 class RequestsSection extends ConsumerWidget {
-  final bool isLoading;
 
   const RequestsSection({super.key, this.isLoading = false});
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final interestsAsync = ref.watch(interestsProvider);
+    final hasData = interestsAsync.hasValue && interestsAsync.value!.isNotEmpty;
+    final showSkeleton =
+        (interestsAsync.isLoading && !interestsAsync.hasValue) ||
+        (isLoading && !hasData);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface(context, level: 1),
         border: Border.all(color: AppColors.borderColor(context)),
@@ -36,68 +40,50 @@ class RequestsSection extends ConsumerWidget {
           children: [
             // Header
             InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        const RequestsScreen(),
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(1.0, 0.0);
-                          const end = Offset.zero;
-                          const curve = Curves.easeOutQuart;
-                          var tween = Tween(
-                            begin: begin,
-                            end: end,
-                          ).chain(CurveTween(curve: curve));
-                          var offsetAnimation = animation.drive(tween);
-                          return SlideTransition(
-                            position: offsetAnimation,
-                            child: child,
-                          );
-                        },
-                    transitionDuration: const Duration(milliseconds: 350),
-                  ),
-                );
-              },
+              onTap: () => const RequestsRouteData().push<void>(context),
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Interests',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.text(context),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        interestsAsync.when(
-                          data: (interests) => Text(
-                            '${interests.length} pending interests',
-                            style: AppTextStyles.label.copyWith(
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Interests',
+                            style: AppTextStyles.bodyMedium.copyWith(
                               fontSize: 12,
-                              color: AppColors.text(context, isMuted: true),
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text(context),
                             ),
                           ),
-                          loading: () => const SizedBox(
-                            height: 12,
-                            width: 64,
-                            child: LinearProgressIndicator(),
+                          const SizedBox(height: 2),
+                          interestsAsync.when(
+                            data: (interests) => Text(
+                              '${interests.length} pending interests',
+                              style: AppTextStyles.label.copyWith(
+                                fontSize: 11,
+                                color: AppColors.text(context, isMuted: true),
+                              ),
+                            ),
+                            loading: () => Text(
+                              'Syncing interests...',
+                              style: AppTextStyles.label.copyWith(
+                                fontSize: 11,
+                                color: AppColors.text(context, isMuted: true),
+                              ),
+                            ),
+                            error: (_, __) => Text(
+                              'Error loading',
+                              style: AppTextStyles.label.copyWith(
+                                fontSize: 11,
+                                color: AppColors.destructive,
+                              ),
+                            ),
                           ),
-                          // ignore: unnecessary_underscores
-                          error: (_, __) => const Text(
-                            'Error loading',
-                            style: TextStyle(fontSize: 10),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -105,53 +91,60 @@ class RequestsSection extends ConsumerWidget {
             ),
             Divider(height: 1, color: AppColors.borderColor(context)),
 
-            interestsAsync.when(
-              data: (interests) {
-                if (interests.isEmpty) return _buildEmptyState(context);
-                return Column(
-                  children: [
-                    for (int i = 0; i < interests.length; i++) ...[
-                      _RequestCard(interest: interests[i]),
-                      if (i < interests.length - 1)
-                        Divider(
-                          height: 1,
-                          color: AppColors.borderColor(context),
-                          indent: 0,
-                          endIndent: 0,
-                        ),
+            if (showSkeleton)
+              _buildSkeleton(context)
+            else
+              interestsAsync.when(
+                data: (interests) {
+                  if (interests.isEmpty) return _buildEmptyState(context);
+                  return Column(
+                    children: [
+                      for (int i = 0; i < interests.length; i++) ...[
+                        _RequestCard(interest: interests[i]),
+                        if (i < interests.length - 1)
+                          Divider(
+                            height: 1,
+                            color: AppColors.borderColor(context),
+                            indent: 0,
+                            endIndent: 0,
+                          ),
+                      ],
                     ],
-                  ],
-                );
-              },
-              loading: () => _buildSkeleton(context),
-              error: (err, _) => Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text('Error: $err'),
+                  );
+                },
+                loading: () => _buildSkeleton(context),
+                error: (err, _) => Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Center(
+                    child: Text(
+                      'Failed to load interests',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.destructive,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSkeleton(BuildContext context) {
-    return Column(
+  Widget _buildSkeleton(BuildContext context) => Column(
       children: List.generate(
-        7,
+        4,
         (i) => Column(
           children: [
-            _RequestCardSkeleton(),
-            if (i < 6)
+            const KovariSkeletonRequestListItem(),
+            if (i < 3)
               Divider(height: 1, color: AppColors.borderColor(context)),
           ],
         ),
       ),
     );
-  }
 
-  Widget _buildEmptyState(BuildContext context) {
-    return Padding(
+  Widget _buildEmptyState(BuildContext context) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
       child: Center(
         child: Column(
@@ -174,13 +167,12 @@ class RequestsSection extends ConsumerWidget {
         ),
       ),
     );
-  }
 }
 
 class _RequestCard extends ConsumerStatefulWidget {
-  final InterestModel interest;
 
   const _RequestCard({required this.interest});
+  final InterestModel interest;
 
   @override
   ConsumerState<_RequestCard> createState() => _RequestCardState();
@@ -306,8 +298,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     required Color textColor,
     required VoidCallback onTap,
     bool isLoading = false,
-  }) {
-    return GestureDetector(
+  }) => GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
         height: 28,
@@ -339,14 +330,12 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
               ),
       ),
     );
-  }
 
   Widget _buildSimpleIconButton({
     required IconData icon,
     required VoidCallback onTap,
     bool isLoading = false,
-  }) {
-    return GestureDetector(
+  }) => GestureDetector(
       onTap: isLoading ? null : onTap,
       child: Container(
         padding: const EdgeInsets.all(6),
@@ -373,35 +362,4 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
               ),
       ),
     );
-  }
-}
-
-class _RequestCardSkeleton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: 10,
-      ),
-      child: Row(
-        children: [
-          const Skeleton.circle(size: 40),
-          const SizedBox(width: AppSpacing.sm * 1.5),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Skeleton(width: 96, height: 12, borderRadius: AppRadius.small),
-                const SizedBox(height: 4),
-                Skeleton(width: 64, height: 12, borderRadius: AppRadius.small),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Skeleton(width: 64, height: 28, borderRadius: AppRadius.medium),
-        ],
-      ),
-    );
-  }
 }

@@ -1,31 +1,42 @@
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_endpoints.dart';
-import '../../../core/utils/safe_parser.dart';
-import '../../../core/utils/app_logger.dart';
-import '../models/group.dart';
+import 'package:flutter/rendering.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/core/utils/safe_parser.dart';
+import 'package:mobile/features/groups/models/group.dart';
 
 class GroupService {
-  final ApiClient _apiClient;
-
   GroupService(this._apiClient);
+  final ApiClient _apiClient;
 
   Future<List<GroupModel>> getMyGroups() async {
     final response = await _apiClient.get<List<GroupModel>>(
-      ApiEndpoints.myGroups,
-      parser: (data) => parseGroups(data),
+      '${ApiEndpoints.myGroups}?_t=${DateTime.now().millisecondsSinceEpoch}',
+      parser: parseGroups,
     );
 
     if (response.success && response.data != null) {
-      return response.data!;
+      final groups = response.data!;
+      final groupsWithImg = groups
+          .where((g) => g.destinationImage != null)
+          .length;
+      debugPrint(
+        '📡 [GroupService] getMyGroups success: ${groups.length} groups found ($groupsWithImg with images)',
+      );
+      return groups;
     }
 
-    throw Exception(response.error?.message ?? "Failed to load groups");
+    throw Exception(response.error?.message ?? 'Failed to load groups');
   }
 
   List<GroupModel> parseGroups(dynamic data) {
-    final actualData = (data is Map && data.containsKey('data')) ? data['data'] : data;
+    final actualData = (data is Map && data.containsKey('data'))
+        ? data['data']
+        : data;
     if (actualData is! List) return [];
-    return actualData.map((e) => GroupModel.fromJson(e)).toList();
+    return actualData
+        .map((e) => GroupModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<GroupModel> createGroup(Map<String, dynamic> data) async {
@@ -40,10 +51,19 @@ class GroupService {
     throw Exception(response.error?.message ?? 'Failed to create group');
   }
 
-  Future<GroupModel> getGroupDetails(String groupId) async {
+  Future<GroupModel> getGroupDetails(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<GroupModel>(
       ApiEndpoints.groupDetails(groupId),
-      parser: (json) => GroupModel.fromJson(json as Map<String, dynamic>),
+      ignoreCache: ignoreCache,
+      parser: (json) {
+        debugPrint(
+          '📡 [GroupService] getGroupDetails Raw JSON for $groupId: $json',
+        );
+        return GroupModel.fromJson(json as Map<String, dynamic>);
+      },
     );
     if (response.success && response.data != null) {
       return response.data!;
@@ -51,22 +71,33 @@ class GroupService {
     throw Exception(response.error?.message ?? 'Failed to fetch group details');
   }
 
-  Future<List<GroupMember>> getGroupMembers(String groupId) async {
+  Future<List<GroupMember>> getGroupMembers(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<List<GroupMember>>(
       ApiEndpoints.groupMembers(groupId),
+      ignoreCache: ignoreCache,
       parser: (json) {
         if (json is List) {
-          return json.map((m) => GroupMember.fromJson(m)).toList();
+          return json
+              .map((m) => GroupMember.fromJson(m as Map<String, dynamic>))
+              .toList();
         }
         if (json is Map && json['members'] is List) {
           return (json['members'] as List)
-              .map((m) => GroupMember.fromJson(m))
+              .map((m) => GroupMember.fromJson(m as Map<String, dynamic>))
               .toList();
         }
         return [];
       },
     );
-    return response.data ?? [];
+
+    if (response.success && response.data != null) {
+      return response.data!;
+    }
+
+    throw Exception(response.error?.message ?? 'Failed to fetch group members');
   }
 
   Future<List<JoinRequestModel>> getJoinRequests(String groupId) async {
@@ -75,7 +106,7 @@ class GroupService {
       parser: (json) {
         if (json is Map && json['joinRequests'] is List) {
           return (json['joinRequests'] as List)
-              .map((r) => JoinRequestModel.fromJson(r))
+              .map((r) => JoinRequestModel.fromJson(r as Map<String, dynamic>))
               .toList();
         }
         return [];
@@ -124,7 +155,7 @@ class GroupService {
 
   Future<String> getInviteLink(String groupId) async {
     final response = await _apiClient.get<String>(
-      "${ApiEndpoints.groupInvitationLink(groupId)}&platform=mobile",
+      '${ApiEndpoints.groupInvitationLink(groupId)}&platform=mobile',
       parser: (json) => (json as Map)['link'] as String,
     );
     final rawLink = (response.data ?? '').trim();
@@ -135,7 +166,7 @@ class GroupService {
     // clickable in WhatsApp/Email and trigger native app deep-linking.
     if (rawLink.isNotEmpty) {
       final token = rawLink.split('/').last;
-      return "https://kovari.in/invite/$token";
+      return 'https://kovari.in/invite/$token';
     }
 
     return rawLink;
@@ -175,20 +206,28 @@ class GroupService {
     }
   }
 
-  Future<List<ItineraryItem>> getGroupItinerary(String groupId) async {
+  Future<List<ItineraryItem>> getGroupItinerary(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<List<ItineraryItem>>(
       ApiEndpoints.groupItinerary(groupId),
+      ignoreCache: ignoreCache,
       parser: (data) {
-        final List<dynamic> rawList = data is List ? data : [];
+        final rawList = data is List ? data : <dynamic>[];
         return safeParseList(rawList, ItineraryItem.fromJson);
       },
     );
     return response.data ?? [];
   }
 
-  Future<MembershipInfo> getGroupMembership(String groupId) async {
+  Future<MembershipInfo> getGroupMembership(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<MembershipInfo>(
       ApiEndpoints.groupMembership(groupId),
+      ignoreCache: ignoreCache,
       parser: (json) => MembershipInfo.fromJson(json as Map<String, dynamic>),
     );
     if (response.success && response.data != null) {
@@ -208,11 +247,11 @@ class GroupService {
   Future<void> joinGroup(String groupId, {bool viaInvite = false}) async {
     final response = await _apiClient.post<void>(
       ApiEndpoints.groupJoin(groupId),
-      data: viaInvite ? {'viaInvite': true} : {},
+      data: viaInvite ? {'viaInvite': true} : <String, dynamic>{},
       parser: (_) {},
     );
     AppLogger.d(
-      "Join API Response - Success: ${response.success}, Error: ${response.error?.message}",
+      'Join API Response - Success: ${response.success}, Error: ${response.error?.message}',
     );
     if (!response.success) {
       throw Exception(response.error?.message ?? 'Failed to join group');
@@ -242,9 +281,8 @@ class GroupService {
     throw Exception(response.error?.message ?? 'Failed to update group');
   }
 
-  Future<GroupModel> updateGroupNotes(String groupId, String notes) async {
-    return updateGroup(groupId, {'notes': notes});
-  }
+  Future<GroupModel> updateGroupNotes(String groupId, String notes) async =>
+      updateGroup(groupId, {'notes': notes});
 
   Future<void> updateItineraryItem(
     String groupId,

@@ -1,13 +1,15 @@
 import 'dart:ui' show ImageFilter;
-import 'package:flutter/material.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/widgets/common/user_avatar_fallback.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/widgets/common/user_avatar_fallback.dart';
 
 class KovariImageModal extends StatelessWidget {
-  final String imageUrl;
 
   const KovariImageModal({super.key, required this.imageUrl});
+  final String imageUrl;
 
   static void show(BuildContext context, String imageUrl) {
     showGeneralDialog(
@@ -15,10 +17,7 @@ class KovariImageModal extends StatelessWidget {
       barrierDismissible: true,
       barrierLabel: 'Close',
       barrierColor: Colors.black.withValues(alpha: 0.6),
-      transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return KovariImageModal(imageUrl: imageUrl);
-      },
+      pageBuilder: (context, animation, secondaryAnimation) => KovariImageModal(imageUrl: imageUrl),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final curve = Curves.easeOutBack.transform(animation.value);
 
@@ -50,7 +49,7 @@ class KovariImageModal extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GestureDetector(
-        onTap: () => Navigator.pop(context),
+        onTap: () => context.pop(),
         behavior: HitTestBehavior.opaque,
         child: Center(
           child: Container(

@@ -2,27 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/shared/models/kovari_user.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../shared/models/kovari_user.dart';
-import '../../../shared/widgets/primary_button.dart';
-import '../../../shared/widgets/secondary_button.dart';
-import '../../../shared/widgets/app_card.dart';
 
 class BannedScreen extends ConsumerWidget {
-  final KovariUser user;
 
-  const BannedScreen({super.key, required this.user});
+  const BannedScreen({super.key, this.user});
+  final KovariUser? user;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bool isSuspended = user.banExpiresAt != null;
-    final String title = isSuspended ? "Account suspended" : "Account banned";
-    final String message = isSuspended
-        ? "Your account is temporarily suspended due to a violation of our terms of service."
-        : "Your account is permanently banned due to a violation of our terms of service.";
+    final activeUser = user ?? ref.watch(authProvider).user;
+    
+    if (activeUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final isSuspended = activeUser.banExpiresAt != null;
+    final title = isSuspended ? 'Account suspended' : 'Account banned';
+    final message = isSuspended
+        ? 'Your account is temporarily suspended due to a violation of our terms of service.'
+        : 'Your account is permanently banned due to a violation of our terms of service.';
 
     return Scaffold(
       body: Stack(
@@ -99,7 +105,7 @@ class BannedScreen extends ConsumerWidget {
                                 SizedBox(height: isSuspended ? 0 : 12),
                                 // Expiration Box (for suspensions)
                                 if (isSuspended &&
-                                    user.banExpiresAt != null) ...[
+                                    activeUser.banExpiresAt != null) ...[
                                   const SizedBox(height: 22),
                                   Container(
                                     width: double.infinity,
@@ -119,7 +125,7 @@ class BannedScreen extends ConsumerWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "Suspension active until",
+                                          'Suspension active until',
                                           style: AppTextStyles.bodyMedium
                                               .copyWith(
                                                 fontWeight: FontWeight.w600,
@@ -132,7 +138,7 @@ class BannedScreen extends ConsumerWidget {
                                             'MMM d, yyyy • hh:mm a',
                                           ).format(
                                             DateTime.parse(
-                                              user.banExpiresAt!,
+                                              activeUser.banExpiresAt!,
                                             ).toLocal(),
                                           ),
                                           style: AppTextStyles.bodyMedium
@@ -154,15 +160,13 @@ class BannedScreen extends ConsumerWidget {
 
                                 // Action Buttons
                                 SecondaryButton(
-                                  text: "Contact Support",
+                                  text: 'Contact Support',
                                   icon: LucideIcons.mail,
-                                  height: 44,
                                   onPressed: () => _launchMail(context),
                                 ),
                                 const SizedBox(height: 8),
                                 PrimaryButton(
-                                  text: "Sign Out",
-                                  height: 44,
+                                  text: 'Sign Out',
                                   onPressed: () =>
                                       ref.read(authProvider.notifier).logout(),
                                 ),
@@ -184,7 +188,7 @@ class BannedScreen extends ConsumerWidget {
                             child: Center(
                               child: Text.rich(
                                 TextSpan(
-                                  text: "Review our ",
+                                  text: 'Review our ',
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: AppColors.text(
                                       context,
@@ -198,7 +202,7 @@ class BannedScreen extends ConsumerWidget {
                                       child: GestureDetector(
                                         onTap: () => _launchUrl(
                                           context,
-                                          "https://kovari.in/community-guidelines",
+                                          'https://kovari.in/community-guidelines',
                                         ),
                                         child: Container(
                                           padding: const EdgeInsets.only(
@@ -214,7 +218,7 @@ class BannedScreen extends ConsumerWidget {
                                             ),
                                           ),
                                           child: Text(
-                                            "Community Guidelines",
+                                            'Community Guidelines',
                                             style: AppTextStyles.bodySmall
                                                 .copyWith(
                                                   color: AppColors.text(
@@ -245,7 +249,7 @@ class BannedScreen extends ConsumerWidget {
   }
 
   Future<void> _launchUrl(BuildContext context, String url) async {
-    final Uri uri = Uri.parse(url);
+    final uri = Uri.parse(url);
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -254,13 +258,13 @@ class BannedScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text("Could not open link")));
+        ).showSnackBar(const SnackBar(content: Text('Could not open link')));
       }
     }
   }
 
   Future<void> _launchMail(BuildContext context) async {
-    final Uri emailLaunchUri = Uri(
+    final emailLaunchUri = Uri(
       scheme: 'mailto',
       path: 'support@kovari.in',
       query: 'subject=Account Restricted&body=Hello Support Team,',
@@ -272,7 +276,7 @@ class BannedScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Could not open mail app")),
+          const SnackBar(content: Text('Could not open mail app')),
         );
       }
     }

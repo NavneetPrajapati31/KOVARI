@@ -55,6 +55,8 @@ export interface UseDirectChatResult {
 export const useDirectChat = (
   currentUserUuid: string,
   partnerUuid: string,
+  myClerkId?: string,
+  partnerClerkId?: string,
 ): UseDirectChatResult => {
   const { user } = useUser();
   const [messages, setMessages] = useState<DirectChatMessage[]>([]);
@@ -72,14 +74,14 @@ export const useDirectChat = (
 
   const seenIdsRef = useRef(new Set<string>());
 
-  // Shared secret for encryption
-  const sharedSecret = useMemo(
-    () =>
-      currentUserUuid < partnerUuid
-        ? `${currentUserUuid}:${partnerUuid}`
-        : `${partnerUuid}:${currentUserUuid}`,
-    [currentUserUuid, partnerUuid],
-  );
+  // Shared secret for encryption - standardizing on UUIDs for cross-platform parity
+  const sharedSecret = useMemo(() => {
+    if (!currentUserUuid || !partnerUuid) return "";
+    // Standard: Sort UUIDs alphabetically and join with colon
+    return currentUserUuid < partnerUuid 
+      ? `${currentUserUuid}:${partnerUuid}` 
+      : `${partnerUuid}:${currentUserUuid}`;
+  }, [currentUserUuid, partnerUuid]);
 
   // Fetch initial messages with sender profile information
   const fetchMessages = useCallback(
@@ -113,12 +115,35 @@ export const useDirectChat = (
           const payload = await response.json();
           const data = Array.isArray(payload?.messages) ? payload.messages : [];
           // Transform messages to include sender profile information and normalize media fields
-          const transformedMessages = data.map((msg: any) => ({
-            ...msg,
-            sender_profile: msg.sender?.profiles?.[0] || undefined,
-            mediaUrl: (msg as any)["media_url"] || msg.mediaUrl,
-            mediaType: (msg as any)["media_type"] || msg.mediaType,
-          }));
+          const transformedMessages = data.map((msg: any) => {
+            let plain_content = msg.plain_content;
+
+            if (msg.is_encrypted && msg.encrypted_content && msg.encryption_iv && msg.encryption_salt) {
+              const sId = msg.sender_id;
+              const rId = msg.receiver_id;
+              const localSecret = sId < rId ? `${sId}:${rId}` : `${rId}:${sId}`;
+
+              const decrypted = decryptMessage(
+                {
+                  encryptedContent: msg.encrypted_content,
+                  iv: msg.encryption_iv,
+                  salt: msg.encryption_salt,
+                },
+                localSecret || sharedSecret,
+              );
+              if (decrypted) {
+                plain_content = decrypted;
+              }
+            }
+
+            return {
+              ...msg,
+              plain_content,
+              sender_profile: msg.sender?.profiles?.[0] || undefined,
+              mediaUrl: (msg as any)["media_url"] || msg.mediaUrl,
+              mediaType: (msg as any)["media_type"] || msg.mediaType,
+            };
+          });
 
           // Always reverse to chronological order (oldest at top)
           const chronologicalMessages = transformedMessages.reverse();
@@ -277,7 +302,7 @@ export const useDirectChat = (
                    salt: isEncrypted ? encrypted.salt : "",
                    mediaUrl: mediaUrl || undefined,
                    mediaType: mediaType || undefined,
-                   createdAt: new Date().toISOString(),
+                   created_at: new Date().toISOString(),
                    isEncrypted
                 }
              }, (ack) => {
@@ -414,15 +439,28 @@ export const useDirectChat = (
 
         if (incomingMsg.isEncrypted) {
           try {
-            const tempMapped = {
-              encryptedContent: incomingMsg.encryptedContent,
-              iv: incomingMsg.iv,
-              salt: incomingMsg.salt,
-            };
-            const decrypted = decryptMessage(tempMapped, sharedSecret); // Native fallback
-            if (decrypted) {
-              finalContent = decrypted;
-              finalIsEncrypted = false;
+            if (incomingMsg.encryptedContent && incomingMsg.iv && incomingMsg.salt) {
+              // Calculate a local secret based on the IDs provided in the message itself
+              // to ensure we always have the correct key even if global state is loading.
+              const sClerkId = incomingMsg.senderClerkId || incomingMsg.senderId;
+              const rClerkId = incomingMsg.receiverClerkId || (incomingMsg.senderId === currentUserUuid ? partnerUuid : currentUserUuid);
+              const localSecret = sClerkId < rClerkId ? `${sClerkId}:${rClerkId}` : `${rClerkId}:${sClerkId}`;
+
+              const tempMapped = {
+                encryptedContent: incomingMsg.encryptedContent,
+                iv: incomingMsg.iv,
+                salt: incomingMsg.salt,
+              };
+              
+              // Try localSecret first, then hook's sharedSecret as fallback
+              const decrypted = decryptMessage(tempMapped, localSecret) || decryptMessage(tempMapped, sharedSecret);
+              
+              if (decrypted) {
+                finalContent = decrypted;
+                finalIsEncrypted = false;
+              } else {
+                finalContent = "[Encrypted Message]";
+              }
             } else {
               finalContent = "[Encrypted Message]";
             }
@@ -443,7 +481,7 @@ export const useDirectChat = (
           encryption_iv: incomingMsg.iv,
           encryption_salt: incomingMsg.salt,
           is_encrypted: incomingMsg.isEncrypted,
-          created_at: incomingMsg.createdAt,
+          created_at: incomingMsg.created_at || incomingMsg.createdAt || new Date().toISOString(),
           plain_content: finalContent, // Store decrypted content here
           mediaUrl: incomingMsg.mediaUrl,
           mediaType: incomingMsg.mediaType,

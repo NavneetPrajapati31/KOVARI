@@ -1,41 +1,16 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/profile_service.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/network/location_service.dart';
-import '../../../core/network/cloudinary_service.dart';
+
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/network/cloudinary_service.dart';
+import 'package:mobile/core/network/location_service.dart';
+import 'package:mobile/features/onboarding/data/profile_service.dart';
 
 const Object _sentinel = Object();
 
 class OnboardingState {
-  final int currentStep;
-  final String firstName;
-  final String lastName;
-  final String username;
-  final bool? isUsernameAvailable;
-  final bool isUsernameChecking;
-  final String? profilePicUrl;
-  final String? localProfilePicPath;
-  final String bio;
-  final String? gender;
-  final DateTime? birthday;
-  final String? location;
-  final GeoapifyResult? locationDetails;
-  final String? nationality;
-  final String? jobType;
-  final List<String> languages;
-  final List<String> interests;
-  final String? religion;
-  final String? smoking;
-  final String? drinking;
-  final String? personality;
-  final String? foodPreference;
-  final bool policyAccepted;
-  final bool isSubmitting;
-  final String? errorMessage;
-
   OnboardingState({
     this.currentStep = 1,
     this.firstName = '',
@@ -63,6 +38,31 @@ class OnboardingState {
     this.isSubmitting = false,
     this.errorMessage,
   });
+  final int currentStep;
+  final String firstName;
+  final String lastName;
+  final String username;
+  final bool? isUsernameAvailable;
+  final bool isUsernameChecking;
+  final String? profilePicUrl;
+  final String? localProfilePicPath;
+  final String bio;
+  final String? gender;
+  final DateTime? birthday;
+  final String? location;
+  final GeoapifyResult? locationDetails;
+  final String? nationality;
+  final String? jobType;
+  final List<String> languages;
+  final List<String> interests;
+  final String? religion;
+  final String? smoking;
+  final String? drinking;
+  final String? personality;
+  final String? foodPreference;
+  final bool policyAccepted;
+  final bool isSubmitting;
+  final String? errorMessage;
 
   OnboardingState copyWith({
     int? currentStep,
@@ -90,39 +90,37 @@ class OnboardingState {
     bool? policyAccepted,
     bool? isSubmitting,
     String? errorMessage,
-  }) {
-    return OnboardingState(
-      currentStep: currentStep ?? this.currentStep,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      username: username ?? this.username,
-      isUsernameAvailable: isUsernameAvailable ?? this.isUsernameAvailable,
-      isUsernameChecking: isUsernameChecking ?? this.isUsernameChecking,
-      profilePicUrl: profilePicUrl == _sentinel
-          ? this.profilePicUrl
-          : (profilePicUrl as String?),
-      localProfilePicPath: localProfilePicPath == _sentinel
-          ? this.localProfilePicPath
-          : (localProfilePicPath as String?),
-      bio: bio ?? this.bio,
-      gender: gender ?? this.gender,
-      birthday: birthday ?? this.birthday,
-      location: location ?? this.location,
-      locationDetails: locationDetails ?? this.locationDetails,
-      nationality: nationality ?? this.nationality,
-      jobType: jobType ?? this.jobType,
-      languages: languages ?? this.languages,
-      interests: interests ?? this.interests,
-      religion: religion ?? this.religion,
-      smoking: smoking ?? this.smoking,
-      drinking: drinking ?? this.drinking,
-      personality: personality ?? this.personality,
-      foodPreference: foodPreference ?? this.foodPreference,
-      policyAccepted: policyAccepted ?? this.policyAccepted,
-      isSubmitting: isSubmitting ?? this.isSubmitting,
-      errorMessage: errorMessage ?? this.errorMessage,
-    );
-  }
+  }) => OnboardingState(
+    currentStep: currentStep ?? this.currentStep,
+    firstName: firstName ?? this.firstName,
+    lastName: lastName ?? this.lastName,
+    username: username ?? this.username,
+    isUsernameAvailable: isUsernameAvailable ?? this.isUsernameAvailable,
+    isUsernameChecking: isUsernameChecking ?? this.isUsernameChecking,
+    profilePicUrl: profilePicUrl == _sentinel
+        ? this.profilePicUrl
+        : (profilePicUrl as String?),
+    localProfilePicPath: localProfilePicPath == _sentinel
+        ? this.localProfilePicPath
+        : (localProfilePicPath as String?),
+    bio: bio ?? this.bio,
+    gender: gender ?? this.gender,
+    birthday: birthday ?? this.birthday,
+    location: location ?? this.location,
+    locationDetails: locationDetails ?? this.locationDetails,
+    nationality: nationality ?? this.nationality,
+    jobType: jobType ?? this.jobType,
+    languages: languages ?? this.languages,
+    interests: interests ?? this.interests,
+    religion: religion ?? this.religion,
+    smoking: smoking ?? this.smoking,
+    drinking: drinking ?? this.drinking,
+    personality: personality ?? this.personality,
+    foodPreference: foodPreference ?? this.foodPreference,
+    policyAccepted: policyAccepted ?? this.policyAccepted,
+    isSubmitting: isSubmitting ?? this.isSubmitting,
+    errorMessage: errorMessage ?? this.errorMessage,
+  );
 }
 
 class OnboardingNotifier extends Notifier<OnboardingState> {
@@ -248,20 +246,19 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
       state = state.copyWith(policyAccepted: accepted);
 
   Future<bool> submit() async {
-    state = state.copyWith(isSubmitting: true, errorMessage: null);
+    state = state.copyWith(isSubmitting: true);
     try {
       if (state.birthday == null) throw 'Birthday is required';
 
       // 1. Upload Profile Photo if local path exists
-      String? finalProfilePicUrl = state.profilePicUrl;
+      var finalProfilePicUrl = state.profilePicUrl;
       if (state.localProfilePicPath != null) {
         try {
           final result = await _cloudinaryService.uploadImage(
             File(state.localProfilePicPath!),
-            folder: 'kovari-profiles',
             cancelToken: _cancelToken,
           );
-          finalProfilePicUrl = result['secure_url'];
+          finalProfilePicUrl = result['secure_url'] as String?;
           // Update state with the new URL for future attempts
           state = state.copyWith(profilePicUrl: finalProfilePicUrl);
         } catch (uploadError) {
@@ -271,7 +268,7 @@ class OnboardingNotifier extends Notifier<OnboardingState> {
 
       // 2. Calculate Age
       final now = DateTime.now();
-      int age = now.year - state.birthday!.year;
+      var age = now.year - state.birthday!.year;
       if (now.month < state.birthday!.month ||
           (now.month == state.birthday!.month &&
               now.day < state.birthday!.day)) {

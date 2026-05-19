@@ -23,19 +23,39 @@ export const useUserProfile = (userId: string): UseUserProfileResult => {
     }
     const fetchProfile = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("name, username, profile_photo, deleted")
-        .eq("user_id", userId)
-        .single();
-      if (error || !data) {
+      try {
+        const response = await fetch("/api/direct-chat/profiles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds: [userId] }),
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch profile");
+
+        const result = await response.json();
+        const profileData = result.profiles?.[0];
+
+        if (!profileData) {
+          setProfile(null);
+          setIsDeleted(true);
+        } else {
+          setProfile({
+            id: profileData.user_id,
+            name: profileData.name || "User",
+            username: profileData.username || "user",
+            profile_photo: profileData.profile_photo,
+            deleted: profileData.deleted || false,
+            clerk_id: profileData.clerk_id || profileData.clerk_user_id || (userId.startsWith("user_") ? userId : undefined),
+          } as UserProfile);
+          setIsDeleted(!!profileData.deleted);
+        }
+      } catch (error) {
+        console.error("Error fetching profile via API:", error);
         setProfile(null);
         setIsDeleted(true);
-      } else {
-        setProfile(data);
-        setIsDeleted(!!data.deleted);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchProfile();
   }, [userId, supabase]);

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../shared/widgets/secondary_button.dart';
-import '../../../../shared/widgets/select_chip.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../providers/onboarding_provider.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/onboarding/providers/onboarding_provider.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
+import 'package:mobile/shared/widgets/select_chip.dart';
 
 class LanguagesInterestsStep extends ConsumerWidget {
   const LanguagesInterestsStep({super.key});
@@ -17,82 +17,82 @@ class LanguagesInterestsStep extends ConsumerWidget {
     final state = ref.watch(onboardingProvider);
 
     final languageOptions = [
-      "English",
-      "Hindi",
-      "Bengali",
-      "Telugu",
-      "Marathi",
-      "Tamil",
-      "Gujarati",
-      "Urdu",
-      "Kannada",
-      "Malayalam",
-      "Punjabi",
+      'English',
+      'Hindi',
+      'Bengali',
+      'Telugu',
+      'Marathi',
+      'Tamil',
+      'Gujarati',
+      'Urdu',
+      'Kannada',
+      'Malayalam',
+      'Punjabi',
     ];
 
     final interestOptions = [
       // Travel & Adventure
-      "Travel",
-      "Hiking",
-      "Camping",
-      "Backpacking",
-      "Surfing",
-      "Skiing",
-      "Rock Climbing",
+      'Travel',
+      'Hiking',
+      'Camping',
+      'Backpacking',
+      'Surfing',
+      'Skiing',
+      'Rock Climbing',
 
       // Food & Drink
-      "Food",
-      "Cooking",
-      "Wine",
-      "Coffee",
-      "Brunch",
+      'Food',
+      'Cooking',
+      'Wine',
+      'Coffee',
+      'Brunch',
 
       // Fitness & Wellness
-      "Fitness",
-      "Yoga",
-      "Running",
-      "Cycling",
-      "Dance",
+      'Fitness',
+      'Yoga',
+      'Running',
+      'Cycling',
+      'Dance',
 
       // Sports
-      "Sports",
-      "Football",
-      "Basketball",
-      "Tennis",
+      'Sports',
+      'Football',
+      'Basketball',
+      'Tennis',
 
       // Arts & Culture
-      "Art",
-      "Photography",
-      "Museums",
-      "Concerts",
-      "Festivals",
+      'Art',
+      'Photography',
+      'Museums',
+      'Concerts',
+      'Festivals',
 
       // Music
-      "Music",
-      "Live Music",
+      'Music',
+      'Live Music',
 
       // Entertainment
-      "Movies",
-      "Netflix",
-      "Podcasts",
+      'Movies',
+      'Netflix',
+      'Podcasts',
 
       // Reading & Learning
-      "Reading",
-      "Books",
+      'Reading',
+      'Books',
 
       // Social & Causes
-      "Volunteering",
+      'Volunteering',
 
       // Lifestyle
-      "Fashion",
+      'Fashion',
 
       // Pets & Animals
-      "Dogs",
-      "Cats",
+      'Dogs',
+      'Cats',
 
       // Nightlife
-      "Nightlife",
-      "Bars",
+      'Nightlife',
+      'Bars',
     ];
 
     return SingleChildScrollView(
@@ -101,13 +101,13 @@ class LanguagesInterestsStep extends ConsumerWidget {
         children: [
           const SizedBox(height: AppSpacing.sm),
           Text(
-            "Interests & Languages",
+            'Interests & Languages',
             style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            "Select what you like and speak",
+            'Select what you like and speak',
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.mutedForeground,
             ),
@@ -126,16 +126,14 @@ class LanguagesInterestsStep extends ConsumerWidget {
             child: Wrap(
               spacing: 8,
               runSpacing: 10,
-              children: languageOptions.map((lang) {
-                return SelectChip(
+              children: languageOptions.map((lang) => SelectChip(
                   label: lang,
                   isSelected: state.languages.contains(lang),
                   fillColor: AppColors.surface(context, level: 1),
                   onTap: () => ref
                       .read(onboardingProvider.notifier)
                       .toggleLanguage(lang),
-                );
-              }).toList(),
+                )).toList(),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -151,16 +149,14 @@ class LanguagesInterestsStep extends ConsumerWidget {
             child: Wrap(
               spacing: 8,
               runSpacing: 10,
-              children: interestOptions.map((interest) {
-                return SelectChip(
+              children: interestOptions.map((interest) => SelectChip(
                   label: interest,
                   isSelected: state.interests.contains(interest),
                   fillColor: AppColors.card,
                   onTap: () => ref
                       .read(onboardingProvider.notifier)
                       .toggleInterest(interest),
-                );
-              }).toList(),
+                )).toList(),
             ),
           ),
 

@@ -3,17 +3,33 @@ import {
   InterServerEvents,
   SocketData,
   ClientToServerEvents,
-  ServerToClientEvents
+  ServerToClientEvents,
 } from "@kovari/types";
 import { pubClient } from "./redis";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { PresenceManager } from "./presence";
 import { RateLimiter } from "./rateLimiter";
 import { bufferNotification } from "../notifications/batching";
+import {
+  presenceKeyForSupabaseUserId,
+  resolveSupabaseUserIdFromAuthId,
+} from "./resolveSocketUser";
+
+import { sequenceManager } from "./sequences";
 
 export const registerSocketEvents = (
-  io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>,
-  socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>
+  io: Server<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    InterServerEvents,
+    SocketData
+  >,
+  socket: Socket<
+    ClientToServerEvents,
+    ServerToClientEvents,
+    InterServerEvents,
+    SocketData
+  >,
 ) => {
   const userId = socket.data.userId;
 
@@ -22,7 +38,7 @@ export const registerSocketEvents = (
     console.log(`[Socket] User ${userId} joined chat ${chatId}`);
     const supabaseId = socket.data.supabaseId || null;
     PresenceManager.userJoinedChat(userId, chatId, (cId, uId) => {
-        socket.to(cId).emit("user_online", { userId: uId, supabaseId });
+      socket.to(cId).emit("user_online", { chatId: cId, userId: uId, supabaseId });
     });
   });
 
@@ -36,48 +52,71 @@ export const registerSocketEvents = (
     // Level 0: Basic spam protection
     const isAllowed = await RateLimiter.checkRateLimit(userId, 15, 5); // Max 15 messages per 5s
     if (!isAllowed) {
-        if (callback) callback({ status: "error", error: "Rate limit exceeded globally" });
-        return;
-    }
-
-    console.log(`[Socket] Message sent to ${chatId} by ${userId}`);
-    
-    // Override avatar with the Supabase profile_photo cached at connection time
-    const enrichedMessage = {
-      ...message,
-      avatar: (socket.data as any).profilePhoto || message.avatar,
-    };
-
-    // Immediately broadcast to all users in the room
-    io.to(chatId).emit("receive_message", enrichedMessage);
-    
-    // Level 1: DELIVERY ACK
-    if (callback) {
-       callback({ status: "sent" });
+      if (callback)
+        callback({ status: "error", error: "Rate limit exceeded globally" });
+      return;
     }
 
     try {
+      console.log(`[Socket] Message sent to ${chatId} by ${userId}`);
+
+      // Generate sequence IDs with in-memory fallback
+      const conversationSequence = await sequenceManager.getNext(`chat_seq:${chatId}`);
+      const serverSequence = await sequenceManager.getNext(`global_seq`);
+
+      // Override avatar with the Supabase profile_photo cached at connection time
+      const enrichedMessage = {
+        ...message,
+        avatar: (socket.data as any).profilePhoto || message.avatar,
+        conversationSequence,
+        serverSequence,
+      };
+
+      // Immediately broadcast to all users in the room
+      io.to(chatId).emit("receive_message", enrichedMessage);
+
+      // Level 1: DELIVERY ACK
+      if (callback) {
+        callback({ status: "sent" });
+      }
+
       // Async DB write reusing API logic/principles
-      const persistedMessage = await persistMessageToDb(chatId, message, userId);
-      
+      const persistedMessage = await persistMessageToDb(
+        chatId,
+        message,
+        userId,
+        conversationSequence,
+        serverSequence,
+      );
+
       // Level 2: PERSISTENCE ACK
       io.to(chatId).emit("message_persisted", {
-          tempId: message.tempId || message.id || "",
-          messageId: persistedMessage.id,
-          chatId
+        tempId: message.tempId || message.id || "",
+        messageId: persistedMessage.id,
+        chatId,
+        conversationSequence,
+        serverSequence,
       });
 
-      // ========== PHASE 4: NOTIFICATIONS ==========
       // ========== PHASE 4: NOTIFICATIONS ==========
       const senderName = (socket.data as any).fullName || "Someone";
       const senderAvatar = (socket.data as any).profilePhoto || null;
       const isDirectChat = chatId.includes("_");
 
       if (isDirectChat) {
-        // Direct Chat: Recipient is message.receiverId
+        // Direct Chat: Recipient is message.receiverId (Supabase users.id)
         const recipientId = message.receiverId;
         if (recipientId) {
-          await handleNotificationForUser(io, recipientId, chatId, senderName, senderAvatar, message.text || "Sent a message");
+          const notifyTargetId =
+            await presenceKeyForSupabaseUserId(recipientId);
+          await handleNotificationForUser(
+            io,
+            notifyTargetId,
+            chatId,
+            senderName,
+            senderAvatar,
+            message.text || "Sent a message",
+          );
         }
       } else {
         // Group Chat: Get all members except sender
@@ -97,15 +136,25 @@ export const registerSocketEvents = (
               .select("clerk_user_id")
               .eq("id", member.user_id)
               .single();
-            
+
             if (userRow?.clerk_user_id) {
-              await handleNotificationForUser(io, userRow.clerk_user_id, chatId, senderName, senderAvatar, message.text || "Sent a message to the group");
+              await handleNotificationForUser(
+                io,
+                userRow.clerk_user_id,
+                chatId,
+                senderName,
+                senderAvatar,
+                message.text || "Sent a message to the group",
+              );
             }
           }
         }
       }
     } catch (error) {
-      console.error("[Socket] Failed to persist message or send notification:", error);
+      console.error(
+        "[Socket] Failed to send/persist message or send notification:",
+        error,
+      );
     }
   });
 
@@ -113,18 +162,18 @@ export const registerSocketEvents = (
    * Helper to handle notification logic for a single user
    */
   async function handleNotificationForUser(
-    io: Server, 
-    targetClerkUserId: string, 
-    chatId: string, 
-    senderName: string, 
+    io: Server,
+    targetClerkUserId: string,
+    chatId: string,
+    senderName: string,
     senderAvatar: string | null,
-    text: string
+    text: string,
   ) {
     // 1. Check if user is in the active chat room
     const targetSockets = io.sockets.adapter.rooms.get(chatId);
     const userSocketsKey = `user_socket:${targetClerkUserId}`;
     const userSocketIds = await pubClient.sMembers(userSocketsKey);
-    
+
     let isUserInChat = false;
     if (targetSockets && userSocketIds) {
       for (const sId of userSocketIds) {
@@ -142,7 +191,7 @@ export const registerSocketEvents = (
 
     // 2. User is NOT in chat. Trigger real-time socket notification if online
     const isOnline = userSocketIds && userSocketIds.length > 0;
-    
+
     if (isOnline) {
       // Emit to user's private room
       io.to(`user_socket:${targetClerkUserId}`).emit("new_notification", {
@@ -153,7 +202,7 @@ export const registerSocketEvents = (
         image_url: senderAvatar, // Include avatar for UI
         created_at: new Date().toISOString(),
       });
-      
+
       // Also emit unread count update if we want to be fancy
       // io.to(`user_socket:${targetClerkUserId}`).emit("unread_update", { chatId });
     }
@@ -161,7 +210,14 @@ export const registerSocketEvents = (
     // 3. Trigger Batching/Push for offline OR not-in-chat users
     // (Requirement 3: trigger push if offline, Requirement 4: buffer if not in chat)
     const senderSupabaseId = socket.data.supabaseId || "";
-    await bufferNotification(targetClerkUserId, chatId, senderName, senderAvatar || "", text, senderSupabaseId);
+    await bufferNotification(
+      targetClerkUserId,
+      chatId,
+      senderName,
+      senderAvatar || "",
+      text,
+      senderSupabaseId,
+    );
   }
 
   // ========== ADVANCED UX EVENTS ==========
@@ -176,7 +232,9 @@ export const registerSocketEvents = (
 
   socket.on("message_delivered", ({ chatId, messageId }) => {
     // Relay to sender immediately
-    socket.to(chatId).emit("message_delivered_ack", { chatId, messageId, userId });
+    socket
+      .to(chatId)
+      .emit("message_delivered_ack", { chatId, messageId, userId });
   });
 
   socket.on("mark_seen", async ({ chatId, messageIds }) => {
@@ -184,9 +242,9 @@ export const registerSocketEvents = (
       const supabase = createAdminSupabaseClient();
       const isDirectChat = chatId.includes("_");
       const supabaseId = socket.data.supabaseId;
-      
+
       const table = isDirectChat ? "direct_messages" : "group_messages";
-      
+
       if (messageIds.length > 0) {
         if (isDirectChat) {
           await supabase
@@ -212,30 +270,30 @@ export const registerSocketEvents = (
 
           // Mark each message as seen by THIS user in Redis Sets
           for (const msgId of messageIds) {
-             const setKey = `group_msg_seen:${chatId}:${msgId}`;
-             await pubClient.sAdd(setKey, supabaseId);
-             
-             // Check if all members (excluding sender) have now seen it
-             const seenCount = await pubClient.sCard(setKey);
-             if (seenCount >= memberCount - 1 && memberCount > 1) {
-                // BLUE TICK TRIGGER: Emit to the room that this message is now fully seen
-                io.to(chatId).emit("messages_seen", { 
-                  chatId, 
-                  messageIds: [msgId], 
-                  userId,
-                  isFullySeen: true // This flag triggers the blue check in the UI
-                });
-                // Once fully seen, we can optionally cleanup the set (after a short delay or now)
-                await pubClient.expire(setKey, 3600); // Keep for an hour just in case of race conditions
-             }
+            const setKey = `group_msg_seen:${chatId}:${msgId}`;
+            await pubClient.sAdd(setKey, supabaseId);
+
+            // Check if all members (excluding sender) have now seen it
+            const seenCount = await pubClient.sCard(setKey);
+            if (seenCount >= memberCount - 1 && memberCount > 1) {
+              // BLUE TICK TRIGGER: Emit to the room that this message is now fully seen
+              io.to(chatId).emit("messages_seen", {
+                chatId,
+                messageIds: [msgId],
+                userId,
+                isFullySeen: true, // This flag triggers the blue check in the UI
+              });
+              // Once fully seen, we can optionally cleanup the set (after a short delay or now)
+              await pubClient.expire(setKey, 3600); // Keep for an hour just in case of race conditions
+            }
           }
         }
       }
-      
+
       // Individual feedback (grey ticks still, but tells sender SOMEONE saw it)
       socket.to(chatId).emit("messages_seen", { chatId, messageIds, userId });
     } catch (error) {
-       console.error("[Socket] Failed to mark messages seen:", error);
+      console.error("[Socket] Failed to mark messages seen:", error);
     }
   });
 
@@ -243,14 +301,14 @@ export const registerSocketEvents = (
     try {
       const supabase = createAdminSupabaseClient();
       const { data, error } = await supabase
-          .from("users")
-          .select("clerk_user_id")
-          .eq("id", targetUserId)
-          .single();
+        .from("users")
+        .select("clerk_user_id")
+        .eq("id", targetUserId)
+        .single();
 
       if (error || !data?.clerk_user_id) {
-         callback(null);
-         return;
+        callback(null);
+        return;
       }
 
       const lastSeen = await PresenceManager.getLastSeen(data.clerk_user_id);
@@ -260,6 +318,17 @@ export const registerSocketEvents = (
       callback(null);
     }
   });
+
+  socket.on(
+    "request_gap_fill",
+    async ({ chatId, fromSequence, toSequence }) => {
+      console.log(
+        `[Socket] User ${userId} requested gap fill for ${chatId} from ${fromSequence} to ${toSequence}`,
+      );
+      // Implementation for Phase 10 Gap Recovery
+      // Should fetch from DB and emit to the user's socket
+    },
+  );
 };
 
 /**
@@ -267,34 +336,37 @@ export const registerSocketEvents = (
  * This uses the admin client securely on the server-side logic since the socket has already verified the Clerk user ID.
  * It's generalized for both group and direct chat.
  */
-async function persistMessageToDb(chatId: string, message: any, clerkUserId: string) {
+async function persistMessageToDb(
+  chatId: string,
+  message: any,
+  socketAuthUserId: string,
+  conversationSequence?: number,
+  serverSequence?: number,
+) {
   const supabase = createAdminSupabaseClient();
-  
-  // Resolve current user UUID from Clerk userId
-  const { data: userRow, error: userError } = await supabase
-    .from("users")
-    .select("id")
-    .eq("clerk_user_id", clerkUserId)
-    .single();
 
-  if (userError || !userRow) throw new Error("User not found: " + clerkUserId);
-  const userUuid = userRow.id;
+  const userUuid = await resolveSupabaseUserIdFromAuthId(socketAuthUserId);
+  if (!userUuid) throw new Error("User not found: " + socketAuthUserId);
 
   // Determine if group chat or direct chat
   const isDirectChat = chatId.includes("_");
 
   if (isDirectChat) {
-    const { data, error } = await supabase.from("direct_messages").insert({
-      sender_id: userUuid,
-      receiver_id: message.receiverId,
-      encrypted_content: message.encryptedContent || null,
-      encryption_iv: message.iv || null,
-      encryption_salt: message.salt || null,
-      media_url: message.mediaUrl || null,
-      media_type: message.mediaType || null,
-      client_id: message.tempId || null,
-      is_encrypted: message.isEncrypted || false,
-    }).select("*").single();
+    const { data, error } = await supabase
+      .from("direct_messages")
+      .insert({
+        sender_id: userUuid,
+        receiver_id: message.receiverId,
+        encrypted_content: message.encryptedContent || null,
+        encryption_iv: message.iv || null,
+        encryption_salt: message.salt || null,
+        media_url: message.mediaUrl || null,
+        media_type: message.mediaType || null,
+        client_id: message.tempId || null,
+        is_encrypted: message.isEncrypted || false,
+      })
+      .select("*")
+      .single();
 
     if (error) {
       console.error("[Socket DB Persist] Direct message error:", error);
@@ -303,16 +375,20 @@ async function persistMessageToDb(chatId: string, message: any, clerkUserId: str
     return data;
   } else {
     // It's a group chat, the chatId is the groupId
-    const { data, error } = await supabase.from("group_messages").insert({
-      group_id: chatId,
-      user_id: userUuid,
-      encrypted_content: message.encryptedContent || null,
-      encryption_iv: message.iv || null,
-      encryption_salt: message.salt || null,
-      media_url: message.mediaUrl || null,
-      media_type: message.mediaType || null,
-      is_encrypted: message.isEncrypted ?? true,
-    }).select("id").single();
+    const { data, error } = await supabase
+      .from("group_messages")
+      .insert({
+        group_id: chatId,
+        user_id: userUuid,
+        encrypted_content: message.encryptedContent || null,
+        encryption_iv: message.iv || null,
+        encryption_salt: message.salt || null,
+        media_url: message.mediaUrl || null,
+        media_type: message.mediaType || null,
+        is_encrypted: message.isEncrypted ?? true,
+      })
+      .select("id")
+      .single();
 
     if (error) {
       console.error("[Socket] Failed to persist group message:", error);
@@ -321,4 +397,3 @@ async function persistMessageToDb(chatId: string, message: any, clerkUserId: str
     return data;
   }
 }
-

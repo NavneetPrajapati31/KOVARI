@@ -1,20 +1,23 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:shimmer/shimmer.dart' as shim;
-import '../../../core/theme/app_colors.dart';
-import '../../../core/network/api_client.dart';
-import '../models/user_connection.dart';
-import '../data/connections_service.dart';
-import '../widgets/user_list_item.dart';
-import '../../../core/providers/profile_provider.dart';
-import 'public_profile_screen.dart';
-import '../../../shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/network/api_client.dart';
+import 'package:mobile/core/providers/profile_provider.dart';
+import 'package:mobile/core/services/haptic_service.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/profile/data/connections_service.dart';
+import 'package:mobile/features/profile/models/user_connection.dart';
+import 'package:mobile/features/profile/widgets/user_list_item.dart';
+import 'package:mobile/shared/widgets/kovari_confirm_dialog.dart';
+import 'package:mobile/shared/widgets/kovari_snackbar.dart';
 
-class ConnectionsScreen extends ConsumerStatefulWidget {
-  final String userId;
-  final String username;
-  final String initialTab; // 'followers' or 'following'
+class ConnectionsScreen extends ConsumerStatefulWidget { // 'followers' or 'following'
 
   const ConnectionsScreen({
     super.key,
@@ -22,6 +25,9 @@ class ConnectionsScreen extends ConsumerStatefulWidget {
     required this.username,
     this.initialTab = 'followers',
   });
+  final String userId;
+  final String username;
+  final String initialTab;
 
   @override
   ConsumerState<ConnectionsScreen> createState() => _ConnectionsScreenState();
@@ -107,8 +113,8 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
     });
 
     try {
-      final followers = await _service.getFollowers(widget.userId, offset: 0);
-      final following = await _service.getFollowing(widget.userId, offset: 0);
+      final followers = await _service.getFollowers(widget.userId);
+      final following = await _service.getFollowing(widget.userId);
 
       if (mounted) {
         setState(() {
@@ -142,7 +148,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       final nextPage = _followersPage + 1;
       final newFollowers = await _service.getFollowers(
         widget.userId,
-        offset: (_followersPage * 20),
+        offset: _followersPage * 20,
       );
 
       if (mounted) {
@@ -171,7 +177,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       final nextPage = _followingPage + 1;
       final newFollowing = await _service.getFollowing(
         widget.userId,
-        offset: (_followingPage * 20),
+        offset: _followingPage * 20,
       );
 
       if (mounted) {
@@ -229,9 +235,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
             return u;
           }).toList();
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        KovariSnackbar.error(context, 'Error: ${e.toString()}');
       }
     }
   }
@@ -244,7 +248,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
       context: context,
       title: 'Remove Follower?',
       content:
-          'Kovari won\'t tell @${user.username} they were removed from your followers.',
+          "Kovari won't tell @${user.username} they were removed from your followers.",
       confirmLabel: 'Remove',
       isDestructive: true,
       onConfirm: () async {
@@ -278,7 +282,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
     showKovariConfirmDialog(
       context: context,
       title: 'Unfollow?',
-      content: 'Kovari won\'t tell ${user.name} they were unfollowed.',
+      content: "Kovari won't tell ${user.name} they were unfollowed.",
       confirmLabel: 'Unfollow',
       isDestructive: true,
       onConfirm: () async {
@@ -315,64 +319,50 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
             // Premium App Bar & Tabs
             SliverOverlapAbsorber(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               sliver: SliverAppBar(
                 pinned: true,
-                floating: false,
                 elevation: 0,
-                backgroundColor: AppColors.surface(context, level: 1),
+                backgroundColor: AppColors.surface(context),
                 leading: IconButton(
                   icon: Icon(
                     LucideIcons.arrowLeft,
                     color: AppColors.text(context),
                     size: 20,
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => context.pop(),
                 ),
                 centerTitle: false,
                 titleSpacing: 0, // Tighten gap between back icon and title
                 title: _isLoading && widget.username.isEmpty
-                    ? shim.Shimmer.fromColors(
-                        baseColor: AppColors.secondary,
-                        highlightColor: AppColors.secondary,
-                        child: Container(
-                          width: 80,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                        ),
-                      )
+                    ? const KovariSkeletonCard(width: 80, height: 14)
                     : Text(
                         widget.username,
-                        style: TextStyle(
+                        style: AppTextStyles.h3.copyWith(
                           color: AppColors.text(context),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 14, // Maintaining exact size as requested
                         ),
                       ),
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(48),
-                  child: Container(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: AppColors.surface(context),
                     ),
                     child: TabBar(
                       controller: _tabController,
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
                       indicatorColor: AppColors.primary,
-                      indicatorWeight: 2,
                       indicatorSize: TabBarIndicatorSize.tab,
-                      dividerColor: AppColors.border,
+                      dividerColor: AppColors.borderColor(context),
                       dividerHeight: 1,
                       onTap: (index) {
+                        HapticService.selection();
                         // Clear search when switching tabs
                         if (_searchQuery.isNotEmpty) {
                           _searchController.clear();
@@ -380,12 +370,12 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                         }
                       },
                       labelColor: AppColors.primary,
-                      unselectedLabelColor: AppColors.mutedForeground,
-                      labelStyle: const TextStyle(
+                      unselectedLabelColor: AppColors.text(context),
+                      labelStyle: AppTextStyles.button.copyWith(
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                       ),
-                      unselectedLabelStyle: const TextStyle(
+                      unselectedLabelStyle: AppTextStyles.button.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -393,22 +383,28 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                         Tab(
                           child: Text(
                             '${_followers.length} followers',
-                            style: TextStyle(
+                            style: AppTextStyles.button.copyWith(
                               fontSize: 13,
                               fontWeight: _tabController.index == 0
                                   ? FontWeight.w600
                                   : FontWeight.w500,
+                              color: _tabController.index == 0
+                                  ? AppColors.primary
+                                  : AppColors.text(context),
                             ),
                           ),
                         ),
                         Tab(
                           child: Text(
                             '${_following.length} following',
-                            style: TextStyle(
+                            style: AppTextStyles.button.copyWith(
                               fontSize: 13,
                               fontWeight: _tabController.index == 1
                                   ? FontWeight.w600
                                   : FontWeight.w500,
+                              color: _tabController.index == 1
+                                  ? AppColors.primary
+                                  : AppColors.text(context),
                             ),
                           ),
                         ),
@@ -418,8 +414,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 ),
               ),
             ),
-          ];
-        },
+          ],
         body: TabBarView(
           controller: _tabController,
           children: [
@@ -429,12 +424,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildUserList(List<UserConnection> users, String type) {
-    return Builder(
-      builder: (context) {
-        return CustomScrollView(
+  Widget _buildUserList(List<UserConnection> users, String type) => Builder(
+      builder: (context) => CustomScrollView(
           key: PageStorageKey<String>(type),
           controller: type == 'followers'
               ? _followersScrollController
@@ -445,72 +437,72 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
             ),
             // Search Bar (Always visible)
             SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surface(context),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppColors.borderColor(context),
-                      width: 1,
+              child: ClipRRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: AppColors.borderColor(context),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                child: SizedBox(
-                  height: 38,
-                  child: TextField(
-                    controller: _searchController,
-                    enabled: !_isLoading, // Disable while loading
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.text(context),
-                      fontWeight: FontWeight.w400,
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: AppColors.secondary,
-                      hintText: 'Search',
-                      hintStyle: const TextStyle(
-                        color: AppColors.mutedForeground,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      prefixIcon: null,
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(LucideIcons.x, size: 16),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                              },
-                            )
-                          : const Icon(
-                              LucideIcons.search,
-                              size: 18,
-                              color: AppColors.mutedForeground,
-                            ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 0,
+                    child: SizedBox(
+                      height: 38,
+                      child: TextField(
+                        controller: _searchController,
+                        enabled: !_isLoading,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontSize: 13,
+                          color: AppColors.text(context),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: AppColors.mutedColor(context),
+                          hintText: 'Search',
+                          hintStyle: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.text(context, isMuted: true),
+                            fontSize: 13,
+                          ),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(LucideIcons.x, size: 16),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() {
+                                      _searchQuery = '';
+                                    });
+                                  },
+                                )
+                              : Icon(
+                                  LucideIcons.search,
+                                  size: 18,
+                                  color: AppColors.text(context, isMuted: true),
+                                ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -526,9 +518,17 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(LucideIcons.info, color: Colors.red, size: 40),
+                      const Icon(
+                        LucideIcons.info,
+                        color: AppColors.destructive,
+                        size: 40,
+                      ),
                       const SizedBox(height: 12),
-                      Text(_error!, textAlign: TextAlign.center),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.bodyMedium,
+                      ),
                       TextButton(
                         onPressed: _loadData,
                         child: const Text('Retry'),
@@ -556,31 +556,20 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                     user: user,
                     type: type,
                     isOwnProfile: isViewingOwnConnections,
-                    onTap: isMe
-                        ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PublicProfileScreen(userId: user.id),
-                              ),
-                            );
-                          },
+                      onTap: isMe
+                          ? null
+                          : () => PublicProfileRouteData(userId: user.id)
+                              .push<void>(context),
                     onActionPressed: () {
                       if (isViewingOwnConnections) {
                         if (type == 'followers' && !user.isFollowing) {
                           _handleFollowToggle(user);
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Chat coming soon!')),
-                          );
+                          KovariSnackbar.info(context, 'Chat coming soon!');
                         }
                       } else {
                         if (user.isFollowing) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Chat coming soon!')),
-                          );
+                          KovariSnackbar.info(context, 'Chat coming soon!');
                         } else {
                           _handleFollowToggle(user);
                         }
@@ -600,83 +589,22 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
                     child: Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 40)),
             ],
           ],
-        );
-      },
+        ),
     );
-  }
 
-  Widget _buildSkeletonList() {
-    return shim.Shimmer.fromColors(
-      baseColor: AppColors.secondary, // Match image (Lighter)
-      highlightColor: AppColors.secondary,
-      child: Column(
-        children: [
-          for (int i = 0; i < 8; i++) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              child: Row(
-                children: [
-                  // Avatar Skeleton (Match image: 44px)
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // User Info Skeleton
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: 60,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  // Action Button Skeleton
-                  Container(
-                    width: 80,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (i < 7)
-              const Divider(height: 1, thickness: 1, color: AppColors.border),
-          ],
-        ],
-      ),
+  Widget _buildSkeletonList() => Column(
+      children: List.generate(8, (index) => const KovariSkeletonUserListItem()),
     );
-  }
 
   Widget _buildEmptyState(String type) {
     final title = _searchQuery.isNotEmpty
@@ -691,10 +619,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: AppTextStyles.h3.copyWith(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.mutedForeground,
+                color: AppColors.text(context, isMuted: true),
               ),
             ),
             if (_searchQuery.isEmpty) ...[
@@ -703,9 +630,8 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen>
                 type == 'followers'
                     ? "When people follow you, you'll see them here."
                     : "When you follow people, you'll see them here.",
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.mutedForeground,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.text(context, isMuted: true),
                 ),
                 textAlign: TextAlign.center,
               ),

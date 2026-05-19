@@ -1,82 +1,95 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:mobile/core/utils/custom_route_transition.dart';
+import 'package:mobile/core/navigation/routes.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/core/widgets/skeletons/kovari_skeletons.dart';
+import 'package:mobile/features/groups/models/group.dart';
+import 'package:mobile/features/groups/models/hydrated_state.dart';
+import 'package:mobile/features/groups/providers/entity_stores.dart';
+import 'package:mobile/features/groups/widgets/group_card.dart';
+import 'package:mobile/shared/widgets/app_card.dart';
 import 'package:mobile/shared/widgets/kovari_refresh_indicator.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
-import '../providers/group_provider.dart';
-import '../widgets/group_card.dart';
-import '../widgets/group_card_skeleton.dart';
-import 'create_group_screen.dart';
-import 'group_details_screen.dart';
-import '../../../shared/widgets/app_card.dart';
 
 class GroupsScreen extends ConsumerWidget {
   const GroupsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final groupState = ref.watch(myGroupsProvider);
+    final groupState = ref.watch(myGroupsStoreProvider);
 
-    return SafeArea(
-      child: Column(
-        children: [
-          // Sticky Header
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                _buildTabButton(context, "My Groups", true),
-                const SizedBox(width: 8),
-                _buildTabButton(
-                  context,
-                  "New group",
-                  false,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CreateGroupScreen(),
-                      ),
-                    );
-                  },
-                ),
+    return Column(
+      children: [
+        // Sticky Header with Status Bar Padding
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            16.0,
+            MediaQuery.of(context).padding.top + 16.0,
+            16.0,
+            16.0,
+          ),
+          child: Row(
+            children: [
+              _buildTabButton(
+                context,
+                'My Groups',
+                true,
+                onTap: () {
+                  debugPrint('💎 [GroupsScreen] Already on My Groups tab');
+                },
+              ),
+              const SizedBox(width: 8),
+              _buildTabButton(
+                context,
+                'New group',
+                false,
+                onTap: () {
+                  debugPrint('🚀 [GroupsScreen] Navigating to Create Group...');
+                  const CreateGroupRouteData().push<void>(context);
+                },
+              ),
+            ],
+          ),
+        ),
+
+        // Scrollable Content
+        Expanded(
+          child: KovariRefreshIndicator(
+            onRefresh: () => ref.read(myGroupsStoreProvider.notifier).refresh(),
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              slivers: [
+                // 1. Stale Indicator
+                if (groupState.isStale)
+                  const SliverToBoxAdapter(
+                    child: LinearProgressIndicator(minHeight: 2),
+                  ),
+
+                // 2. Body
+                _buildSliverContent(context, ref, groupState),
+
+                // 3. Bottom Padding for floating nav
+                const SliverToBoxAdapter(child: SizedBox(height: 110)),
               ],
             ),
           ),
-
-          // Scrollable Content
-          Expanded(
-            child: KovariRefreshIndicator(
-              onRefresh: () => ref.read(myGroupsProvider.notifier).refresh(),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  // 1. Stale Indicator
-                  if (groupState.isStale)
-                    const SliverToBoxAdapter(
-                      child: LinearProgressIndicator(minHeight: 2),
-                    ),
-
-                  // 2. Body
-                  _buildSliverContent(context, ref, groupState),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildSliverContent(
     BuildContext context,
     WidgetRef ref,
-    dynamic state,
+    HydratedState<List<GroupModel>> state,
   ) {
-    if (state.isLoading && state.groups.isEmpty) {
+    final groups = state.data ?? [];
+    if (state.isHydrating && groups.isEmpty) {
       return SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         sliver: SliverToBoxAdapter(
@@ -86,11 +99,11 @@ class GroupsScreen extends ConsumerWidget {
               borderRadius: AppRadius.large,
               child: Column(
                 children: List.generate(
-                  5,
+                  10,
                   (i) => Column(
                     children: [
-                      const GroupCardSkeleton(),
-                      if (i < 4)
+                      const KovariSkeletonGroupListItem(),
+                      if (i < 9)
                         Divider(
                           height: 1,
                           color: AppColors.borderColor(context),
@@ -105,7 +118,7 @@ class GroupsScreen extends ConsumerWidget {
       );
     }
 
-    if (state.error != null && state.groups.isEmpty) {
+    if (state.error != null && groups.isEmpty) {
       return SliverFillRemaining(
         child: Center(
           child: Text(
@@ -116,7 +129,7 @@ class GroupsScreen extends ConsumerWidget {
       );
     }
 
-    if (state.groups.isEmpty) {
+    if (groups.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
         child: Center(
@@ -137,14 +150,14 @@ class GroupsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                "No groups yet",
+                'No groups yet',
                 style: AppTextStyles.h3.copyWith(
                   color: AppColors.text(context),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                "Create or join a group to start planning.",
+                'Create or join a group to start planning.',
                 style: TextStyle(color: AppColors.text(context, isMuted: true)),
               ),
             ],
@@ -166,23 +179,16 @@ class GroupsScreen extends ConsumerWidget {
               children: [
                 Column(
                   children: [
-                    for (int i = 0; i < state.groups.length; i++) ...[
+                    for (int i = 0; i < groups.length; i++) ...[
                       RepaintBoundary(
                         child: GroupCard(
-                          group: state.groups[i],
-                          onAction: () {
-                            Navigator.push(
-                              context,
-                              PremiumPageRoute(
-                                builder: (context) => GroupDetailsScreen(
-                                  groupId: state.groups[i].id,
-                                ),
-                              ),
-                            );
-                          },
+                          group: groups[i],
+                          onAction: () => GroupDetailsRouteData(
+                            groupId: groups[i].id,
+                          ).push<void>(context),
                         ),
                       ),
-                      if (i < state.groups.length - 1)
+                      if (i < groups.length - 1)
                         Divider(
                           height: 1,
                           color: AppColors.borderColor(context),
@@ -203,8 +209,7 @@ class GroupsScreen extends ConsumerWidget {
     String label,
     bool isSelected, {
     VoidCallback? onTap,
-  }) {
-    return InkWell(
+  }) => InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -214,12 +219,7 @@ class GroupsScreen extends ConsumerWidget {
               ? AppColors.primary.withValues(alpha: 0.1)
               : AppColors.surface(context, level: 1),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.borderColor(context),
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.borderColor(context)),
         ),
         child: Text(
           label,
@@ -233,5 +233,4 @@ class GroupsScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
 }

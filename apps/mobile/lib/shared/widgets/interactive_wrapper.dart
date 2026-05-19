@@ -1,22 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../core/config/interaction_config.dart';
-import '../../core/services/haptic_service.dart';
+import 'package:mobile/core/config/interaction_config.dart';
+import 'package:mobile/core/services/haptic_service.dart';
 
 enum InteractionState { idle, loading, success, error }
 
 class InteractiveWrapper extends StatefulWidget {
-  final Widget child;
-  final FutureOr<void> Function()? onPressed;
-  final bool enableScale;
-  final bool enableOpacity;
-  final HapticType hapticType;
-  final bool isDisabled;
-  final bool isLoading;
-  final bool isSuccess;
-  final bool isError;
-  final BorderRadius? borderRadius;
-
   const InteractiveWrapper({
     super.key,
     required this.child,
@@ -30,6 +19,16 @@ class InteractiveWrapper extends StatefulWidget {
     this.isError = false,
     this.borderRadius,
   });
+  final Widget child;
+  final FutureOr<void> Function()? onPressed;
+  final bool enableScale;
+  final bool enableOpacity;
+  final HapticType hapticType;
+  final bool isDisabled;
+  final bool isLoading;
+  final bool isSuccess;
+  final bool isError;
+  final BorderRadius? borderRadius;
 
   @override
   State<InteractiveWrapper> createState() => _InteractiveWrapperState();
@@ -57,6 +56,17 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
   }
 
   @override
+  void didUpdateWidget(InteractiveWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSuccess && !oldWidget.isSuccess) {
+      HapticService.success();
+    }
+    if (widget.isError && !oldWidget.isError) {
+      HapticService.error();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -70,12 +80,71 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
       return;
     }
 
-    _controller.forward();
+    await _controller.forward();
     setState(() => _isTapped = true);
-    HapticService.trigger(widget.hapticType);
+    await HapticService.trigger(widget.hapticType);
   }
 
-  Future<void> _handleTapUp(TapUpDetails details) async {
+  void _handleTapCancel() {
+    if (widget.isDisabled || widget.isLoading || widget.onPressed == null) {
+      return;
+    }
+    unawaited(_controller.reverse());
+    setState(() => _isTapped = false);
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _controller,
+    builder: (context, child) {
+      var current = child!;
+
+      if (widget.enableScale && !widget.isLoading) {
+        current = ScaleTransition(scale: _scaleAnimation, child: current);
+      }
+
+      if (widget.enableOpacity) {
+        current = AnimatedOpacity(
+          duration: InteractionConfig.fast,
+          opacity: (_isTapped || widget.isLoading) ? 0.8 : 1.0,
+          child: current,
+        );
+      }
+
+      return Opacity(
+        opacity: widget.isDisabled ? 0.5 : 1.0,
+        child: Stack(
+          children: [
+            current,
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  decoration: BoxDecoration(
+                    color: _isTapped
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: widget.borderRadius,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: GestureDetector(
+                onTapDown: _handleTapDown,
+                onTap: _handleInkWellTap,
+                onTapCancel: _handleTapCancel,
+                behavior: HitTestBehavior.opaque,
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+    child: RepaintBoundary(child: widget.child),
+  );
+
+  Future<void> _handleInkWellTap() async {
     if (widget.isDisabled ||
         widget.isLoading ||
         widget.onPressed == null ||
@@ -83,7 +152,10 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
       return;
     }
 
-    _controller.reverse();
+    // Deliberate delay to allow the InkRipple to "bloom" fully and provide high-fidelity feedback
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+
+    await _controller.reverse();
     setState(() {
       _isTapped = false;
       _isDebouncing = true;
@@ -93,52 +165,12 @@ class _InteractiveWrapperState extends State<InteractiveWrapper>
       await widget.onPressed?.call();
     } finally {
       if (mounted) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (mounted) setState(() => _isDebouncing = false);
-        });
+        unawaited(
+          Future<void>.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) setState(() => _isDebouncing = false);
+          }),
+        );
       }
     }
-  }
-
-  void _handleTapCancel() {
-    if (widget.isDisabled || widget.isLoading || widget.onPressed == null) {
-      return;
-    }
-    _controller.reverse();
-    setState(() => _isTapped = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          Widget current = child!;
-
-          if (widget.enableScale && !widget.isLoading) {
-            current = ScaleTransition(scale: _scaleAnimation, child: current);
-          }
-
-          if (widget.enableOpacity) {
-            current = AnimatedOpacity(
-              duration: InteractionConfig.fast,
-              opacity: (_isTapped || widget.isLoading) ? 0.8 : 1.0,
-              child: current,
-            );
-          }
-
-          return Opacity(
-            opacity: widget.isDisabled ? 0.5 : 1.0,
-            child: current,
-          );
-        },
-        child: RepaintBoundary(child: widget.child),
-      ),
-    );
   }
 }

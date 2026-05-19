@@ -1,18 +1,18 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../../shared/widgets/primary_button.dart';
-import '../../../../shared/widgets/secondary_button.dart';
-import '../../../../shared/widgets/select_field.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_radius.dart';
-import '../../providers/onboarding_provider.dart';
-
-import '../../../../shared/widgets/flat_date_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:mobile/core/theme/app_colors.dart';
+import 'package:mobile/core/theme/app_radius.dart';
+import 'package:mobile/core/theme/app_spacing.dart';
+import 'package:mobile/core/theme/app_text_styles.dart';
+import 'package:mobile/features/onboarding/providers/onboarding_provider.dart';
+import 'package:mobile/shared/widgets/flat_date_picker.dart';
+import 'package:mobile/shared/widgets/primary_button.dart';
+import 'package:mobile/shared/widgets/secondary_button.dart';
+import 'package:mobile/shared/widgets/select_field.dart';
 
 class GenderBirthStep extends ConsumerWidget {
   const GenderBirthStep({super.key});
@@ -20,7 +20,7 @@ class GenderBirthStep extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(onboardingProvider);
-    final genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
+    final genderOptions = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -28,13 +28,13 @@ class GenderBirthStep extends ConsumerWidget {
         children: [
           const SizedBox(height: AppSpacing.sm),
           Text(
-            "About you",
+            'About you',
             style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            "Select your gender and date of birth",
+            'Select your gender and date of birth',
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.mutedForeground,
             ),
@@ -145,14 +145,14 @@ class GenderBirthStep extends ConsumerWidget {
   }
 
   void _showDatePicker(BuildContext context, WidgetRef ref, DateTime? current) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        DateTime tempDate =
+        var tempDate =
             current ?? DateTime.now().subtract(const Duration(days: 365 * 18));
         return Container(
           height: 320,
@@ -165,9 +165,9 @@ class GenderBirthStep extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => context.pop(),
                       child: Text(
-                        "Cancel",
+                        'Cancel',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.mutedForeground,
                           fontWeight: FontWeight.w600,
@@ -175,7 +175,7 @@ class GenderBirthStep extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      "Birthday",
+                      'Birthday',
                       style: AppTextStyles.h3.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -185,10 +185,10 @@ class GenderBirthStep extends ConsumerWidget {
                         ref
                             .read(onboardingProvider.notifier)
                             .updateGenderBirth(birthday: tempDate);
-                        Navigator.pop(context);
+                        context.pop();
                       },
                       child: Text(
-                        "Done",
+                        'Done',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w700,
@@ -227,13 +227,13 @@ class GenderBirthStep extends ConsumerWidget {
 }
 
 class _FlatDatePicker extends StatefulWidget {
-  final DateTime initialDate;
-  final ValueChanged<DateTime> onDateChanged;
 
   const _FlatDatePicker({
     required this.initialDate,
     required this.onDateChanged,
   });
+  final DateTime initialDate;
+  final ValueChanged<DateTime> onDateChanged;
 
   @override
   State<_FlatDatePicker> createState() => _FlatDatePickerState();
@@ -294,7 +294,7 @@ class _FlatDatePickerState extends State<_FlatDatePicker> {
   @override
   Widget build(BuildContext context) {
     const double itemHeight = 45;
-    const double diameterRatio = 10.0; // The secret to the "Straight Line" look
+    const diameterRatio = 10.0; // The secret to the "Straight Line" look
 
     return Stack(
       children: [
@@ -346,7 +346,7 @@ class _FlatDatePickerState extends State<_FlatDatePicker> {
                     _selectedMonth + 1,
                     0,
                   ).day,
-                  builder: (context, i) => _buildItem("${i + 1}"),
+                  builder: (context, i) => _buildItem('${i + 1}'),
                 ),
               ),
             ),
@@ -364,7 +364,7 @@ class _FlatDatePickerState extends State<_FlatDatePicker> {
                 },
                 childDelegate: ListWheelChildBuilderDelegate(
                   childCount: _years.length,
-                  builder: (context, i) => _buildItem("${_years[i]}"),
+                  builder: (context, i) => _buildItem('${_years[i]}'),
                 ),
               ),
             ),
@@ -374,8 +374,7 @@ class _FlatDatePickerState extends State<_FlatDatePicker> {
     );
   }
 
-  Widget _buildItem(String text) {
-    return Center(
+  Widget _buildItem(String text) => Center(
       child: Text(
         text,
         style: AppTextStyles.bodyMedium.copyWith(
@@ -385,7 +384,6 @@ class _FlatDatePickerState extends State<_FlatDatePicker> {
         ),
       ),
     );
-  }
 
   @override
   void dispose() {

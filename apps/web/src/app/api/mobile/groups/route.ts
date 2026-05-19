@@ -71,7 +71,15 @@ export async function GET(req: NextRequest) {
         created_at,
         cover_image,
         members_count,
-        status
+        status,
+        destination_image,
+        destination_details,
+        ai_overview,
+        notes,
+        description,
+        budget,
+        non_smokers,
+        non_drinkers
       `)
       .in("id", groupIds)
       .in("status", ["active", "pending"])
@@ -86,6 +94,16 @@ export async function GET(req: NextRequest) {
     if (!groupsData || groupsData.length === 0) {
       return formatStandardResponse([], {}, { requestId, latencyMs: Date.now() - start });
     }
+
+    // 🕵️ Backend Audit: Log the first few groups to verify data presence
+    console.log(`📡 [API] Mobile Groups Fetch (${groupsData.length} groups). Sample:`, 
+      groupsData.slice(0, 3).map(g => ({
+        name: g.name,
+        has_img: !!g.destination_image,
+        img: g.destination_image,
+        has_details: !!g.destination_details
+      }))
+    );
 
     // 3. Fetch additional data for mapping (Creator profiles)
     const creatorIds = [...new Set(groupsData.map((g) => g.creator_id))];
@@ -127,6 +145,14 @@ export async function GET(req: NextRequest) {
         created_at: group.created_at,
         cover_image: group.cover_image,
         status: group.status,
+        destination_image: group.destination_image,
+        destination_details: group.destination_details,
+        ai_overview: group.ai_overview,
+        notes: group.notes,
+        description: group.description,
+        budget: group.budget,
+        non_smokers: group.non_smokers,
+        non_drinkers: group.non_drinkers,
       };
     });
 
@@ -192,7 +218,7 @@ export async function POST(req: NextRequest) {
       cover_image: parsed.data.cover_image || null,
       non_smokers: parsed.data.non_smokers ?? null,
       non_drinkers: parsed.data.non_drinkers ?? null,
-      status: "pending", // All new groups require admin review
+      status: "active", // New groups are active immediately
       dominant_languages: creatorLanguages,
     };
 

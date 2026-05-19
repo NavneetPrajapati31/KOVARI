@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/core/theme/app_colors.dart';
 import 'package:mobile/core/theme/app_text_styles.dart';
 
@@ -10,14 +11,13 @@ void showKovariConfirmDialog({
   required String confirmLabel,
   required VoidCallback onConfirm,
   bool isDestructive = false,
-  String cancelLabel = "Cancel",
+  String cancelLabel = 'Cancel',
 }) {
   showGeneralDialog(
     context: context,
     barrierDismissible: true,
-    barrierLabel: "Dismiss",
+    barrierLabel: 'Dismiss',
     barrierColor: Colors.black.withValues(alpha: 0.4), // Lighter barrier
-    transitionDuration: const Duration(milliseconds: 200),
     pageBuilder: (context, anim1, anim2) => const SizedBox(),
     transitionBuilder: (context, anim1, anim2, child) {
       final curve = Curves.easeOutBack.transform(anim1.value);
@@ -53,12 +53,6 @@ void showKovariConfirmDialog({
 }
 
 class KovariConfirmDialog extends StatelessWidget {
-  final String title;
-  final String content;
-  final String confirmLabel;
-  final VoidCallback onConfirm;
-  final bool isDestructive;
-  final String cancelLabel;
 
   const KovariConfirmDialog({
     super.key,
@@ -67,12 +61,17 @@ class KovariConfirmDialog extends StatelessWidget {
     required this.confirmLabel,
     required this.onConfirm,
     this.isDestructive = false,
-    this.cancelLabel = "Cancel",
+    this.cancelLabel = 'Cancel',
   });
+  final String title;
+  final String content;
+  final String confirmLabel;
+  final VoidCallback onConfirm;
+  final bool isDestructive;
+  final String cancelLabel;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
+  Widget build(BuildContext context) => Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 45),
         child: ClipRRect(
@@ -81,7 +80,7 @@ class KovariConfirmDialog extends StatelessWidget {
             color: AppColors.surface(context, level: 1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: AppColors.borderColor(context), width: 1),
+              side: BorderSide(color: AppColors.borderColor(context)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -118,7 +117,7 @@ class KovariConfirmDialog extends StatelessWidget {
                     Expanded(
                       child: _DialogAction(
                         label: cancelLabel,
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => context.pop(),
                         isDefault: true,
                       ),
                     ),
@@ -132,7 +131,7 @@ class KovariConfirmDialog extends StatelessWidget {
                         label: confirmLabel,
                         onPressed: () {
                           onConfirm();
-                          Navigator.pop(context);
+                          context.pop();
                         },
                         isDestructive: isDestructive,
                       ),
@@ -145,14 +144,9 @@ class KovariConfirmDialog extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class _DialogAction extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final bool isDestructive;
-  final bool isDefault;
 
   const _DialogAction({
     required this.label,
@@ -160,10 +154,13 @@ class _DialogAction extends StatelessWidget {
     this.isDestructive = false,
     this.isDefault = false,
   });
+  final String label;
+  final VoidCallback onPressed;
+  final bool isDestructive;
+  final bool isDefault;
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
+  Widget build(BuildContext context) => InkWell(
       onTap: onPressed,
       child: Container(
         height: 48,
@@ -181,5 +178,4 @@ class _DialogAction extends StatelessWidget {
         ),
       ),
     );
-  }
 }
