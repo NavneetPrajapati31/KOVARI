@@ -3,6 +3,7 @@ import { logger } from "@/lib/api/logger";
 
 const FALLBACK_THRESHOLD = 5;
 const COOLDOWN_SECONDS = 60;
+const CLOSED_TTL_SECONDS = 3600;
 
 export type CircuitState = "OPEN" | "CLOSED" | "HALF-OPEN";
 
@@ -64,7 +65,7 @@ export class RedisCircuitBreaker {
     try {
       await Promise.all([
         redis.del(this.keys.failures),
-        redis.set(this.keys.state, "CLOSED")
+        redis.set(this.keys.state, "CLOSED", { EX: CLOSED_TTL_SECONDS })
       ]);
     } catch (err: any) {
       // SILENT FAIL in production
