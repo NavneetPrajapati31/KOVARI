@@ -18,6 +18,12 @@ import {
   fetchPublicGroups,
 } from "@/features/explore/lib/fetchExploreData";
 import {
+  createSoloInterest,
+  createGroupInterest,
+  createSkipRecord
+} from "@/features/explore/lib/matchingActions";
+import { useToast } from "@/shared/hooks/use-toast";
+import {
   Sheet,
   SheetContent,
   SheetTrigger,
@@ -34,6 +40,7 @@ export default function ExplorePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user } = useUser();
+  const { toast } = useToast();
 
   // Get pre-filled destination from URL
   const getPrefilledDestination = () => {
@@ -413,16 +420,28 @@ export default function ExplorePage() {
 
   // Action handlers
   const handleConnect = async (matchId: string) => {
-    // TODO: Implement connection logic
+    if (user) {
+      const dest = lastSearchData?.destination || searchData.destination;
+      const res = await createSoloInterest(user.id, matchId, dest);
+      if (!res.success) {
+        toast({ title: "Error", description: res.error || "Failed to connect", variant: "destructive" });
+      } else {
+        toast({ title: "Interest sent!", description: "They will be notified." });
+      }
+    }
     handleNextGroup();
   };
 
   const handleSuperLike = async (matchId: string) => {
-    // TODO: Implement super like logic
+    console.warn("Super like not yet implemented");
+    handleNextGroup();
   };
 
   const handlePass = async (matchId: string) => {
-    // Move to next match after skipping
+    if (user) {
+      const dest = lastSearchData?.destination || searchData.destination;
+      await createSkipRecord(user.id, matchId, dest, "solo");
+    }
     handleNextGroup();
   };
 
@@ -440,16 +459,27 @@ export default function ExplorePage() {
   };
 
   const handleJoinGroup = async (groupId: string) => {
-    // TODO: Implement join group logic
+    if (user) {
+      const dest = lastSearchData?.destination || searchData.destination;
+      const res = await createGroupInterest(user.id, groupId, dest);
+      if (!res.success) {
+        toast({ title: "Error", description: res.error || "Failed to join group", variant: "destructive" });
+      } else {
+        toast({ title: "Request sent!", description: "Group admins will be notified." });
+      }
+    }
     handleNextGroup();
   };
 
   const handleRequestJoin = async (groupId: string) => {
-    // TODO: Implement request join logic
+    handleJoinGroup(groupId);
   };
 
   const handlePassGroup = async (groupId: string) => {
-    // TODO: Implement pass logic - move to next group
+    if (user) {
+      const dest = lastSearchData?.destination || searchData.destination;
+      await createSkipRecord(user.id, groupId, dest, "group");
+    }
     handleNextGroup();
   };
 

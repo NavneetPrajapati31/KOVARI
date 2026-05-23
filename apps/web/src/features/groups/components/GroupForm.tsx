@@ -6,6 +6,8 @@ import { InputField } from "@/shared/components/ui/InputField";
 import { DatePicker } from "@/shared/components/ui/DatePicker";
 import { ToggleButtonGroup } from "@/shared/components/ui/ToggleButtonGroup";
 import { TextAreaField } from "@/shared/components/ui/TextAreaField";
+import { useToast } from "@/shared/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 type FormData = z.infer<typeof groupFormSchema>;
 
@@ -27,9 +29,37 @@ export function GroupForm() {
     },
   });
 
-  const onSubmit = (data: FormData) => {
-    console.log("Group Form Data:", data);
-    // TODO: Send to Supabase or API
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      const payload = {
+        name: data.groupName,
+        destination: data.destination,
+        start_date: data.startDate.split('T')[0],
+        end_date: data.endDate.split('T')[0],
+        is_public: data.visibility === "public",
+        description: data.description,
+      };
+
+      const res = await fetch("/api/create-group", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create group");
+      }
+
+      const newGroup = await res.json();
+      toast({ title: "Success", description: "Group created successfully!" });
+      router.push(`/groups/${newGroup.id}/home`);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Something went wrong", variant: "destructive" });
+    }
   };
 
   return (

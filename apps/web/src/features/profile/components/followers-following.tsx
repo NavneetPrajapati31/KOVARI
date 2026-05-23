@@ -9,11 +9,13 @@ import type { User } from "@/features/profile/lib/user";
 import Link from "next/link";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { Skeleton } from "@heroui/react";
+import { useToast } from "@/shared/hooks/use-toast";
 
 export default function FollowersFollowing() {
   const searchParams = useSearchParams();
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const userId = params?.userId as string;
   // Get current user from auth store
   const currentUser = useAuthStore((state) => state.user);
@@ -180,24 +182,48 @@ export default function FollowersFollowing() {
   //     .finally(() => setLikesLoading(false));
   // }, [activeTab, userId]);
 
-  // Handlers (stubbed for now)
-  const handleRemoveFollower = async (userId: number) => {
-    // TODO: Implement backend call
-    setFollowers((prev) => prev.filter((user) => user.id !== userId));
+  // Handlers
+  const handleRemoveFollower = async (userId: string | number) => {
+    try {
+      const res = await fetch("/api/follow/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ followerId: userId }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to remove follower");
+      }
+      
+      setFollowers((prev) => prev.filter((user) => user.id !== userId));
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to remove follower", variant: "destructive" });
+    }
   };
 
-  const handleUnfollow = async (userId: number) => {
-    // TODO: Implement backend call
-    setFollowing((prev) => prev.filter((user) => user.id !== userId));
+  const handleUnfollow = async (userId: string | number) => {
+    try {
+      const res = await fetch(`/api/follow/${userId}`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to unfollow user");
+      setFollowing((prev) => prev.filter((user) => user.id !== userId));
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to unfollow user", variant: "destructive" });
+    }
   };
 
-  const handleFollowBack = async (userId: number) => {
-    // TODO: Implement backend call
-    setFollowers((prev) =>
-      prev.map((user) =>
-        user.id === userId ? { ...user, isFollowing: !user.isFollowing } : user
-      )
-    );
+  const handleFollowBack = async (userId: string | number) => {
+    try {
+      const res = await fetch(`/api/follow/${userId}`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to follow user");
+      setFollowers((prev) =>
+        prev.map((user) =>
+          user.id === userId ? { ...user, isFollowing: !user.isFollowing } : user
+        )
+      );
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to follow user", variant: "destructive" });
+    }
   };
 
   return (

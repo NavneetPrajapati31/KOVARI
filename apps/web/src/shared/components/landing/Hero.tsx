@@ -51,7 +51,7 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
         if (onJoinWaitlist) {
           onJoinWaitlist();
         } else {
-          router.push("/waitlist");
+          router.push("/sign-up");
         }
       }
     );
