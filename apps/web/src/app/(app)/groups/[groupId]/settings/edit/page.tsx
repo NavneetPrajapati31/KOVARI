@@ -2,8 +2,14 @@
 
 import React from "react";
 import { Badge } from "@/shared/components/ui/badge";
+import { useParams, notFound } from "next/navigation";
 
 export default function EditPage() {
+  const params = useParams();
+  if (!params?.groupId) {
+    notFound();
+  }
+
   return (
     <div className="w-full mx-auto p-4 space-y-6">
       {/* Header */}
