@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     // Also record in match_interests for compatibility/history
     const { data: interestData, error: interestError } = await supabaseAdmin
       .from("match_interests")
-      .insert([
+      .upsert([
         {
           from_user_id: userUuid,
           to_user_id: groupId, // For groups, to_user_id stores the group ID
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
           match_type: "group",
           status: "pending",
         },
-      ])
+      ], { onConflict: "from_user_id,to_user_id,destination_id,match_type", ignoreDuplicates: true })
       .select("id")
       .maybeSingle();
 
