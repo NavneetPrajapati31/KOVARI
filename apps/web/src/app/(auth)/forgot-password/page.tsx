@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Inbox,
 } from "lucide-react";
+import { Spinner } from "@heroui/react";
 
 type ForgotPasswordStep =
   | "initial"
@@ -45,9 +46,8 @@ function ForgotPasswordContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [step, setStep] = useState<ForgotPasswordStep>(() =>
-    tokenFromUrl ? "set_password" : "initial",
-  );
+  const [step, setStep] = useState<ForgotPasswordStep>("initial");
+  const [isValidatingToken, setIsValidatingToken] = useState(!!tokenFromUrl);
 
   useEffect(() => {
     // Priority: URL param, then localStorage (so token links keep context)
@@ -73,10 +73,34 @@ function ForgotPasswordContent() {
   }, [fromFromUrl]);
 
   useEffect(() => {
-    if (tokenFromUrl && step === "initial") {
-      setStep("set_password");
+    if (!tokenFromUrl) {
+      setIsValidatingToken(false);
+      return;
     }
-  }, [tokenFromUrl, step]);
+
+    const verifyToken = async () => {
+      setIsValidatingToken(true);
+      setError("");
+      try {
+        const res = await fetch(`/api/auth/reset-password?token=${encodeURIComponent(tokenFromUrl)}`);
+        const data = await res.json().catch(() => ({}));
+        
+        if (!res.ok || !data.valid) {
+          setError(data.error || "Reset link is invalid or has expired. Please request a new one.");
+          setStep("initial");
+        } else {
+          setStep("set_password");
+        }
+      } catch {
+        setError("Failed to verify reset link. Please try again.");
+        setStep("initial");
+      } finally {
+        setIsValidatingToken(false);
+      }
+    };
+
+    verifyToken();
+  }, [tokenFromUrl]);
 
   const backHref = from === "settings" ? "/settings" : "/sign-in";
   const backLabel =
@@ -157,6 +181,19 @@ function ForgotPasswordContent() {
 
   const token = tokenFromUrl;
   const isSetPasswordStep = step === "set_password" && !!token;
+
+  if (isValidatingToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
+        <div className="w-full max-w-md text-center space-y-4">
+          <div className="mx-auto flex items-center justify-center mb-4">
+            <Spinner variant="spinner" size="md" classNames={{spinnerBars:"bg-primary"}} className="mr-3" />
+          </div>
+          <p className="text-md text-muted-foreground">Verifying...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 custom-autofill">

@@ -4,7 +4,13 @@ import { MoveLeft } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
 export default async function NotFound() {
-  const { userId } = await auth();
+  let userId: string | null = null;
+  try {
+    const authState = await auth();
+    userId = authState?.userId || null;
+  } catch (e) {
+    console.warn("Clerk auth failed in not-found page:", e);
+  }
   const homeUrl = userId ? "/dashboard" : "/";
 
   return (

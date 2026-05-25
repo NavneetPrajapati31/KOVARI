@@ -139,3 +139,39 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function GET(req: NextRequest) {
+  try {
+    const searchParams = req.nextUrl.searchParams;
+    const token = (searchParams.get("token") ?? "").trim();
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "Token is required." },
+        { status: 400 }
+      );
+    }
+
+    const redis = await ensureRedisConnection();
+    const redisKey = `${REDIS_KEY_PREFIX}${token}`;
+    const storedData = await redis.get(redisKey);
+
+    if (!storedData) {
+      return NextResponse.json(
+        { valid: false, error: "Reset link is invalid or has expired. Please request a new one." },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ valid: true }, { status: 200 });
+  } catch (error) {
+    console.error("Verify reset password token API error:", error);
+    Sentry.captureException(error, {
+      tags: { endpoint: "/api/auth/reset-password", method: "GET" },
+    });
+    return NextResponse.json(
+      { error: "Failed to verify reset link. Please try again." },
+      { status: 500 }
+    );
+  }
+}
+

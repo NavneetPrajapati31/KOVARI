@@ -367,13 +367,10 @@ export default function LayoutWrapper() {
     if (membershipError) {
       if (membershipError.includes("Not a member")) {
         toast.error("You are not a member of this group");
-        // Redirect to groups page after a short delay
-        // setTimeout(() => {
-        //   router.push("/groups");
-        // }, 2000);
+        router.push("/groups");
       } else if (membershipError.includes("Group not found")) {
         toast.error("Group not found");
-        // router.push("/groups");
+        router.push("/groups");
       } else {
         toast.error(membershipError);
       }
