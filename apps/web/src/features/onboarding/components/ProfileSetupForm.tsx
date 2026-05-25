@@ -512,7 +512,8 @@ export default function ProfileSetupForm() {
         body: JSON.stringify({ folder: "kovari-profiles" }),
       });
       if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
-      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
+      const responseJson = await signRes.json();
+      const { signature, timestamp, folder, api_key, cloud_name } = responseJson.data;
 
       // 2. Upload to Cloudinary
       const formData = new FormData();

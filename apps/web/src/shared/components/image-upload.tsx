@@ -83,7 +83,8 @@ export function ImageUpload({
       });
       if (!signRes.ok) throw new Error("Failed to secure upload signature.");
       
-      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
+      const responseJson = await signRes.json();
+      const { signature, timestamp, folder, api_key, cloud_name } = responseJson.data;
 
       const formData = new FormData();
       formData.append("file", file);

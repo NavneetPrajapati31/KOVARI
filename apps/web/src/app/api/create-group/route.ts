@@ -9,6 +9,7 @@ const GroupSchema = z.object({
   name: z.string().min(3),
   destination: z.string().min(2),
   destination_details: z.any().optional(),
+  budget: z.number().optional().nullable(),
   start_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/),
   end_date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/),
   is_public: z.boolean(),

@@ -134,8 +134,8 @@ export default async function BannedPage() {
               <div className="mt-8 rounded-2xl border border-border/50 bg-secondary p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">Suspension active until</span>
-                  <span className="text-sm text-muted-foreground font-mono">
-                    {format(new Date(banDetails.expiresAt), "MMM d, yyyy")}
+                  <span className="text-sm text-muted-foreground">
+                    {format(new Date(banDetails.expiresAt), "MMM d, yyyy, h:mm a")}
                   </span>
                 </div>
               </div>
