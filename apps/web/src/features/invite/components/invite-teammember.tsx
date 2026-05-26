@@ -151,16 +151,27 @@ export function InviteTeammatesModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || "Failed to fetch link");
       setInviteLink(data.data.link);
-      await navigator.clipboard.writeText(data.data.link);
-      toast({
-        title: "Link copied",
-        description: "Invite link has been copied to your clipboard.",
-      });
-    } catch {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(data.data.link);
+          toast({
+            title: "Link copied",
+            description: "Invite link has been copied to your clipboard.",
+          });
+        } else {
+          throw new Error("Clipboard not available");
+        }
+      } catch {
+        toast({
+          title: "Link generated",
+          description: "Invite link has been generated. You can copy it below.",
+        });
+      }
+    } catch (err) {
       setLinkError("Failed to fetch invite link.");
       toast({
-        title: "Failed to copy",
-        description: "Please try again or copy the link manually.",
+        title: "Failed to generate link",
+        description: err instanceof Error ? err.message : "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -344,6 +355,19 @@ export function InviteTeammatesModal({
                 )}
               </div>
             </div>
+            {inviteLink && (
+              <div className="mt-3">
+                <Input
+                  ref={linkInputRef}
+                  type="text"
+                  readOnly
+                  value={inviteLink}
+                  className="w-full rounded-xl min-h-10 text-xs bg-background border-border text-muted-foreground select-all"
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                  aria-label="Generated invite link"
+                />
+              </div>
+            )}
             {linkError && (
               <p className="text-xs text-destructive mt-2" role="alert">
                 {linkError}

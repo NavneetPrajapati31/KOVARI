@@ -36,8 +36,8 @@ export interface GroupInvite {
 interface GroupInviteCardProps {
   invite: GroupInvite;
   isLoading?: boolean;
-  onAccept: (invitationId: string) => Promise<void> | void;
-  onDecline: (invitationId: string) => Promise<void> | void;
+  onAccept?: (invitationId: string) => Promise<void> | void;
+  onDecline?: (invitationId: string) => Promise<void> | void;
 }
 
 export function GroupInviteCard({
@@ -67,10 +67,11 @@ export function GroupInviteCard({
       <div className="flex justify-between items-start">
         {/* User Info */}
         <div className="flex items-center gap-3 cursor-pointer group flex-1">
-          <Avatar className="w-10 h-10 shrink-0">
+          <Avatar className="w-10 h-10 shrink-0 border border-border">
             <AvatarImage
               src={invite.groupCoverImage || ""}
               alt={`${invite.groupName || invite.creator.name}'s profile`}
+              className="object-cover"
             />
             <UserAvatarFallback className="" />
           </Avatar>
@@ -139,7 +140,7 @@ export function GroupInviteCard({
               onClick={async () => {
                 setLoadingAction("decline");
                 try {
-                  await onDecline(invite.id);
+                  await onDecline?.(invite.id);
                 } catch (error) {
                   console.error("Error declining invitation:", error);
                 } finally {
@@ -164,7 +165,7 @@ export function GroupInviteCard({
               onClick={async () => {
                 setLoadingAction("accept");
                 try {
-                  await onAccept(invite.id);
+                  await onAccept?.(invite.id);
                   setIsAccepted(true);
                 } catch (error) {
                   console.error("Error accepting invitation:", error);

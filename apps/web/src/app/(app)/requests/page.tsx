@@ -102,7 +102,7 @@ export default function RequestsPage() {
       }
 
       const data = await response.json();
-      setInvitations(data);
+      setInvitations(data.data || data);
       setHasFetchedInvitations(true);
     } catch (err) {
       console.error("Error fetching invitations:", err);
@@ -124,7 +124,7 @@ export default function RequestsPage() {
       }
 
       const data = await response.json();
-      setInterests(data);
+      setInterests(data.data || data);
       setHasFetchedInterests(true);
     } catch (err) {
       console.error("Error fetching interests:", err);
