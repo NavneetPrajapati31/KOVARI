@@ -61,7 +61,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       }
 
       const data = await response.json();
-      const fetched = data.notifications || [];
+      const fetched = data.data?.notifications || data.notifications || [];
       
       // Seed deduplication caches
       fetched.forEach((n: Notification) => {
@@ -88,7 +88,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       }
 
       const data = await response.json();
-      setUnreadCount(data.count || 0);
+      setUnreadCount(data.data?.count ?? data.count ?? 0);
     } catch (err: any) {
       console.error("Error fetching unread count:", err);
     }

@@ -9,12 +9,15 @@ import {
   Check,
   UserPlus,
   User,
+  Users,
+  CheckCheck,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
   Avatar,
   AvatarImage,
+  AvatarFallback,
 } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 import Link from "next/link";
@@ -149,50 +152,16 @@ export default function NotificationsPage() {
                   }`}
                 >
                   {isReport ? (
-                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-secondary flex items-center justify-center">
-                      <Check className="w-5 h-5 text-foreground" />
+                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
+                      <CheckCheck className="w-5 h-5 text-green-600" />
                     </div>
                   ) : showGroupIconFallback ? (
                     <div className="w-10 h-10 flex-shrink-0 rounded-full bg-secondary flex items-center justify-center">
                       {isGroupInviteOrRequest ? (
-                        <svg
-                             className="w-3/5 h-3/5 text-gray-400"
-                             fill="currentColor"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true"
-                             focusable="false"
-                           >
-                             <circle cx="12" cy="8" r="4" />
-                             <rect x="4" y="14" width="16" height="6" rx="3" />
-                           </svg>
+                        <UserPlus className="w-5 h-5 text-muted-foreground" />
                       ) : (
-                        <svg
-                             className="w-3/5 h-3/5 text-gray-400"
-                             fill="currentColor"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true"
-                             focusable="false"
-                           >
-                             <circle cx="12" cy="8" r="4" />
-                             <rect x="4" y="14" width="16" height="6" rx="3" />
-                           </svg>
+                        <Users className="w-5 h-5 text-muted-foreground" />
                       )}
-                    </div>
-                  ) : !notification.image_url &&
-                    (notification.type === "MATCH_INTEREST_RECEIVED" ||
-                      notification.type === "MATCH_ACCEPTED" ||
-                      notification.type === "NEW_MESSAGE") ? (
-                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-secondary flex items-center justify-center">
-                      <svg
-                             className="w-3/5 h-3/5 text-gray-400"
-                             fill="currentColor"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true"
-                             focusable="false"
-                           >
-                             <circle cx="12" cy="8" r="4" />
-                             <rect x="4" y="14" width="16" height="6" rx="3" />
-                           </svg>
                     </div>
                   ) : (
                     <Avatar className="w-10 h-10 flex-shrink-0">
@@ -201,7 +170,9 @@ export default function NotificationsPage() {
                         alt={notification.title}
                         className="object-cover"
                       />
-                      <UserAvatarFallback className="" />
+                      <AvatarFallback className="bg-secondary text-foreground text-xs font-semibold">
+                        {avatarFallback}
+                      </AvatarFallback>
                     </Avatar>
                   )}
                   <div className="flex-1 min-w-0">
