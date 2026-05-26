@@ -13,6 +13,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import InvitationCardSkeleton from "@/features/invitations/components/InvitationCardSkeleton";
 
+import { toast } from "sonner";
+
 const REQUEST_TABS = [
   { label: "Interests", value: "interests" },
   { label: "Invitations", value: "invitations" },
@@ -148,19 +150,24 @@ export default function RequestsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to accept invitation");
+        let errorMessage = "Failed to accept invitation";
+        try {
+          const data = await response.json();
+          errorMessage = data.error || data.message || errorMessage;
+        } catch (_) {}
+        throw new Error(errorMessage);
       }
+
+      toast.success("Invitation accepted successfully!");
 
       // Show success message for a moment before removing
       setTimeout(() => {
         setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
       }, 3000);
-
-      // Optionally redirect to the group page
-      // router.push(`/groups/${invitationId}/home`);
     } catch (err) {
       console.error("Error accepting invitation:", err);
-      // You could show a toast notification here
+      toast.error(err instanceof Error ? err.message : "Failed to accept invitation");
+      throw err;
     }
   };
 
@@ -178,14 +185,22 @@ export default function RequestsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to decline invitation");
+        let errorMessage = "Failed to decline invitation";
+        try {
+          const data = await response.json();
+          errorMessage = data.error || data.message || errorMessage;
+        } catch (_) {}
+        throw new Error(errorMessage);
       }
+
+      toast.success("Invitation declined.");
 
       // Remove the declined invitation from the list
       setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
     } catch (err) {
       console.error("Error declining invitation:", err);
-      // You could show a toast notification here
+      toast.error(err instanceof Error ? err.message : "Failed to decline invitation");
+      throw err;
     }
   };
 
@@ -203,17 +218,24 @@ export default function RequestsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to connect");
+        let errorMessage = "Failed to connect";
+        try {
+          const data = await response.json();
+          errorMessage = data.error || data.message || errorMessage;
+        } catch (_) {}
+        throw new Error(errorMessage);
       }
+
+      toast.success("Match interest accepted!");
 
       // Show success message for a moment before removing
       setTimeout(() => {
         setInterests((prev) => prev.filter((i) => i.id !== interestId));
       }, 3000);
-      
-      // TODO: Maybe redirect to a chat or show a success message
     } catch (err) {
       console.error("Error accepting interest:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to accept interest");
+      throw err;
     }
   };
 
@@ -231,13 +253,22 @@ export default function RequestsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to pass interest");
+        let errorMessage = "Failed to pass interest";
+        try {
+          const data = await response.json();
+          errorMessage = data.error || data.message || errorMessage;
+        } catch (_) {}
+        throw new Error(errorMessage);
       }
+
+      toast.success("Match interest declined.");
 
       // Remove the declined interest from the list
       setInterests((prev) => prev.filter((i) => i.id !== interestId));
     } catch (err) {
       console.error("Error declining interest:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to decline interest");
+      throw err;
     }
   };
 

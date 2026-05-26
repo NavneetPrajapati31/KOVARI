@@ -14,15 +14,15 @@ export default function VerifyEmail() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { signUp, setActive } = useSignUp();
+  const { signUp, setActive, isLoaded } = useSignUp();
   const router = useRouter();
 
   // Check if we have an active sign-up
   useEffect(() => {
-    if (!signUp) {
+    if (isLoaded && !signUp) {
       router.push("/sign-up");
     }
-  }, [signUp, router]);
+  }, [isLoaded, signUp, router]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +41,7 @@ export default function VerifyEmail() {
 
       if (result?.status === "complete" && setActive) {
         await setActive({ session: result.createdSessionId });
-        router.push("/");
+        router.push("/onboarding");
       } else {
         setError("Verification failed. Please try again.");
       }
@@ -52,6 +52,14 @@ export default function VerifyEmail() {
       setIsLoading(false);
     }
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleResendCode = async () => {
     setIsLoading(true);
