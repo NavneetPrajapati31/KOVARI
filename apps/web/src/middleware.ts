@@ -259,6 +259,17 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
           }
 
           if (isBanned) {
+            try {
+              if (sessionId) {
+                const client = await clerkClient();
+                await client.sessions.revokeSession(sessionId);
+              }
+            } catch (e) {
+              console.warn(
+                "Failed to revoke banned-user session in middleware:",
+                e,
+              );
+            }
             return NextResponse.redirect(new URL("/banned", req.url));
           }
         }
