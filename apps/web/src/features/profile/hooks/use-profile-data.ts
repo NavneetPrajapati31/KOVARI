@@ -13,9 +13,10 @@ export const useProfileData = () => {
       setIsLoading(true);
       const response = await fetch("/api/profile/current");
       if (response.ok) {
-        const data = await response.json();
-        setProfileData(data);
-        return data;
+        const resJson = await response.json();
+        const profile = resJson.data || resJson;
+        setProfileData(profile);
+        return profile;
       } else {
         console.error("Failed to fetch profile data");
         toast({

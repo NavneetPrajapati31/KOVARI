@@ -98,7 +98,7 @@ export default function FollowersFollowing() {
       const res = await fetch(`/api/profile/${userId}/followers`);
       if (!res.ok) throw new Error("Failed to fetch followers");
       const data = await res.json();
-      setFollowers(data);
+      setFollowers(Array.isArray(data) ? data : (data.data || []));
       setHasFetchedFollowers(true);
     } catch (err: any) {
       setError(err.message || "Unknown error");
@@ -117,7 +117,7 @@ export default function FollowersFollowing() {
       const res = await fetch(`/api/profile/${userId}/following`);
       if (!res.ok) throw new Error("Failed to fetch following");
       const data = await res.json();
-      setFollowing(data);
+      setFollowing(Array.isArray(data) ? data : (data.data || []));
       setHasFetchedFollowing(true);
     } catch (err: any) {
       setError(err.message || "Unknown error");
@@ -155,7 +155,8 @@ export default function FollowersFollowing() {
         return res.json();
       })
       .then((data) => {
-        setProfileUsername(data.username || "");
+        const profile = data.data || data;
+        setProfileUsername(profile.username || "");
       })
       .catch((err) => {
         setProfileError(err.message || "Unknown error");
@@ -183,47 +184,20 @@ export default function FollowersFollowing() {
   // }, [activeTab, userId]);
 
   // Handlers
-  const handleRemoveFollower = async (userId: string | number) => {
-    try {
-      const res = await fetch("/api/follow/remove", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ followerId: userId }),
-      });
-      
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to remove follower");
-      }
-      
-      setFollowers((prev) => prev.filter((user) => user.id !== userId));
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to remove follower", variant: "destructive" });
-    }
+  const handleRemoveFollower = (userId: string | number) => {
+    setFollowers((prev) => prev.filter((user) => user.id !== userId));
   };
 
-  const handleUnfollow = async (userId: string | number) => {
-    try {
-      const res = await fetch(`/api/follow/${userId}`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to unfollow user");
-      setFollowing((prev) => prev.filter((user) => user.id !== userId));
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to unfollow user", variant: "destructive" });
-    }
+  const handleUnfollow = (userId: string | number) => {
+    setFollowing((prev) => prev.filter((user) => user.id !== userId));
   };
 
-  const handleFollowBack = async (userId: string | number) => {
-    try {
-      const res = await fetch(`/api/follow/${userId}`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to follow user");
-      setFollowers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, isFollowing: !user.isFollowing } : user
-        )
-      );
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to follow user", variant: "destructive" });
-    }
+  const handleFollowBack = (userId: string | number) => {
+    setFollowers((prev) =>
+      prev.map((user) =>
+        user.id === userId ? { ...user, isFollowing: true } : user
+      )
+    );
   };
 
   return (

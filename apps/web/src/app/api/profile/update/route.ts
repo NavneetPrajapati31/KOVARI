@@ -133,7 +133,7 @@ export async function PATCH(req: Request) {
       "username", "bio", "avatar", "profession", "interests", "languages", 
       "gender", "age", "nationality", "location", "location_details", 
       "religion", "smoking", "drinking", "personality", "foodPreference",
-      "destinations", "tripFocus", "travelFrequency", "name", "email"
+      "destinations", "tripFocus", "travelFrequency", "name", "email", "birthday"
     ];
 
     if (!safeFields.includes(field)) {
