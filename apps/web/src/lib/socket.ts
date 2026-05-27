@@ -9,8 +9,12 @@ let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 export const getSocket = (clerkUserId: string) => {
   if (!socket) {
     socket = io(SOCKET_URL, {
-      auth: {
-        userId: clerkUserId,
+      auth: async (cb) => {
+        let token = undefined;
+        if (typeof window !== "undefined" && (window as any).Clerk?.session) {
+          token = await (window as any).Clerk.session.getToken();
+        }
+        cb({ userId: clerkUserId, token });
       },
       transports: ["polling", "websocket"], // polling first so cloud proxies can upgrade properly
       autoConnect: false, // Client should manually connect
@@ -22,9 +26,9 @@ export const getSocket = (clerkUserId: string) => {
       }
     });
   } else {
-    if (socket.auth && typeof socket.auth === "object") {
-      (socket.auth as any).userId = clerkUserId;
-    }
+    // In case clerkUserId changes, the auth callback above will capture the new token via Clerk's session,
+    // but socket.io caches the auth object if it's not a function. Since it's a function now,
+    // it will be called automatically on reconnect.
   }
 
   return socket;

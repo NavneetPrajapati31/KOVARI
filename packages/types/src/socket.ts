@@ -36,6 +36,7 @@ export interface ServerToClientEvents {
     image_url?: string;
   }) => void;
   unread_update: (payload: { count: number }) => void;
+  error: (payload: { message: string; code?: string }) => void;
 }
 
 export interface ClientToServerEvents {

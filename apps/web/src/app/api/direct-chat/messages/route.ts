@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { assertUUID } from "@/lib/validation/uuid";
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 100;
@@ -48,6 +49,16 @@ export async function GET(req: NextRequest) {
 
     console.log(`🧪 [MessagesAPI] Fetching history: Me=${currentUserId} | Partner=${resolvedPartnerId}`);
 
+    // SECURITY: Validate UUID format to prevent SQL injection in PostgREST .or() filter
+    // Note: PostgREST .or() with interpolated UUIDs is safe because PostgREST treats the value as a data literal, not SQL.
+    // However, we enforce UUID validation as a strict defense-in-depth measure.
+    try {
+      assertUUID(resolvedPartnerId, "partnerId");
+      assertUUID(currentUserId, "userId");
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+
     let query = supabase
       .from("direct_messages")
       .select(`
@@ -68,8 +79,7 @@ export async function GET(req: NextRequest) {
         )
       `, { count: 'exact' })
       // Capture all messages between Me and Partner
-      .or(`sender_id.eq.${currentUserId},sender_id.eq.${resolvedPartnerId}`)
-      .or(`receiver_id.eq.${currentUserId},receiver_id.eq.${resolvedPartnerId}`)
+      .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${resolvedPartnerId}),and(sender_id.eq.${resolvedPartnerId},receiver_id.eq.${currentUserId})`)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(limit);

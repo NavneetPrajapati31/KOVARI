@@ -5,6 +5,7 @@ import { generateRequestId } from "@/lib/api/requestId";
 import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
 import { ApiErrorCode } from "@/types/api";
 import crypto from "crypto";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 
 /**
  * Handle new user registration with Email/Verification OTP
@@ -13,6 +14,15 @@ import crypto from "crypto";
 export async function POST(request: NextRequest) {
   const start = Date.now();
   const requestId = generateRequestId();
+
+  const rateLimitResult = await checkRateLimit(request, 'login');
+  if (!rateLimitResult.success) {
+    const response = formatErrorResponse("Too many registration attempts", ApiErrorCode.RATE_LIMIT_EXCEEDED, requestId, 429);
+    response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
+    return response;
+  }
 
   try {
     const { email, password, name } = await request.json();

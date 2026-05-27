@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/responseHelpers";
 import { userTransformer } from "@/lib/transformers/userTransformer";
 import { ApiErrorCode, KovariClient } from "@/types/api";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 
 /**
  * 🏛️ HARDENED LOGIN API (Phase 3 True Isolation)
@@ -20,6 +21,18 @@ export async function POST(request: NextRequest) {
 
   // ⚡ TRUE LEGACY ISOLATION
   if (client === "web") {
+    const rateLimitResult = await checkRateLimit(request, 'login');
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ error: "Too many login attempts. Please try again later." }, { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+        }
+      });
+    }
+
     try {
       const { email, password } = await request.json();
       if (!email || !password) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -71,6 +84,15 @@ export async function POST(request: NextRequest) {
 
   if (clientError) {
     return formatErrorResponse(clientError, ApiErrorCode.BAD_REQUEST, requestId, 400);
+  }
+
+  const rateLimitResult = await checkRateLimit(request, 'login');
+  if (!rateLimitResult.success) {
+    const response = formatErrorResponse("Too many login attempts", ApiErrorCode.TOO_MANY_REQUESTS, requestId, 429);
+    response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
+    return response;
   }
 
   return handleStandardLogin(request, requestId, start, client);

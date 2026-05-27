@@ -11,15 +11,51 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
   async headers() {
+    const securityHeaders = [
+      {
+        key: 'X-DNS-Prefetch-Control',
+        value: 'on'
+      },
+      {
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload'
+      },
+      {
+        key: 'X-Frame-Options',
+        value: 'SAMEORIGIN'
+      },
+      {
+        key: 'X-Content-Type-Options',
+        value: 'nosniff'
+      },
+      {
+        key: 'Referrer-Policy',
+        value: 'strict-origin-when-cross-origin'
+      },
+      {
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(), geolocation=(self), interest-cohort=()'
+      },
+      {
+        key: 'Content-Security-Policy',
+        value: [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://clerk.kovari.in https://*.clerk.accounts.dev https://va.vercel-scripts.com",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com",
+          "img-src 'self' data: blob: https://res.cloudinary.com https://*.supabase.co https://utfs.io https://randomuser.me",
+          "font-src 'self' https://fonts.gstatic.com https://api.fontshare.com",
+          "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.clerk.dev wss://kovari.in http://localhost:3005 ws://localhost:3005 https://vitals.vercel-insights.com",
+          "frame-ancestors 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+        ].join('; ')
+      },
+    ];
+
     return [
       {
-        source: "/(api|apiauth)/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Credentials", value: "true" },
-          { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" },
-        ],
+        source: '/:path*',
+        headers: securityHeaders,
       },
     ];
   },

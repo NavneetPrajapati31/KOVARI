@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
+import DOMPurify from "isomorphic-dompurify";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
@@ -25,6 +26,7 @@ import { BsCameraVideoFill } from "react-icons/bs";
 import { PiPaperclip } from "react-icons/pi";
 import { HiPlay } from "react-icons/hi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
+import { sanitizeMessage } from "@/lib/sanitize";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
 import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
@@ -1160,7 +1162,8 @@ export default function GroupChatInterface() {
                                     : "text-foreground"
                                 }`}
                                 dangerouslySetInnerHTML={{
-                                  __html: linkifyMessage(msg.content),
+                                  // SECURITY: Sanitize HTML to prevent stored XSS attacks
+                                  __html: sanitizeMessage(linkifyMessage(msg.content)),
                                 }}
                               />
                               <span className="flex items-center gap-1 justify-end ml-3 mt-0.5 float-right">

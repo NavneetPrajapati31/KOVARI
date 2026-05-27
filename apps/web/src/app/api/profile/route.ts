@@ -22,7 +22,7 @@ const schema = z.object({
     .min(3)
     .max(32)
     .regex(/^[a-zA-Z0-9_]+$/),
-  age: z.coerce.number().min(13).max(100),
+  age: z.coerce.number().min(18).max(100),
   gender: z.enum(["Male", "Female", "Other"]),
   birthday: z.string().datetime(),
   bio: z.string().max(300),
@@ -53,8 +53,15 @@ export async function POST(req: NextRequest) {
       if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
       const body = await req.json();
+      
+      // SECURITY: Validate input against schema to prevent mass assignment vulnerabilities
+      const result = schema.partial().safeParse(body);
+      if (!result.success) {
+        return NextResponse.json({ error: result.error.flatten() }, { status: 400 });
+      }
+
       const supabase = createAdminSupabaseClient();
-      const profileData = { user_id: authUser.id, ...body };
+      const profileData = { user_id: authUser.id, ...result.data };
 
       await supabase.from("profiles").upsert(profileData, { onConflict: "user_id" });
       

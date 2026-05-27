@@ -8,6 +8,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { sanitizeMessage } from "@/lib/sanitize";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { useDirectChat } from "@/shared/hooks/useDirectChat";
@@ -216,7 +217,8 @@ const MessageRow = React.memo(
                   <span
                     className="block text-xs [overflow-wrap:anywhere]"
                     dangerouslySetInnerHTML={{
-                      __html: linkifyMessage(content),
+                      // SECURITY: Sanitize HTML to prevent stored XSS attacks
+                      __html: sanitizeMessage(linkifyMessage(content)),
                     }}
                   />
                 )}
@@ -1379,6 +1381,7 @@ const DirectChatPage = () => {
         aria-label="Chat messages"
       >
         <style dangerouslySetInnerHTML={{__html:`
+          /* safe: hardcoded string, no user input */
           .intersect-observer-child { min-height: 1px; }
         `}} />
         {hasMoreMessages && (

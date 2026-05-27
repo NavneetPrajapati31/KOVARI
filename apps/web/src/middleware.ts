@@ -273,29 +273,61 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
   return NextResponse.next();
 });
 
+const ALLOWED_ORIGINS = [
+  'https://kovari.in',
+  'https://www.kovari.in',
+  process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : null,
+  process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : null,
+].filter(Boolean) as string[];
+
 export default async function middleware(req: NextRequest, evt: any) {
   const pathname = req.nextUrl.pathname;
+  const isApiRoute = pathname.startsWith("/api/") || pathname.startsWith("/apiauth/");
+  const origin = req.headers.get("origin") || "";
+  
+  // Handle preflight OPTIONS requests directly
+  if (req.method === "OPTIONS" && isApiRoute) {
+    const res = new NextResponse(null, { status: 204 });
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      res.headers.set("Access-Control-Allow-Origin", origin);
+    }
+    res.headers.set("Access-Control-Allow-Credentials", "true");
+    res.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+    res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-Id");
+    return res;
+  }
+
   const isAuthRoute = pathname.startsWith("/api/auth/");
   const authHeader = req.headers.get("authorization");
   const isMobileToken =
     authHeader?.startsWith("Bearer ") &&
     !authHeader.includes("__clerk_session");
 
+  let res: NextResponse;
+
   // 1. Bypass Clerk for Mobile Auth Routes (Prevents SyntaxError: Unexpected end of JSON input)
-  // These routes manage their own identity and don't need Clerk. Bypassing ensures
-  // the request body is preserved and not consumed/lost by middleware cloning.
   if (isAuthRoute) {
-    return NextResponse.next();
+    res = NextResponse.next();
   }
-
   // 2. Intercept Other Mobile JWTs (Avoid Clerk middleware crash on non-Clerk tokens)
-  // BUT: We MUST allow direct-chat routes to pass through Clerk so auth() works
-  if (isMobileToken && !pathname.startsWith("/api/direct-chat")) {
-    // Directly proceed to the route handler, skipping Clerk and preserving all headers
-    return NextResponse.next();
+  else if (isMobileToken && !pathname.startsWith("/api/direct-chat")) {
+    res = NextResponse.next();
+  }
+  else {
+    res = await (clerk as any)(req, evt);
   }
 
-  return (clerk as any)(req, evt);
+  // Apply dynamic CORS headers to the response
+  if (isApiRoute && res) {
+    if (ALLOWED_ORIGINS.includes(origin)) {
+      res.headers.set("Access-Control-Allow-Origin", origin);
+    }
+    res.headers.set("Access-Control-Allow-Credentials", "true");
+    res.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+    res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-Id");
+  }
+
+  return res;
 }
 
 export const config = {

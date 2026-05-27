@@ -12,6 +12,8 @@ import {
   ServerToClientEvents
 } from "@kovari/types";
 import dotenv from "dotenv";
+import { verifyToken } from "@clerk/backend";
+import { verifyAccessToken } from "../lib/auth/jwt";
 
 // Load environment variables since this is a standalone Node process
 dotenv.config({ path: ".env.local" });
@@ -50,11 +52,39 @@ const io = new Server<
 
 // Auth middleware — also resolve Supabase UUID once and cache in socket.data
 io.use(async (socket, next) => {
-  const { userId, deviceId, sessionId } = socket.handshake.auth;
-  if (!userId) {
-    return next(new Error("Authentication error: userId missing"));
+  const { userId, deviceId, sessionId, token } = socket.handshake.auth;
+  
+  if (!userId || !token) {
+    return next(new Error("Authentication error: missing credentials"));
   }
-  socket.data.userId = userId;
+
+  // SECURITY: Verify the token to prevent identity spoofing
+  let verifiedUserId: string | null = null;
+  try {
+    // 1. Try to verify as a Clerk session token (Web client)
+    if (process.env.CLERK_SECRET_KEY && token.length > 200) {
+      const claims = await verifyToken(token, {
+        secretKey: process.env.CLERK_SECRET_KEY,
+      });
+      verifiedUserId = claims.sub;
+    }
+    
+    // 2. Try to verify as KOVARI custom mobile JWT
+    if (!verifiedUserId) {
+      const payload = verifyAccessToken(token);
+      if (payload) verifiedUserId = payload.sub;
+    }
+
+    if (!verifiedUserId || verifiedUserId !== userId) {
+      console.warn(`[Socket Auth] Failed verification for requested userId: ${userId}`);
+      return next(new Error("Authentication error: invalid token"));
+    }
+  } catch (err) {
+    console.warn(`[Socket Auth] Token verification exception for userId: ${userId}`, err);
+    return next(new Error("Authentication error: invalid token"));
+  }
+
+  socket.data.userId = verifiedUserId;
   socket.data.deviceId = deviceId;
   socket.data.sessionId = sessionId;
 

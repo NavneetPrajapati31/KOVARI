@@ -4,6 +4,7 @@ import { createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
 import { ApiErrorCode } from "@/types/api";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 
 /**
  * Handle OTP verification and final registration
@@ -12,6 +13,15 @@ import { ApiErrorCode } from "@/types/api";
 export async function POST(request: NextRequest) {
   const start = Date.now();
   const requestId = generateRequestId();
+
+  const rateLimitResult = await checkRateLimit(request, 'login');
+  if (!rateLimitResult.success) {
+    const response = formatErrorResponse("Too many verification attempts", ApiErrorCode.RATE_LIMIT_EXCEEDED, requestId, 429);
+    response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
+    return response;
+  }
 
   try {
     const { email, code } = await request.json();

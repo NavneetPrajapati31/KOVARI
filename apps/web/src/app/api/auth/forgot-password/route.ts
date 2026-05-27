@@ -7,6 +7,7 @@ import {
   createRouteHandlerSupabaseClientWithServiceRole 
 } from "@kovari/api";
 import * as Sentry from "@sentry/nextjs";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 
 const RESET_TOKEN_TTL_SECONDS = 3600; // 1 hour
 const REDIS_KEY_PREFIX = "password_reset:";
@@ -21,6 +22,15 @@ function getBaseUrl(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResult = await checkRateLimit(req, 'otp');
+  if (!rateLimitResult.success) {
+    const response = NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+    response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
+    return response;
+  }
+
   try {
     const body = await req.json();
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";

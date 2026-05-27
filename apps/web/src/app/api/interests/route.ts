@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { generateRequestId } from "@/lib/api/requestId";
 import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
 import { ApiErrorCode } from "@/types/api";
+import { assertUUID } from "@/lib/validation/uuid";
 
 
 export async function GET(request: NextRequest) {
@@ -18,6 +19,13 @@ export async function GET(request: NextRequest) {
     }
 
     const userId = authUser.id;
+
+    try {
+      assertUUID(userId, "userId");
+    } catch (e: any) {
+      return formatErrorResponse(e.message, ApiErrorCode.BAD_REQUEST, requestId, 400);
+    }
+
     const supabaseAdmin = createAdminSupabaseClient();
 
     // Fetch incoming interests ('solo' type)
@@ -64,6 +72,8 @@ export async function GET(request: NextRequest) {
     
     for (const senderId of senderIds) {
       try {
+        assertUUID(senderId, "senderId");
+
         // Get all matches for current user
         const { data: currentUserMatches } = await supabaseAdmin
           .from("matches")

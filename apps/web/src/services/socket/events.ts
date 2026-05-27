@@ -34,9 +34,69 @@ export const registerSocketEvents = (
   const userId = socket.data.userId;
 
   socket.on("join_chat", async ({ chatId }) => {
+    const supabaseId = socket.data.supabaseId || null;
+    
+    // SECURITY: Authorize room join to prevent users from listening to other users' private chats
+    let isAuthorized = false;
+    
+    try {
+      if (chatId.includes("_")) {
+        // Direct chat format: {idA}_{idB}
+        const [id1, id2] = chatId.split("_");
+        
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (UUID_REGEX.test(id1) && UUID_REGEX.test(id2) && supabaseId && (supabaseId === id1 || supabaseId === id2)) {
+          const partnerId = supabaseId === id1 ? id2 : id1;
+          const supabase = createAdminSupabaseClient();
+          
+          // 1. Check if they have an active message history
+          const { data } = await supabase
+            .from("direct_messages")
+            .select("id")
+            .or(`and(sender_id.eq.${supabaseId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${supabaseId})`)
+            .limit(1)
+            .maybeSingle();
+            
+          if (data) {
+            isAuthorized = true;
+          } else {
+            // 2. Check if they are matched (allowed to start a chat)
+            const { data: matchData } = await supabase
+              .from("matches")
+              .select("id")
+              .or(`and(user_a_id.eq.${supabaseId},user_b_id.eq.${partnerId}),and(user_a_id.eq.${partnerId},user_b_id.eq.${supabaseId})`)
+              .eq("status", "active")
+              .limit(1)
+              .maybeSingle();
+              
+            if (matchData) isAuthorized = true;
+          }
+        }
+      } else {
+        // Group chat: check membership in DB
+        if (supabaseId) {
+          const supabase = createAdminSupabaseClient();
+          const { data } = await supabase
+            .from("group_members")
+            .select("id")
+            .eq("group_id", chatId)
+            .eq("user_id", supabaseId)
+            .single();
+          if (data) isAuthorized = true;
+        }
+      }
+    } catch (err) {
+      console.warn(`[Socket Auth] Room auth error for user ${userId}, chat ${chatId}:`, err);
+    }
+
+    if (!isAuthorized) {
+      console.warn(`[Socket Auth] User ${userId} unauthorized to join chat ${chatId}`);
+      socket.emit("error", { message: "Unauthorized to join this chat" });
+      return;
+    }
+
     socket.join(chatId);
     console.log(`[Socket] User ${userId} joined chat ${chatId}`);
-    const supabaseId = socket.data.supabaseId || null;
     PresenceManager.userJoinedChat(userId, chatId, (cId, uId) => {
       socket.to(cId).emit("user_online", { chatId: cId, userId: uId, supabaseId });
     });

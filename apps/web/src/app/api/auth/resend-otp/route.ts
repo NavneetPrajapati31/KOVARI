@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerSupabaseClientWithServiceRole, sendRegistrationVerificationEmail } from "@kovari/api";
 import crypto from "crypto";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 
 /**
  * Handle OTP resending
  * POST /api/auth/resend-otp
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResult = await checkRateLimit(request, 'otp');
+  if (!rateLimitResult.success) {
+    const response = NextResponse.json({ error: "Too many OTP resend attempts. Please try again later." }, { status: 429 });
+    response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
+    return response;
+  }
+
   try {
     const { email } = await request.json();
 
