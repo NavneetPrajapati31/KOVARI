@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
   const rateLimitResult = await checkRateLimit(request, 'login');
   if (!rateLimitResult.success) {
-    const response = formatErrorResponse("Too many login attempts", ApiErrorCode.TOO_MANY_REQUESTS, requestId, 429);
+    const response = formatErrorResponse("Too many login attempts", ApiErrorCode.RATE_LIMIT_EXCEEDED, requestId, 429);
     response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
     response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
     response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
