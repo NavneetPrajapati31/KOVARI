@@ -13,7 +13,7 @@ import {
 } from "@kovari/types";
 import dotenv from "dotenv";
 import { verifyToken } from "@clerk/backend";
-import { verifyAccessToken } from "../lib/auth/jwt";
+import { verifyAccessToken } from "../../lib/auth/jwt";
 
 // Load environment variables since this is a standalone Node process
 dotenv.config({ path: ".env.local" });
