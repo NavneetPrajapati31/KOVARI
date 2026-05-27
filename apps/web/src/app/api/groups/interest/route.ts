@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+const getSupabaseAdmin = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const role = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !role) {
+    throw new Error("Supabase environment variables are missing");
+  }
+  return createClient(url, role);
+};
 
 export async function POST(request: Request) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const body = await request.json();
     const { fromUserId, toGroupId, destinationId } = body;
 
@@ -23,13 +28,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
-      console.error("Group Interest API: Missing Supabase environment variables");
-      return NextResponse.json(
-        { success: false, error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
+
 
     // Resolve user ID to UUID if needed
     const resolve = async (identifier: string) => {
