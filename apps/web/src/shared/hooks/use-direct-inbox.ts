@@ -77,20 +77,26 @@ export const useDirectInbox = (
           const myClerkId = user?.id;
           const partnerClerkId = isMe ? incomingMsg.receiverClerkId : incomingMsg.senderClerkId;
           
-          const sharedSecret = (myClerkId && partnerClerkId)
+          const uuidSecret = (currentUserUuid && partnerId)
+            ? (currentUserUuid < partnerId ? `${currentUserUuid}:${partnerId}` : `${partnerId}:${currentUserUuid}`)
+            : "";
+
+          const clerkSecret = (myClerkId && partnerClerkId)
             ? (myClerkId < partnerClerkId ? `${myClerkId}:${partnerClerkId}` : `${partnerClerkId}:${myClerkId}`)
-            : (currentUserUuid < partnerId ? `${currentUserUuid}:${partnerId}` : `${partnerId}:${currentUserUuid}`);
+            : "";
+
+          const encryptedPayload = {
+            encryptedContent: incomingMsg.encryptedContent,
+            iv: incomingMsg.iv,
+            salt: incomingMsg.salt,
+          };
 
           try {
+            // Try UUID-based decryption first, fall back to Clerk ID-based decryption
             messageText =
-              decryptMessage(
-                {
-                  encryptedContent: incomingMsg.encryptedContent,
-                  iv: incomingMsg.iv,
-                  salt: incomingMsg.salt,
-                },
-                sharedSecret,
-              ) || "[Encrypted message]";
+              (uuidSecret ? decryptMessage(encryptedPayload, uuidSecret) : "") ||
+              (clerkSecret ? decryptMessage(encryptedPayload, clerkSecret) : "") ||
+              "[Encrypted message]";
           } catch {
             messageText = "[Encrypted message]";
           }
@@ -196,7 +202,11 @@ export const useDirectInbox = (
           const myClerkId = user?.id;
           const partnerClerkId = msg.sender_id === currentUserUuid ? msg.receiver_clerk_id : msg.sender_clerk_id;
 
-          const sharedSecret = (myClerkId && partnerClerkId)
+          const uuidSecret = (currentUserUuid && partnerId)
+            ? (currentUserUuid < partnerId ? `${currentUserUuid}:${partnerId}` : `${partnerId}:${currentUserUuid}`)
+            : "";
+
+          const clerkSecret = (myClerkId && partnerClerkId)
             ? (myClerkId < partnerClerkId ? `${myClerkId}:${partnerClerkId}` : `${partnerClerkId}:${myClerkId}`)
             : "";
 
@@ -212,16 +222,17 @@ export const useDirectInbox = (
             msg.encryption_iv &&
             msg.encryption_salt
           ) {
+            const encryptedPayload = {
+              encryptedContent: msg.encrypted_content,
+              iv: msg.encryption_iv,
+              salt: msg.encryption_salt,
+            };
             try {
+              // Try UUID-based decryption first, fall back to Clerk ID-based decryption
               lastMessage =
-                decryptMessage(
-                  {
-                    encryptedContent: msg.encrypted_content,
-                    iv: msg.encryption_iv,
-                    salt: msg.encryption_salt,
-                  },
-                  sharedSecret,
-                ) || "[Encrypted message]";
+                (uuidSecret ? decryptMessage(encryptedPayload, uuidSecret) : "") ||
+                (clerkSecret ? decryptMessage(encryptedPayload, clerkSecret) : "") ||
+                "[Encrypted message]";
             } catch {
               lastMessage = "[Failed to decrypt message]";
             }
@@ -270,7 +281,7 @@ export const useDirectInbox = (
     } finally {
       setLoading(false);
     }
-  }, [currentUserUuid]);
+  }, [currentUserUuid, user?.id]);
 
   useEffect(() => {
     if (!currentUserUuid) {
