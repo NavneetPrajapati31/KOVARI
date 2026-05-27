@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/shared/components/ui/button";
@@ -14,15 +14,23 @@ export default function VerifyEmail() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { signUp, setActive, isLoaded } = useSignUp();
+  const { signUp, setActive, isLoaded: isSignUpLoaded } = useSignUp();
+  const { isSignedIn, isLoaded: isAuthLoaded } = useAuth();
   const router = useRouter();
 
   // Check if we have an active sign-up
   useEffect(() => {
-    if (isLoaded && !signUp) {
-      router.push("/sign-up");
+    if (isSignUpLoaded && isAuthLoaded) {
+      if (isSignedIn) {
+        router.push("/");
+        return;
+      }
+
+      if (!signUp || signUp.status === null || signUp.status === "complete") {
+        router.push("/sign-up");
+      }
     }
-  }, [isLoaded, signUp, router]);
+  }, [isSignUpLoaded, isAuthLoaded, isSignedIn, signUp, router]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +61,7 @@ export default function VerifyEmail() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isSignUpLoaded || !isAuthLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
