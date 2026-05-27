@@ -414,6 +414,15 @@ export default function GroupChatInterface() {
   ) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return; // Only proceed if userId is loaded
+
+    // File size validation (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File size exceeds the 10MB limit.");
+      if (chatFileInputRef.current) chatFileInputRef.current.value = "";
+      return;
+    }
+
     setChatUploading(true);
     try {
       const signRes = await fetch("/api/cloudinary/sign", {
@@ -459,8 +468,8 @@ export default function GroupChatInterface() {
       const mediaRecord = await res.json();
       // Send a message with the media URL and type
       await sendMessage("", mediaRecord.url, mediaRecord.type);
-    } catch (err) {
-      // Optionally show error toast
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload file");
     } finally {
       setChatUploading(false);
       if (chatFileInputRef.current) chatFileInputRef.current.value = "";
@@ -1327,7 +1336,7 @@ const MediaWithSkeleton = ({
       <img
         src={getFullImageUrl(url)}
         alt="sent media"
-        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        className={`w-full h-full border border-border object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
         onLoad={() => setLoaded(true)}
       />
       <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">
