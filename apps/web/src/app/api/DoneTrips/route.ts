@@ -1,9 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
 import { createAdminSupabaseClient, ensureRedisConnection } from "@kovari/api";
 import { sendPasswordResetEmail } from "@kovari/api";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const supabase = createAdminSupabaseClient();
 
     // SQL to fetch done trips with calculated duration

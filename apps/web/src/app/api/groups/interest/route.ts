@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -6,12 +7,20 @@ const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { fromUserId, toGroupId, destinationId } = body;
+    const { userId: clerkUserId } = getAuth(request);
+    
+    if (!clerkUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!fromUserId || !toGroupId || !destinationId) {
+    const body = await request.json();
+    const { toGroupId, destinationId } = body;
+    // Overwrite fromUserId with the authenticated user's ID
+    const fromUserId = clerkUserId;
+
+    if (!toGroupId || !destinationId) {
       console.error("Group Interest API: Missing parameters", {
         fromUserId,
         toGroupId,
