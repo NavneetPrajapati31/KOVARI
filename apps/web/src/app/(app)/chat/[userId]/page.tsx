@@ -404,6 +404,7 @@ const MessageInput = ({
   currentUserUuid,
   partnerUuid,
   sendTypingEvent,
+  onError,
 }: {
   handleSend: (
     value: string,
@@ -415,6 +416,7 @@ const MessageInput = ({
   currentUserUuid: string;
   partnerUuid: string;
   sendTypingEvent: () => void;
+  onError?: (message: string) => void;
 }) => {
   const [text, setText] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -495,9 +497,18 @@ const MessageInput = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folder: `kovari-direct/${currentUserUuid}-${partnerUuid}` }),
       });
-      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
+      if (!signRes.ok) {
+        const errBody = await signRes.json().catch(() => ({}));
+        console.error("[Upload] Sign API failed:", signRes.status, errBody);
+        throw new Error("Failed to get upload permission");
+      }
       const responseJson = await signRes.json();
       const { signature, timestamp, folder, api_key, cloud_name } = responseJson.data;
+
+      if (!signature || !api_key || !cloud_name) {
+        console.error("[Upload] Sign response missing fields:", responseJson);
+        throw new Error("Invalid upload credentials");
+      }
 
       const formData = new FormData();
       formData.append("file", file);
@@ -514,13 +525,19 @@ const MessageInput = ({
         body: formData,
       });
       if (!uploadRes.ok) {
-        throw new Error("Failed to upload file");
+        const errBody = await uploadRes.json().catch(() => ({}));
+        console.error("[Upload] Cloudinary upload failed:", uploadRes.status, errBody);
+        throw new Error("File upload to Cloudinary failed");
       }
       const uploaded = await uploadRes.json();
+      if (!uploaded.secure_url) {
+        console.error("[Upload] No secure_url in Cloudinary response:", uploaded);
+        throw new Error("Upload succeeded but no URL returned");
+      }
       handleSend("", uploaded.secure_url, type);
-    } catch (err) {
-      // @ts-ignore
-      if (window?.toast) window.toast.error("Failed to upload file");
+    } catch (err: any) {
+      console.error("[Upload] File upload error:", err?.message || err);
+      onError?.(err?.message || "Failed to upload file");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -1455,6 +1472,7 @@ const DirectChatPage = () => {
           currentUserUuid={currentUserUuid}
           partnerUuid={partnerUuid}
           sendTypingEvent={sendTypingEvent}
+          onError={(msg) => toast({ title: "Upload failed", description: msg, variant: "destructive" })}
         />
       </div>
       {/* Media Viewer Modal */}
