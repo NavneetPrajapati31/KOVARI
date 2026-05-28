@@ -63,6 +63,13 @@ async function processBuffer(userId: string, chatId: string, senderName: string,
   const title = `New message from ${senderName}`;
   const body = count > 1 ? `Sent ${count} messages. Latest: ${messages[count-1]}` : messages[0];
 
+  // For direct chats, chatId is "uuid1_uuid2" which is NOT a valid PostgreSQL UUID.
+  // Use senderId (a real UUID) so the notifications.entity_id column accepts it.
+  // The notification link becomes /chat/<senderId> which routes to the sender's chat.
+  // For group chats, chatId IS a plain UUID so we can use it directly.
+  const isDirectChat = chatId.includes("_");
+  const entityId = isDirectChat ? senderId : chatId;
+
   // 1. Create DB Notification (This now automatically handles push evaluation and priority)
   const result = await createNotification({
     userId,
@@ -70,7 +77,7 @@ async function processBuffer(userId: string, chatId: string, senderName: string,
     title,
     message: body,
     entityType: "chat",
-    entityId: chatId, // Changed from senderId to chatId for consistency
+    entityId,
     imageUrl: senderAvatar || undefined,
   });
 
