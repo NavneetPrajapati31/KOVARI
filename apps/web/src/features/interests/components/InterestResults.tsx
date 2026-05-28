@@ -40,8 +40,8 @@ const InterestResults: React.FC<InterestResultsProps> = ({
         <InterestCard
           key={interest.id}
           interest={interest}
-          onAccept={() => onAccept?.(interest.id)}
-          onDecline={() => onDecline?.(interest.id)}
+          onAccept={onAccept}
+          onDecline={onDecline}
         />
       ))}
     </div>

@@ -33,9 +33,9 @@ import Link from "next/link";
 interface UserCardProps {
   user: User;
   type: "followers" | "following";
-  onRemove?: (userId: number) => void;
-  onUnfollow?: (userId: number) => void;
-  onFollowBack?: (userId: number) => void;
+  onRemove?: (userId: string | number) => void;
+  onUnfollow?: (userId: string | number) => void;
+  onFollowBack?: (userId: string | number) => void;
   isOwnProfile?: boolean;
   currentUserUuid?: string;
   profileLink?: string;
@@ -67,11 +67,11 @@ export default function UserCard({
   }, [user.isFollowing]);
 
   // API: Remove follower
-  const removeFollower = async (userId: number) => {
+  const removeFollower = async (userId: string | number) => {
     setLoadingAction("remove");
     setIsDropdownOpen(true);
     try {
-      const res = await fetch(`/api/profile/${userId}/followers/`, {
+      const res = await fetch(`/api/profile/${userId}/followers`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to remove follower");
@@ -93,11 +93,11 @@ export default function UserCard({
   };
 
   // API: Unfollow user
-  const unfollowUser = async (userId: number) => {
+  const unfollowUser = async (userId: string | number) => {
     setLoadingAction("unfollow");
     setIsDropdownOpen(true);
     try {
-      const res = await fetch(`/api/profile/${userId}/following/`, {
+      const res = await fetch(`/api/profile/${userId}/following`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to unfollow user");
@@ -120,10 +120,10 @@ export default function UserCard({
   };
 
   // API: Follow user (Follow Back)
-  const followUser = async (userId: number) => {
+  const followUser = async (userId: string | number) => {
     setLoadingAction("follow");
     try {
-      const res = await fetch(`/api/profile/${userId}/followers/`, {
+      const res = await fetch(`/api/profile/${userId}/followers`, {
         method: "POST",
       });
       if (!res.ok) throw new Error("Failed to follow user");
@@ -148,7 +148,7 @@ export default function UserCard({
   const handleFollow = async () => {
     setLoadingAction("follow");
     try {
-      const res = await fetch(`/api/profile/${user.id}/followers/`, {
+      const res = await fetch(`/api/profile/${user.id}/followers`, {
         method: "POST",
       });
       if (!res.ok) throw new Error("Failed to follow user");

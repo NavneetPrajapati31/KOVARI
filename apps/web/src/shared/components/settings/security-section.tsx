@@ -9,6 +9,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, X } from "lucide-react";
 import { Spinner } from "@heroui/react";
+import { useUser, useReverification } from "@clerk/nextjs";
+import {
+  isClerkRuntimeError,
+  isReverificationCancelledError,
+} from "@clerk/nextjs/errors";
 
 export function SecuritySection() {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -23,6 +28,13 @@ export function SecuritySection() {
   }>({});
   const isMobile = useIsMobile();
   const router = useRouter();
+  const { user } = useUser();
+
+  const updatePasswordWithReverification = useReverification(
+    ({ currentPassword, newPassword }: any) =>
+      user?.updatePassword({ currentPassword, newPassword }) ??
+      Promise.reject(new Error("Not signed in")),
+  );
 
   const handleCancelPassword = () => {
     setShowPasswordForm(false);
@@ -72,6 +84,22 @@ export function SecuritySection() {
     setIsSubmitting(true);
 
     try {
+      // 1. If Web/Clerk user, update password on the client side first
+      // This enforces current password verification securely through Clerk.
+      if (user) {
+        if (!user.passwordEnabled) {
+          toast.error("Password authentication is not enabled for your account.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        await updatePasswordWithReverification({
+          currentPassword,
+          newPassword,
+        });
+      }
+
+      // 2. Call backend to update Supabase password hash (and handle mobile if needed)
       const response = await fetch("/api/settings/change-password", {
         method: "POST",
         headers: {
@@ -81,21 +109,58 @@ export function SecuritySection() {
           currentPassword,
           newPassword,
           confirmPassword,
+          skipClerkUpdate: !!user, // Skip Clerk backend update if we already did it client-side
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Failed to update password");
+        const message = data.error || "Failed to update password";
+        if (message.toLowerCase().includes("current password")) {
+          setErrors(prev => ({ ...prev, currentPassword: message }));
+        } else if (message.toLowerCase().includes("new password") || message.toLowerCase().includes("complexity")) {
+          setErrors(prev => ({ ...prev, newPassword: message }));
+        } else {
+          toast.error(message);
+        }
         return;
       }
 
       toast.success(data.message || "Password updated successfully!");
       handleCancelPassword();
-    } catch (error) {
+    } catch (error: any) {
+      if (isClerkRuntimeError(error) && isReverificationCancelledError(error)) {
+        toast.info("Verification was cancelled.");
+        return;
+      }
       console.error("Password update error:", error);
-      toast.error("Failed to update password. Please try again.");
+
+      // Extract Clerk validation or verification error messages and map them inline
+      if (error.errors && Array.isArray(error.errors)) {
+        const fieldErrors: typeof errors = {};
+        error.errors.forEach((clerkErr: any) => {
+          const message = clerkErr.message;
+          const param = clerkErr.meta?.paramName || "";
+          const code = clerkErr.code || "";
+
+          if (param === "current_password" || code === "form_password_incorrect" || message.toLowerCase().includes("current password")) {
+            fieldErrors.currentPassword = message;
+          } else if (param === "password" || code === "form_password_validation_failed" || message.toLowerCase().includes("password length") || message.toLowerCase().includes("complexity")) {
+            fieldErrors.newPassword = message;
+          } else {
+            toast.error(message);
+          }
+        });
+
+        if (Object.keys(fieldErrors).length > 0) {
+          setErrors(prev => ({ ...prev, ...fieldErrors }));
+          return;
+        }
+      }
+
+      const message = error.message || "Failed to update password. Please try again.";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

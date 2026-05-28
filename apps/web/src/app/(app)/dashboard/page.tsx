@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
 import { Button } from "@/shared/components/ui/button";
-import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
 
 import { Skeleton } from "@heroui/react";
@@ -504,7 +504,9 @@ export default function Dashboard() {
                                       alt={notification.title}
                                       className="object-cover"
                                     />
-                                    <UserAvatarFallback className="text-muted-foreground border border-border" />
+                                    <AvatarFallback className="bg-secondary text-foreground text-xs font-semibold">
+                                      {avatarFallback}
+                                    </AvatarFallback>
                                   </Avatar>
                                 )}
                                 <div className="flex-1 min-w-0">

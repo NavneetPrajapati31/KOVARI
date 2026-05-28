@@ -201,10 +201,10 @@ export function GroupCard({
       {/* Top image section or fallback when no cover */}
       <div className="relative w-full h-[160px] overflow-hidden bg-muted">
         {group.cover_image?.trim() ? (
-          <Image
+          <img
             src={group.cover_image}
             alt={group.name || "Group cover"}
-            className="w-full h-full object-cover object-top rounded-t-2xl rounded-b-none transition-all duration-500"
+            className="w-full h-full object-cover object-center rounded-t-2xl rounded-b-none transition-all duration-500"
             aria-label={group.name || "Group cover"}
           />
         ) : (
@@ -216,7 +216,7 @@ export function GroupCard({
         )}
       </div>
       {/* Content section */}
-      <div className="flex flex-col gap-2 px-5 pt-4">
+      <div className="flex flex-col gap-2 px-5 pt-4 border-t border-border">
         {/* Group name */}
         <div className="flex items-center">
           <span
@@ -229,20 +229,20 @@ export function GroupCard({
         {/* Date/time */}
         <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium mb-0 min-w-0">
           <span
-            className="truncate min-w-0 flex items-center gap-1"
+            className="flex-shrink-0 flex items-center gap-1"
             title={formatDateRange()}
           >
             <Calendar className="w-3.5 h-3.5 shrink-0" />
             {formatDateRange()}
           </span>
-          <span className="h-4 text-muted-foreground">|</span>
+          <span className="text-muted-foreground/50 shrink-0">|</span>
 
           <span
             className="capitalize truncate min-w-0 flex items-center gap-1"
             title={formatDestinationCity(group.destination)}
           >
             <MapPin className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-            {formatDestinationCity(group.destination)}
+            <span className="truncate">{formatDestinationCity(group.destination)}</span>
           </span>
         </div>
         {/* Destination */}
@@ -312,7 +312,7 @@ export function GroupCard({
                 classNames={{ spinnerBars: "bg-primary-foreground" }}
               />
             )}
-            View Group
+            {!viewGroupLoading && "View Group"}
           </Button>
         ) : userStatus === "pending" || userStatus === "blocked" ? (
           <Button
@@ -351,7 +351,7 @@ export function GroupCard({
                   classNames={{ spinnerBars: "bg-primary-foreground" }}
                 />
               )}
-              View Group
+              {!viewGroupLoading && "View Group"}
             </Button>
             <Button
               color="primary"

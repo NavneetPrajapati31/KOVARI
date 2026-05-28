@@ -38,10 +38,11 @@ export function GroupCard({ group, className }: GroupCardProps) {
       >
         {/* Avatar */}
         <div className="flex-shrink-0">
-          <Avatar className="h-10 w-10">
+          <Avatar className="h-10 w-10 border border-border">
             <AvatarImage
               src={group.imageUrl || "/placeholder.svg"}
               alt={group.name}
+              className="object-cover"
             />
           <UserAvatarFallback className="" />
           </Avatar>

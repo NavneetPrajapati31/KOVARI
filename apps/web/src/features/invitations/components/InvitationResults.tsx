@@ -4,8 +4,8 @@ import type { GroupInvite } from "@/features/invitations/components/InvitationCa
 
 interface InvitationResultsProps {
   invitations: GroupInvite[];
-  onAccept?: (invitationId: string) => void;
-  onDecline?: (invitationId: string) => void;
+  onAccept?: (invitationId: string) => Promise<void> | void;
+  onDecline?: (invitationId: string) => Promise<void> | void;
   isLoading?: boolean;
 }
 
@@ -39,8 +39,8 @@ const InvitationResults: React.FC<InvitationResultsProps> = ({
         <GroupInviteCard
           key={invite.id}
           invite={invite}
-          onAccept={() => onAccept?.(invite.id)}
-          onDecline={() => onDecline?.(invite.id)}
+          onAccept={onAccept}
+          onDecline={onDecline}
         />
       ))}
     </div>

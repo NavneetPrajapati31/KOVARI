@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createNotification } from "@/lib/notifications/createNotification";
 import { NotificationType } from "@kovari/types";
 import { createClient } from "@supabase/supabase-js";
+import { assertUUID } from "@/lib/validation/uuid";
 
 const { logMatchEvent, createMatchEventLog } = AI.Logging;
 const { extractFeaturesForSoloMatch } = AI.FeatureExtraction;
@@ -123,6 +124,13 @@ export async function POST(request: Request) {
 
     // Check reverse interest and create match if mutual
     // First check all interests between these two users (both directions)
+    try {
+      assertUUID(fromUuid, "fromUuid");
+      assertUUID(toUuid, "toUuid");
+    } catch (e: any) {
+      return NextResponse.json({ success: false, error: e.message }, { status: 400 });
+    }
+
     const { data: allInterestsBetween } = await supabaseAdmin
       .from("match_interests")
       .select(

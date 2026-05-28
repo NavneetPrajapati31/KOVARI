@@ -97,6 +97,7 @@ export const profileMapper = {
     // 2. User-Facing Data & Display Ownership (profiles table)
     // CRITICAL: profiles.name is the ONLY target for display name updates.
     if (dto.displayName !== undefined) profileUpdates.name = dto.displayName;
+    if ((dto as any).name !== undefined) profileUpdates.name = (dto as any).name;
     
     if (dto.username !== undefined) profileUpdates.username = dto.username;
     if (dto.avatar !== undefined) profileUpdates.profile_photo = dto.avatar;

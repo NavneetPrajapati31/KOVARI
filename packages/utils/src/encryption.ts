@@ -108,26 +108,45 @@ export const decryptMessage = (
   if (!key) return "";
   
   console.log(`🛡️ [Encryption] Decrypting with key: "${key}", salt: "${encryptedMessage.salt}"`);
-  const derivedKey = deriveKeyFromPassword(key, encryptedMessage.salt);
   
-  // Decrypt using CryptoJS
-  // Note: CryptoJS.AES.decrypt expects the first argument to be a CipherParams object 
-  // or a WordArray representing the ciphertext.
-  const ciphertext = autoDecode(encryptedMessage.encryptedContent);
-  const iv = autoDecode(encryptedMessage.iv);
-
-  const decrypted = CryptoJS.AES.decrypt(
-    { ciphertext } as CryptoJS.lib.CipherParams,
-    derivedKey,
-    {
-      iv,
-      mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7,
-    }
-  );
-
+  // 1. Attempt standard decryption (post-May 13 algorithm)
   try {
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    const derivedKey = deriveKeyFromPassword(key, encryptedMessage.salt);
+    const ciphertext = autoDecode(encryptedMessage.encryptedContent);
+    const iv = autoDecode(encryptedMessage.iv);
+
+    const decrypted = CryptoJS.AES.decrypt(
+      { ciphertext } as CryptoJS.lib.CipherParams,
+      derivedKey,
+      {
+        iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+    const result = decrypted.toString(CryptoJS.enc.Utf8);
+    if (result) return result;
+  } catch (e) {
+    // Ignore and proceed to legacy fallback
+  }
+
+  // 2. Attempt legacy decryption fallback (pre-May 13 algorithm)
+  try {
+    const legacyDerivedKey = CryptoJS.PBKDF2(key, encryptedMessage.salt, {
+      keySize: 256 / 32,
+      iterations: 10000,
+    }).toString();
+
+    const legacyDecrypted = CryptoJS.AES.decrypt(
+      encryptedMessage.encryptedContent,
+      legacyDerivedKey,
+      {
+        iv: CryptoJS.enc.Hex.parse(encryptedMessage.iv),
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      }
+    );
+    return legacyDecrypted.toString(CryptoJS.enc.Utf8) || "";
   } catch (e) {
     return "";
   }

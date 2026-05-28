@@ -430,18 +430,23 @@ const GroupHomePage = () => {
     destination?: string,
     destinationDetails?: DestinationDetails | null,
   ): { name: string; country: string } => {
-    if (destinationDetails?.city || destinationDetails?.country) {
-      return {
-        name: destinationDetails.city?.trim() || "",
-        country: destinationDetails.country?.trim() || "",
-      };
+    let name = destinationDetails?.city?.trim() || "";
+    let country = destinationDetails?.country?.trim() || "";
+
+    if (!name && destinationDetails?.formatted_address) {
+      name = destinationDetails.formatted_address.split(",")[0]?.trim() || "";
     }
-    if (!destination) return { name: "", country: "" };
-    const parts = destination.split(",").map((part) => part.trim());
-    return {
-      name: parts[0] || "",
-      country: parts[1] || "",
-    };
+
+    if (!name && destination) {
+      name = destination.split(",")[0]?.trim() || "";
+    }
+
+    if (!country && destination) {
+      const parts = destination.split(",");
+      country = parts[parts.length - 1]?.trim() || "";
+    }
+
+    return { name, country };
   };
 
   const { name, country } = getDestinationCityAndCountry(

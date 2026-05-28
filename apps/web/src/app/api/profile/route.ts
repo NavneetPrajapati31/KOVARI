@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/responseHelpers";
 import { profileTransformer } from "@/lib/transformers/profileTransformer";
 import { ApiErrorCode, KovariClient } from "@/types/api";
+import { assertNoProfanity } from "@/lib/moderation/filter";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -22,7 +23,7 @@ const schema = z.object({
     .min(3)
     .max(32)
     .regex(/^[a-zA-Z0-9_]+$/),
-  age: z.coerce.number().min(13).max(100),
+  age: z.coerce.number().min(18).max(100),
   gender: z.enum(["Male", "Female", "Other"]),
   birthday: z.string().datetime(),
   bio: z.string().max(300),
@@ -53,8 +54,23 @@ export async function POST(req: NextRequest) {
       if (!authUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
       const body = await req.json();
+      
+      // SECURITY: Validate input against schema to prevent mass assignment vulnerabilities
+      const result = schema.partial().safeParse(body);
+      if (!result.success) {
+        return NextResponse.json({ error: result.error.flatten() }, { status: 400 });
+      }
+
+      // SECURITY: Profanity filter on write
+      try {
+        if (result.data.name) assertNoProfanity(result.data.name, "Name");
+        if (result.data.bio) assertNoProfanity(result.data.bio, "Bio");
+      } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+
       const supabase = createAdminSupabaseClient();
-      const profileData = { user_id: authUser.id, ...body };
+      const profileData = { user_id: authUser.id, ...result.data };
 
       await supabase.from("profiles").upsert(profileData, { onConflict: "user_id" });
       
@@ -91,6 +107,14 @@ async function handleStandardProfile(
     const body = await req.json();
     const result = schema.safeParse(body);
     if (!result.success) return formatErrorResponse("Validation failed", ApiErrorCode.BAD_REQUEST, requestId, 400, result.error.flatten());
+
+    // SECURITY: Profanity filter on write
+    try {
+      assertNoProfanity(result.data.name, "Name");
+      assertNoProfanity(result.data.bio, "Bio");
+    } catch (err: any) {
+      return formatErrorResponse(err.message, ApiErrorCode.BAD_REQUEST, requestId, 400);
+    }
 
     const supabase = createAdminSupabaseClient();
     const profileData = { user_id: authUser.id, ...result.data };

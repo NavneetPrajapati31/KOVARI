@@ -39,7 +39,7 @@ const ImageStretch = ({
         src={getFeedImageUrl(src)}
         alt={alt}
         aria-label={ariaLabel}
-        className={`w-full h-full object-fill object-bottom object-right rounded-t-2xl rounded-b-none transition-all duration-500 ${className}`}
+        className={`w-full h-full object-cover object-center rounded-t-2xl rounded-b-none transition-all duration-500 ${className}`}
         style={{ display: "block" }}
       />
     </div>

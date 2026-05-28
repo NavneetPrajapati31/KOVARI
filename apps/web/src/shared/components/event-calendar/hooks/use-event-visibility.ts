@@ -40,16 +40,18 @@ export function useEventVisibility({
     // Initial measurement (synchronous)
     updateHeight()
 
-    // Create observer only once and reuse it
-    if (!observerRef.current) {
-      observerRef.current = new ResizeObserver(() => {
-        // Just call updateHeight when resize is detected
-        updateHeight()
-      })
-    }
+    if (typeof ResizeObserver !== 'undefined') {
+      // Create observer only once and reuse it
+      if (!observerRef.current) {
+        observerRef.current = new ResizeObserver(() => {
+          // Just call updateHeight when resize is detected
+          updateHeight()
+        })
+      }
 
-    // Start observing the content container
-    observerRef.current.observe(contentRef.current)
+      // Start observing the content container
+      observerRef.current.observe(contentRef.current)
+    }
 
     // Clean up function
     return () => {

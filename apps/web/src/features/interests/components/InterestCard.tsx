@@ -31,8 +31,8 @@ export interface Interest {
 interface InterestCardProps {
   interest: Interest;
   isLoading?: boolean;
-  onAccept: (interestId: string) => Promise<void> | void;
-  onDecline: (interestId: string) => Promise<void> | void;
+  onAccept?: (interestId: string) => Promise<void> | void;
+  onDecline?: (interestId: string) => Promise<void> | void;
 }
 
 export function InterestCard({
@@ -133,7 +133,7 @@ export function InterestCard({
               onClick={async () => {
                 setLoadingAction("decline");
                 try {
-                  await onDecline(interest.id);
+                  await onDecline?.(interest.id);
                 } catch (error) {
                   console.error("Error declining interest:", error);
                 } finally {
@@ -158,7 +158,7 @@ export function InterestCard({
               onClick={async () => {
                 setLoadingAction("accept");
                 try {
-                  await onAccept(interest.id);
+                  await onAccept?.(interest.id);
                   setIsAccepted(true);
                 } catch (error) {
                   console.error("Error accepting interest:", error);

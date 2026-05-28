@@ -2,6 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { verifyAccessToken } from "@/lib/auth/jwt";
+import { assertUUID } from "@/lib/validation/uuid";
 
 export async function GET(req: NextRequest) {
   console.log("🛡️ [InboxAPI] GET Request started");
@@ -53,6 +54,12 @@ export async function GET(req: NextRequest) {
     }
 
     console.log("🛡️ [InboxAPI] Querying messages for UUID:", userId);
+
+    try {
+      assertUUID(userId, "userId");
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
 
     // Fetch unique conversations by getting messages where user is sender or receiver
     const { data, error } = await supabase

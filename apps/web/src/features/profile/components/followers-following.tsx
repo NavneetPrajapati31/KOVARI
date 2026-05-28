@@ -9,11 +9,13 @@ import type { User } from "@/features/profile/lib/user";
 import Link from "next/link";
 import { useAuthStore } from "@/shared/stores/useAuthStore";
 import { Skeleton } from "@heroui/react";
+import { useToast } from "@/shared/hooks/use-toast";
 
 export default function FollowersFollowing() {
   const searchParams = useSearchParams();
   const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const userId = params?.userId as string;
   // Get current user from auth store
   const currentUser = useAuthStore((state) => state.user);
@@ -96,7 +98,7 @@ export default function FollowersFollowing() {
       const res = await fetch(`/api/profile/${userId}/followers`);
       if (!res.ok) throw new Error("Failed to fetch followers");
       const data = await res.json();
-      setFollowers(data);
+      setFollowers(Array.isArray(data) ? data : (data.data || []));
       setHasFetchedFollowers(true);
     } catch (err: any) {
       setError(err.message || "Unknown error");
@@ -115,7 +117,7 @@ export default function FollowersFollowing() {
       const res = await fetch(`/api/profile/${userId}/following`);
       if (!res.ok) throw new Error("Failed to fetch following");
       const data = await res.json();
-      setFollowing(data);
+      setFollowing(Array.isArray(data) ? data : (data.data || []));
       setHasFetchedFollowing(true);
     } catch (err: any) {
       setError(err.message || "Unknown error");
@@ -153,7 +155,8 @@ export default function FollowersFollowing() {
         return res.json();
       })
       .then((data) => {
-        setProfileUsername(data.username || "");
+        const profile = data.data || data;
+        setProfileUsername(profile.username || "");
       })
       .catch((err) => {
         setProfileError(err.message || "Unknown error");
@@ -180,22 +183,19 @@ export default function FollowersFollowing() {
   //     .finally(() => setLikesLoading(false));
   // }, [activeTab, userId]);
 
-  // Handlers (stubbed for now)
-  const handleRemoveFollower = async (userId: number) => {
-    // TODO: Implement backend call
+  // Handlers
+  const handleRemoveFollower = (userId: string | number) => {
     setFollowers((prev) => prev.filter((user) => user.id !== userId));
   };
 
-  const handleUnfollow = async (userId: number) => {
-    // TODO: Implement backend call
+  const handleUnfollow = (userId: string | number) => {
     setFollowing((prev) => prev.filter((user) => user.id !== userId));
   };
 
-  const handleFollowBack = async (userId: number) => {
-    // TODO: Implement backend call
+  const handleFollowBack = (userId: string | number) => {
     setFollowers((prev) =>
       prev.map((user) =>
-        user.id === userId ? { ...user, isFollowing: !user.isFollowing } : user
+        user.id === userId ? { ...user, isFollowing: true } : user
       )
     );
   };

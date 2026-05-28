@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
+import DOMPurify from "isomorphic-dompurify";
 import { useParams, useRouter } from "next/navigation";
 import { Avatar, AvatarGroup, Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
@@ -25,6 +26,7 @@ import { BsCameraVideoFill } from "react-icons/bs";
 import { PiPaperclip } from "react-icons/pi";
 import { HiPlay } from "react-icons/hi";
 import { useGroupChat, type ChatMessage } from "@/shared/hooks/useGroupChat";
+import { sanitizeMessage } from "@/lib/sanitize";
 import { useGroupMembers } from "@/shared/hooks/useGroupMembers";
 import { useGroupEncryption } from "@/shared/hooks/useGroupEncryption";
 import { useGroupMembership } from "@/shared/hooks/useGroupMembership";
@@ -414,6 +416,15 @@ export default function GroupChatInterface() {
   ) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return; // Only proceed if userId is loaded
+
+    // File size validation (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File size exceeds the 10MB limit.");
+      if (chatFileInputRef.current) chatFileInputRef.current.value = "";
+      return;
+    }
+
     setChatUploading(true);
     try {
       const signRes = await fetch("/api/cloudinary/sign", {
@@ -422,7 +433,8 @@ export default function GroupChatInterface() {
         body: JSON.stringify({ folder: `kovari-group-chat/${groupId}` }),
       });
       if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
-      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
+      const responseJson = await signRes.json();
+      const { signature, timestamp, folder, api_key, cloud_name } = responseJson.data;
 
       const formData = new FormData();
       formData.append("file", file);
@@ -458,8 +470,8 @@ export default function GroupChatInterface() {
       const mediaRecord = await res.json();
       // Send a message with the media URL and type
       await sendMessage("", mediaRecord.url, mediaRecord.type);
-    } catch (err) {
-      // Optionally show error toast
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload file");
     } finally {
       setChatUploading(false);
       if (chatFileInputRef.current) chatFileInputRef.current.value = "";
@@ -1150,7 +1162,8 @@ export default function GroupChatInterface() {
                                     : "text-foreground"
                                 }`}
                                 dangerouslySetInnerHTML={{
-                                  __html: linkifyMessage(msg.content),
+                                  // SECURITY: Sanitize HTML to prevent stored XSS attacks
+                                  __html: sanitizeMessage(linkifyMessage(msg.content)),
                                 }}
                               />
                               <span className="flex items-center gap-1 justify-end ml-3 mt-0.5 float-right">
@@ -1326,7 +1339,7 @@ const MediaWithSkeleton = ({
       <img
         src={getFullImageUrl(url)}
         alt="sent media"
-        className={`w-full h-full object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
+        className={`w-full h-full border border-border object-cover rounded-2xl ${loaded ? "" : "invisible"}`}
         onLoad={() => setLoaded(true)}
       />
       <span className="absolute bottom-2 right-2 bg-black/50 text-primary-foreground text-[10px] px-2 py-0.5 rounded-md">

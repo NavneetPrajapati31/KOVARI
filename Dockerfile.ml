@@ -23,6 +23,13 @@ COPY packages/api/src/ai/datasets/models* ./models/
 # Copy the server script
 COPY packages/api/src/ai/datasets/ml_server_fastapi.py .
 
+# Create non-root user for security
+RUN adduser --disabled-password --gecos '' kovariuser && \
+    chown -R kovariuser:kovariuser /app
+
+# Switch to non-root user
+USER kovariuser
+
 # Expose the API port
 EXPOSE 8001
 

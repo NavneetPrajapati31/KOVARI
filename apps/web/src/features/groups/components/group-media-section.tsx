@@ -117,66 +117,6 @@ export const GroupMediaSection = ({
             >
               See all
             </Button>
-            <CldUploadWidget
-              signatureEndpoint="/api/cloudinary/sign"
-              options={{
-                folder: `kovari-groups/${groupId}`,
-                resourceType: "auto",
-                clientAllowedFormats: ["image", "video"],
-                maxFileSize: 10 * 1024 * 1024, // 10MB
-              }}
-              onSuccess={async (result: any) => {
-                if (result.event === "success") {
-                  setUploading(true);
-                  try {
-                    const { secure_url, public_id, resource_type } = result.info;
-                    let res;
-                    for (let i = 0; i < 3; i++) {
-                      try {
-                        res = await fetch(`/api/groups/${groupId}/media`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            secure_url,
-                            public_id,
-                            type: resource_type === "video" ? "video" : "image"
-                          }),
-                        });
-                        if (res.ok) break;
-                      } catch (e) {
-                        if (i === 2) throw e;
-                      }
-                      // Exponential backoff: 1s, 2s, 4s
-                      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
-                    }
-                    
-                    if (!res || !res.ok) throw new Error("Failed to save media metadata");
-                    await fetchMedia();
-                  } catch (err) {
-                    console.error("Error saving media:", err);
-                    setError("Failed to save media");
-                  } finally {
-                    setUploading(false);
-                  }
-                }
-              }}
-            >
-              {({ open }) => (
-                <Button
-                  type="button"
-                  className="bg-transparent text-primary p-0 h-auto w-8 flex items-center justify-center cursor-pointer"
-                  aria-label="Add photo or video"
-                  onClick={() => open()}
-                  disabled={loading || uploading}
-                >
-                  {uploading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Plus className="h-5 w-5" />
-                  )}
-                </Button>
-              )}
-            </CldUploadWidget>
           </div>
         )}
       </div>
@@ -210,7 +150,7 @@ export const GroupMediaSection = ({
               <button
                 key={item.id}
                 type="button"
-                className="aspect-[4/3] rounded-xl overflow-hidden relative group focus:outline-none focus:ring-0"
+                className="aspect-[4/3] border border-border rounded-xl overflow-hidden relative group focus:outline-none focus:ring-0"
                 aria-label={`View ${item.type} in full screen`}
                 tabIndex={0}
                 onClick={() => {
@@ -314,7 +254,7 @@ export const GroupMediaSection = ({
                     <button
                       key={item.id}
                       type="button"
-                      className="aspect-[4/3] rounded-lg overflow-hidden relative group focus:outline-none focus:ring-0 focus:ring-offset-0"
+                      className="aspect-[4/3] border border-border rounded-lg overflow-hidden relative group focus:outline-none focus:ring-0 focus:ring-offset-0"
                       aria-label={`View ${item.type} ${idx + 1} of ${media.length}`}
                       onClick={() => {
                         setModalCurrentIndex(idx);

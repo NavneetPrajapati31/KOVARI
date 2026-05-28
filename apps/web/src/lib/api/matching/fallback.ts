@@ -23,8 +23,8 @@ export async function performSoloDbMatchingFallback(
         name,
         isDeleted
       )
-    `)
-    .neq("users.isDeleted", false)
+    ` as any)
+    .eq("users.isDeleted", false)
     .neq("user_id", currentUserId)
     .not("name", "ilike", "%Audit%") // Exclude audit users
     .not("username", "ilike", "%seed_%") // Exclude seed users
@@ -47,7 +47,7 @@ export async function performSoloDbMatchingFallback(
   if (error || !dbRows) return [];
 
   // 2. Fetch travel preferences for these users
-  const userIds = dbRows.map(p => p.user_id);
+  const userIds = (dbRows as any[]).map(p => p.user_id);
   const { data: travelPrefs } = await supabase
     .from("travel_preferences")
     .select("*")
@@ -59,7 +59,7 @@ export async function performSoloDbMatchingFallback(
   }, {});
 
   // 3. Transform via profileMapper to standardized MatchDTO
-  return dbRows.map(p => {
+  return (dbRows as any[]).map(p => {
     const pref = prefsMap[p.user_id];
     const userDto = profileMapper.fromDb(p.users, p);
 
@@ -135,7 +135,7 @@ export async function performGroupDbMatchingFallback(
       non_drinkers,
       destination_lat,
       destination_lon
-    `)
+    ` as any)
     .in("status", ["active", "pending"])
     .eq("is_public", true)
     .order("created_at", { ascending: false })

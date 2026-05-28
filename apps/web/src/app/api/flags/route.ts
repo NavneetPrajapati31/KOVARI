@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { sendSecurityAlert } from "@/lib/alerts/security";
 
 /**
  * POST /api/flags
@@ -130,6 +131,12 @@ export async function POST(req: NextRequest) {
         userRateLimitError || groupRateLimitError
       );
     } else if (todayFlagCount >= 3) {
+      await sendSecurityAlert({
+        event: "Report Rate Limit Exceeded",
+        severity: "medium",
+        userId: reporterId,
+        details: { count: todayFlagCount, targetId, targetType }
+      });
       return NextResponse.json(
         {
           error: "Rate limit exceeded",

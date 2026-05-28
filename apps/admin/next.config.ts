@@ -2,6 +2,9 @@ import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
   serverExternalPackages: ['redis', '@getbrevo/brevo'],
   experimental: {
     serverActions: {

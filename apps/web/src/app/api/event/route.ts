@@ -1,8 +1,14 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
 
 const EVENTBRITE_TOKEN = process.env.EB_API_KEY
 
 export async function GET(req: NextRequest) {
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url)
   const location = searchParams.get("location") || "India"
   const date = searchParams.get("date")

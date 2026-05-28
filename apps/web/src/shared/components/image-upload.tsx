@@ -76,23 +76,12 @@ export function ImageUpload({
 
     setIsUploading(true);
     try {
-      const signRes = await fetch("/api/cloudinary/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder: "kovari-uploads" }),
-      });
-      if (!signRes.ok) throw new Error("Failed to secure upload signature.");
-      
-      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
-
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("api_key", api_key);
-      formData.append("timestamp", timestamp.toString());
-      formData.append("signature", signature);
-      formData.append("folder", folder);
+      // Optional: you can pass folder name here if needed
+      formData.append("folder", "kovari-uploads");
 
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, {
+      const uploadRes = await fetch(`/api/upload/image`, {
         method: "POST",
         body: formData,
       });

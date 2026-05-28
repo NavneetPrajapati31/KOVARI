@@ -134,7 +134,7 @@ export default function Page() {
         const res = await fetch("/api/profile/current");
         if (!res.ok) return;
         const data = await res.json();
-        setCurrentUserId(data.id); // This is the internal UUID
+        setCurrentUserId(data.data?.id || data.id);
       } catch {
         setCurrentUserId(null);
       }

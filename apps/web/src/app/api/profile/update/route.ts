@@ -79,6 +79,42 @@ export async function PATCH(req: Request) {
         });
       }
 
+      // IF Clerk User: Direct Sync (already verified on frontend via Clerk)
+      if (user.clerkUserId) {
+        // Update users table
+        const { error: userUpdateError } = await supabase
+          .from("users")
+          .update({ email: emailValue })
+          .eq("id", user.id);
+
+        if (userUpdateError) {
+          console.error("Error updating user email (Clerk sync):", userUpdateError);
+          return new Response(JSON.stringify({ error: "Failed to sync user email" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        // Update profiles table
+        const { error: profileUpdateError } = await supabase
+          .from("profiles")
+          .update({ email: emailValue })
+          .eq("user_id", user.id);
+
+        if (profileUpdateError) {
+          console.error("Error updating profile email (Clerk sync):", profileUpdateError);
+          return new Response(JSON.stringify({ error: "Failed to sync profile email" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ message: "Email synced successfully", field, value }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
       // Generate OTP
       const otp = crypto.randomInt(100000, 999999).toString();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
@@ -133,7 +169,7 @@ export async function PATCH(req: Request) {
       "username", "bio", "avatar", "profession", "interests", "languages", 
       "gender", "age", "nationality", "location", "location_details", 
       "religion", "smoking", "drinking", "personality", "foodPreference",
-      "destinations", "tripFocus", "travelFrequency", "name", "email"
+      "destinations", "tripFocus", "travelFrequency", "name", "email", "birthday"
     ];
 
     if (!safeFields.includes(field)) {

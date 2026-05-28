@@ -1,8 +1,17 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "default_access_secret_change_me";
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "default_refresh_secret_change_me";
+// SECURITY: Fail fast at module load — never fall back to a guessable default.
+// Generate secrets with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
+if (!ACCESS_SECRET || !REFRESH_SECRET) {
+  throw new Error(
+    "FATAL: JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be set in environment variables. " +
+    "Generate with: node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\""  
+  );
+}
 
 const ACCESS_TOKEN_EXPIRY = "15m"; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = "7d"; // 7 days
@@ -49,7 +58,8 @@ export const generateRefreshToken = (userId: string, email: string): string => {
 
 export const verifyAccessToken = (token: string): JWTPayload | null => {
   try {
-    const payload = jwt.verify(token, ACCESS_SECRET, { issuer: ISSUER }) as JWTPayload;
+    // SECURITY: Pin algorithm to HS256 to prevent algorithm confusion attacks (e.g. "none", RS256)
+    const payload = jwt.verify(token, ACCESS_SECRET, { issuer: ISSUER, algorithms: ["HS256"] }) as JWTPayload;
     if (payload.type !== "access" || !isUUIDv4(payload.sub)) {
       return null;
     }
@@ -62,7 +72,8 @@ export const verifyAccessToken = (token: string): JWTPayload | null => {
 
 export const verifyRefreshToken = (token: string): JWTPayload | null => {
   try {
-    const payload = jwt.verify(token, REFRESH_SECRET, { issuer: ISSUER }) as JWTPayload;
+    // SECURITY: Pin algorithm to HS256 to prevent algorithm confusion attacks
+    const payload = jwt.verify(token, REFRESH_SECRET, { issuer: ISSUER, algorithms: ["HS256"] }) as JWTPayload;
     if (payload.type !== "refresh" || !isUUIDv4(payload.sub)) {
       return null;
     }

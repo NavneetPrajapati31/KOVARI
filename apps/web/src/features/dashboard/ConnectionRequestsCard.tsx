@@ -68,8 +68,12 @@ function ConnectionRequestCard({
         className="flex flex-1 min-w-0 items-center gap-x-2 cursor-pointer transition-colors rounded-md -m-1 p-1 hover:bg-muted/50"
       >
         <div className="flex-shrink-0">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={request.avatar} alt={request.name} />
+          <Avatar className="h-10 w-10 border border-border">
+            <AvatarImage
+              src={request.avatar}
+              alt={request.name}
+              className="object-cover"
+            />
             <UserAvatarFallback className="" />
           </Avatar>
         </div>
@@ -201,7 +205,8 @@ export const ConnectionRequestsCard = () => {
             throw new Error("Failed to fetch connection requests");
           }
 
-          const data: ApiInterest[] = await response.json();
+          const responseJson = await response.json();
+          const data: ApiInterest[] = responseJson.data || [];
 
           // Transform API response to component format
           const transformedRequests: ConnectionRequest[] = data.map(
@@ -245,7 +250,7 @@ export const ConnectionRequestsCard = () => {
 
   const handleAccept = async (id: string): Promise<void> => {
     try {
-      Sentry.startSpan(
+      await Sentry.startSpan(
         {
           op: "ui.click",
           name: "Accept Connection Request",
@@ -280,7 +285,7 @@ export const ConnectionRequestsCard = () => {
 
   const handleDecline = async (id: string): Promise<void> => {
     try {
-      Sentry.startSpan(
+      await Sentry.startSpan(
         {
           op: "ui.click",
           name: "Decline Connection Request",

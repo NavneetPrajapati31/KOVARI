@@ -8,6 +8,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { sanitizeMessage } from "@/lib/sanitize";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import { useDirectChat } from "@/shared/hooks/useDirectChat";
@@ -216,7 +217,8 @@ const MessageRow = React.memo(
                   <span
                     className="block text-xs [overflow-wrap:anywhere]"
                     dangerouslySetInnerHTML={{
-                      __html: linkifyMessage(content),
+                      // SECURITY: Sanitize HTML to prevent stored XSS attacks
+                      __html: sanitizeMessage(linkifyMessage(content)),
                     }}
                   />
                 )}
@@ -494,7 +496,8 @@ const MessageInput = ({
         body: JSON.stringify({ folder: `kovari-direct/${currentUserUuid}-${partnerUuid}` }),
       });
       if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
-      const { signature, timestamp, folder, api_key, cloud_name } = await signRes.json();
+      const responseJson = await signRes.json();
+      const { signature, timestamp, folder, api_key, cloud_name } = responseJson.data;
 
       const formData = new FormData();
       formData.append("file", file);
@@ -1378,6 +1381,7 @@ const DirectChatPage = () => {
         aria-label="Chat messages"
       >
         <style dangerouslySetInnerHTML={{__html:`
+          /* safe: hardcoded string, no user input */
           .intersect-observer-child { min-height: 1px; }
         `}} />
         {hasMoreMessages && (

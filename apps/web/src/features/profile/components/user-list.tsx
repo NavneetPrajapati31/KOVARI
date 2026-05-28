@@ -5,9 +5,9 @@ import Link from "next/link";
 interface UserListProps {
   users: User[];
   type: "followers" | "following";
-  onRemove?: (userId: number) => void;
-  onUnfollow?: (userId: number) => void;
-  onFollowBack?: (userId: number) => void;
+  onRemove?: (userId: string | number) => void;
+  onUnfollow?: (userId: string | number) => void;
+  onFollowBack?: (userId: string | number) => void;
   isOwnProfile?: boolean;
   currentUserUuid?: string;
   searchQuery?: string;
@@ -25,7 +25,9 @@ export default function UserList({
   searchQuery,
 
 }: UserListProps) {
-  if (users.length === 0) {
+  const usersList = Array.isArray(users) ? users : [];
+
+  if (usersList.length === 0) {
     if (searchQuery) {
         return (
             <div className="flex flex-col items-center justify-center py-16 px-4">
@@ -56,7 +58,7 @@ export default function UserList({
 
   return (
     <div className="divide-y divide-border border-b border-border">
-      {users.map((user) => (
+      {usersList.map((user) => (
         <UserCard
           key={user.id}
           user={user}

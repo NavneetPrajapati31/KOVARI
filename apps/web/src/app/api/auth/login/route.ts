@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { generateAccessToken, generateRefreshToken, hashToken } from "@/lib/auth/jwt";
+import { writeAuditLog } from "@/lib/audit/log";
+import { sendSecurityAlert } from "@/lib/alerts/security";
 import { createRouteHandlerSupabaseClientWithServiceRole } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { detectClient } from "@/lib/api/clientDetection";
@@ -11,6 +13,7 @@ import {
 } from "@/lib/api/responseHelpers";
 import { userTransformer } from "@/lib/transformers/userTransformer";
 import { ApiErrorCode, KovariClient } from "@/types/api";
+import { checkRateLimit } from "@/lib/auth/rateLimit";
 
 /**
  * 🏛️ HARDENED LOGIN API (Phase 3 True Isolation)
@@ -20,6 +23,18 @@ export async function POST(request: NextRequest) {
 
   // ⚡ TRUE LEGACY ISOLATION
   if (client === "web") {
+    const rateLimitResult = await checkRateLimit(request, 'login');
+    if (!rateLimitResult.success) {
+      return NextResponse.json({ error: "Too many login attempts. Please try again later." }, { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+        }
+      });
+    }
+
     try {
       const { email, password } = await request.json();
       if (!email || !password) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -73,6 +88,15 @@ export async function POST(request: NextRequest) {
     return formatErrorResponse(clientError, ApiErrorCode.BAD_REQUEST, requestId, 400);
   }
 
+  const rateLimitResult = await checkRateLimit(request, 'login');
+  if (!rateLimitResult.success) {
+    const response = formatErrorResponse("Too many login attempts", ApiErrorCode.RATE_LIMIT_EXCEEDED, requestId, 429);
+    response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
+    return response;
+  }
+
   return handleStandardLogin(request, requestId, start, client);
 }
 
@@ -94,7 +118,25 @@ async function handleStandardLogin(
       .ilike("email", email)
       .maybeSingle();
 
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const userAgent = request.headers.get("user-agent") || "unknown";
+
     if (!user || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) {
+      await writeAuditLog({
+        action: "AUTH_LOGIN_ATTEMPT",
+        targetId: email, // Can't easily use user.id if user doesn't exist
+        ipAddress: ip,
+        userAgent: userAgent,
+        details: { status: "failed", reason: "invalid credentials" },
+      });
+      // Optionally trigger alert for potential brute force if we had a rate limiter
+      // For now, we will just send a low-level alert for tracking
+      await sendSecurityAlert({
+        event: "Failed Login Attempt",
+        severity: "low",
+        ipAddress: ip,
+        details: { email }
+      });
       return formatErrorResponse("Invalid credentials", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 
@@ -112,6 +154,30 @@ async function handleStandardLogin(
           if (error) console.error("Failed to auto-lift expired ban for user:", user.id, error);
         });
       }
+    }
+
+    if (!isActuallyBanned) {
+      await writeAuditLog({
+        action: "AUTH_LOGIN_SUCCESS",
+        actorId: user.id,
+        ipAddress: ip,
+        userAgent: userAgent,
+      });
+    } else {
+      await writeAuditLog({
+        action: "AUTH_LOGIN_ATTEMPT",
+        actorId: user.id,
+        ipAddress: ip,
+        userAgent: userAgent,
+        details: { status: "failed", reason: "banned" },
+      });
+      await sendSecurityAlert({
+        event: "Banned User Login Attempt",
+        severity: "medium",
+        userId: user.id,
+        ipAddress: ip,
+        details: { reason: user.ban_reason }
+      });
     }
 
     const authData = {

@@ -177,6 +177,7 @@ export function GroupCreationForm() {
         name: data.groupName,
         destination: data.destination,
         destination_details: data.destinationDetails,
+        budget: data.budget,
         start_date: format(data.startDate, "yyyy-MM-dd"),
         end_date: format(data.endDate, "yyyy-MM-dd"),
         is_public: data.isPublic,

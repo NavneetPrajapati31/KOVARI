@@ -32,6 +32,11 @@ export async function registerServiceWorker() {
 export async function subscribeUserToPush() {
   if (!("serviceWorker" in navigator) || !VAPID_PUBLIC_KEY) return null;
 
+  if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "denied") {
+    console.warn("Push notifications are disabled (permission denied).");
+    return null;
+  }
+
   try {
     const registration = await navigator.serviceWorker.ready;
     

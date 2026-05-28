@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/responseHelpers";
 import { profileTransformer } from "@/lib/transformers/profileTransformer";
 import { ApiErrorCode, KovariClient } from "@/types/api";
+import { assertNoProfanity } from "@/lib/moderation/filter";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -62,6 +63,14 @@ export async function POST(req: NextRequest) {
     
     if (!result.success) {
       return formatErrorResponse("Validation failed", ApiErrorCode.BAD_REQUEST, requestId, 400, result.error.flatten());
+    }
+
+    // SECURITY: Profanity filter on write
+    try {
+      assertNoProfanity(result.data.name, "Name");
+      assertNoProfanity(result.data.bio, "Bio");
+    } catch (err: any) {
+      return formatErrorResponse(err.message, ApiErrorCode.BAD_REQUEST, requestId, 400);
     }
 
     const supabase = createAdminSupabaseClient();

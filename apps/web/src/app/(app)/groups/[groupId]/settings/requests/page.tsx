@@ -50,7 +50,7 @@ export default function RequestsPage() {
         const res = await fetch("/api/profile/current");
         if (!res.ok) return;
         const data = await res.json();
-        setCurrentUserId(data.id); // assuming API returns { id: ... }
+        setCurrentUserId(data.data?.id || data.id);
       } catch {
         setCurrentUserId(null);
       }

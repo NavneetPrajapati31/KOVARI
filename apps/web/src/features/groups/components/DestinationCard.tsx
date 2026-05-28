@@ -5,7 +5,6 @@ import { Card, Spinner } from "@heroui/react";
 import { Upload, Trash2, Loader2, Plus, Search } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { getFeedImageUrl } from "@kovari/utils";
-import { CldUploadWidget } from "next-cloudinary";
 import { cn } from "@kovari/utils";
 
 interface DestinationCardProps {
@@ -42,7 +41,7 @@ const ImageStretch = ({
         alt={alt}
         aria-label={ariaLabel}
         className={cn(
-          "w-full h-full object-fill object-bottom object-right transition-all duration-500",
+          "w-full h-full object-cover object-center transition-all duration-500",
           className
         )}
         style={{ display: "block" }}
@@ -68,7 +67,48 @@ export function DestinationCard({
 
   const hasImage = Boolean(imageUrl?.trim());
 
-  // File change is handled by CldUploadWidget
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const signRes = await fetch("/api/cloudinary/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "kovari-destinations" }),
+      });
+      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
+      const responseJson = await signRes.json();
+      const { signature, timestamp, folder, api_key, cloud_name } = responseJson.data;
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp.toString());
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
+      
+      const uploaded = await uploadRes.json();
+      const url = uploaded.secure_url;
+      if (url) {
+        onUploadSuccess?.(url);
+      } else {
+        throw new Error("No URL returned from upload");
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleDeleteClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -114,36 +154,22 @@ export function DestinationCard({
           >
             {/* Hidden file input - off-screen so programmatic .click() works in all browsers */}
             {editable && (
-              <CldUploadWidget
-                signatureEndpoint="/api/cloudinary/sign"
-                options={{
-                  folder: "kovari-destinations",
-                  resourceType: "image",
-                  clientAllowedFormats: ["image"],
-                  maxFileSize: 10 * 1024 * 1024,
-                }}
-                onUploadAdded={() => setUploading(true)}
-                onSuccess={(result: any) => {
-                  if (result.event === "success") {
-                    onUploadSuccess?.(result.info.secure_url);
-                  }
-                  setUploading(false);
-                }}
-                onError={(err) => {
-                  console.error("Upload error:", err);
-                  setUploading(false);
-                }}
-              >
-                {({ open }) => (
-                  <button
-                    type="button"
-                    onClick={() => open()}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    aria-label="Upload destination image"
-                    title="Upload destination image"
-                  />
-                )}
-              </CldUploadWidget>
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-auto"
+                  aria-label="Upload destination image"
+                  title="Upload destination image"
+                />
+              </>
             )}
             {uploading ? (
               <Spinner

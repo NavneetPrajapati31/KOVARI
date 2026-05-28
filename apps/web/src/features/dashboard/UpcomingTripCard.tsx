@@ -177,7 +177,7 @@ export function UpcomingTripCard({
               : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
           )}
         >
-          <span className="truncate">{name}</span>
+          <span className="truncate capitalize">{name}</span>
         </div>
         <Button
           variant="outline"

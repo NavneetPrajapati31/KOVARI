@@ -31,6 +31,8 @@ export interface LogEntry {
 
 export const logger = {
   log: (entry: LogEntry) => {
+    if (process.env.NODE_ENV === "production") return;
+
     const { level, message, requestId, ...rest } = entry;
     const output = JSON.stringify({
       type: level,

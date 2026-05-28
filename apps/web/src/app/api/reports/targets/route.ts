@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
+import { assertUUID } from "@/lib/validation/uuid";
 
 /**
  * GET /api/reports/targets
@@ -17,6 +18,12 @@ export async function GET(req: NextRequest) {
     }
 
     const internalUserId = authUser.id;
+    try {
+      assertUUID(internalUserId, "internalUserId");
+    } catch (e: any) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+
     const searchParams = req.nextUrl.searchParams;
     const type = searchParams.get("type") || "user";
     const query = searchParams.get("q") || "";

@@ -349,10 +349,10 @@ export async function DELETE(
 
     const supabase = createAdminSupabaseClient();
 
-    // Only delete if status is pending_request
-    const { data: deleted, error } = await supabase
+    // Update status to declined instead of deleting to prevent trigger side-effects
+    const { data: updated, error } = await supabase
       .from("group_memberships")
-      .delete()
+      .update({ status: "declined" })
       .eq("id", requestId)
       .eq("group_id", groupId)
       .eq("status", "pending_request")
@@ -361,8 +361,8 @@ export async function DELETE(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // If nothing was deleted, treat as not found
-    if (Array.isArray(deleted) && deleted.length === 0) {
+    // If nothing was updated, treat as not found
+    if (Array.isArray(updated) && updated.length === 0) {
       return NextResponse.json({ error: "Request not found" }, { status: 404 });
     }
 

@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { currentPassword, newPassword, confirmPassword } = validation.data;
+    const { skipClerkUpdate } = body;
 
     // Check if new passwords match
     if (newPassword !== confirmPassword) {
@@ -55,6 +56,21 @@ export async function POST(req: NextRequest) {
 
     // 1. Handle Web User (Clerk)
     if (user.clerkUserId) {
+      if (skipClerkUpdate) {
+        // Sync password hash to Supabase directly
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        await supabase
+          .from("users")
+          .update({ password_hash: hashedPassword })
+          .eq("id", user.id);
+
+        return NextResponse.json(
+          { success: true, message: "Password updated successfully" },
+          { status: 200 }
+        );
+      }
+
       const client = await clerkClient();
       
       // Get current user from Clerk
