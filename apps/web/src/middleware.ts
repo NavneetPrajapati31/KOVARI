@@ -374,11 +374,11 @@ export default async function middleware(req: NextRequest, evt: any) {
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
     const cspHeader = `
       default-src 'self';
-      script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: http: 'unsafe-eval';
+      script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://clerk.kovari.in https://*.clerk.accounts.dev https://va.vercel-scripts.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
-      img-src 'self' https://res.cloudinary.com https://utfs.io https://img.clerk.com https://images.clerk.dev https://*.googleusercontent.com data: blob:;
+      img-src 'self' data: blob: https://res.cloudinary.com https://utfs.io https://img.clerk.com https://*.clerk.com https://images.clerk.dev https://*.googleusercontent.com https://*.supabase.co https://*.onrender.com;
       font-src 'self' https://fonts.gstatic.com https://api.fontshare.com;
-      connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://clerk.kovari.in https://*.uploadthing.com wss:;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.clerk.dev wss://kovari.in http://localhost:3005 ws://localhost:3005 https://vitals.vercel-insights.com https://api.cloudinary.com https://*.onrender.com wss://*.onrender.com https://*.clerk.accounts.dev https://clerk.kovari.in https://*.uploadthing.com;
       frame-ancestors 'none';
       object-src 'none';
       base-uri 'self';
