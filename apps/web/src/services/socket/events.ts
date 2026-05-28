@@ -71,6 +71,21 @@ export const registerSocketEvents = (
               
             if (matchData) isAuthorized = true;
           }
+
+          // 3. Strict block validation: prevent connection if either user has blocked the other
+          if (isAuthorized) {
+            const { data: blockRow } = await supabase
+              .from("blocked_users")
+              .select("id")
+              .or(`and(blocker_id.eq.${supabaseId},blocked_id.eq.${partnerId}),and(blocker_id.eq.${partnerId},blocked_id.eq.${supabaseId})`)
+              .limit(1)
+              .maybeSingle();
+
+            if (blockRow) {
+              console.warn(`[Socket Auth] Blocked connection attempt between ${supabaseId} and ${partnerId}`);
+              isAuthorized = false;
+            }
+          }
         }
       } else {
         // Group chat: check membership in DB
@@ -120,6 +135,31 @@ export const registerSocketEvents = (
     try {
       console.log(`[Socket] Message sent to ${chatId} by ${userId}`);
 
+      const isDirectChat = chatId.includes("_");
+      const supabaseId = socket.data.supabaseId;
+
+      if (isDirectChat && supabaseId) {
+        const [id1, id2] = chatId.split("_");
+        const partnerId = supabaseId === id1 ? id2 : id1;
+        const supabase = createAdminSupabaseClient();
+
+        // Validate that neither user has blocked the other before broadcasting or saving
+        const { data: blockRow } = await supabase
+          .from("blocked_users")
+          .select("id")
+          .or(`and(blocker_id.eq.${supabaseId},blocked_id.eq.${partnerId}),and(blocker_id.eq.${partnerId},blocked_id.eq.${supabaseId})`)
+          .limit(1)
+          .maybeSingle();
+
+        if (blockRow) {
+          console.warn(`[Socket Message] Rejected send_message from blocked user: ${supabaseId} to ${partnerId}`);
+          if (callback) {
+            callback({ status: "error", error: "You cannot message this user" });
+          }
+          return;
+        }
+      }
+
       // Generate sequence IDs with in-memory fallback
       const conversationSequence = await sequenceManager.getNext(`chat_seq:${chatId}`);
       const serverSequence = await sequenceManager.getNext(`global_seq`);
@@ -161,7 +201,6 @@ export const registerSocketEvents = (
       // ========== PHASE 4: NOTIFICATIONS ==========
       const senderName = (socket.data as any).fullName || "Someone";
       const senderAvatar = (socket.data as any).profilePhoto || null;
-      const isDirectChat = chatId.includes("_");
 
       if (isDirectChat) {
         // Direct Chat: Recipient is message.receiverId (Supabase users.id)

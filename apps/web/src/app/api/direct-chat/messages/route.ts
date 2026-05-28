@@ -140,6 +140,26 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminSupabaseClient();
 
+    // SECURITY / INDUSTRY STANDARDS: Ensure neither user has blocked the other
+    const { data: blockRow, error: blockCheckError } = await supabase
+      .from("blocked_users")
+      .select("id")
+      .or(`and(blocker_id.eq.${currentUserId},blocked_id.eq.${partnerId}),and(blocker_id.eq.${partnerId},blocked_id.eq.${currentUserId})`)
+      .limit(1)
+      .maybeSingle();
+
+    if (blockCheckError) {
+      console.error("Error checking block status in message API:", blockCheckError);
+      return NextResponse.json({ error: "Failed to verify safety validation" }, { status: 500 });
+    }
+
+    if (blockRow) {
+      return NextResponse.json(
+        { error: "You cannot message this user" },
+        { status: 403 }
+      );
+    }
+
     const insertPayload = {
       sender_id: currentUserId,
       receiver_id: partnerId,

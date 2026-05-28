@@ -61,8 +61,9 @@ export async function POST(request: NextRequest) {
       if (cache.isStale) {
         triggerBackgroundRefresh(userId, clerkId, userVersion, cacheKey, payloadContext);
       }
+      const filteredGroups = await filterBlockedGroups(userId, cache.data);
       return formatStandardResponse(
-        { groups: cache.data },
+        { groups: filteredGroups },
         { source: "cache", degraded: false, hasMore: false },
         { requestId, latencyMs: Date.now() - start }
       );
@@ -152,8 +153,10 @@ export async function POST(request: NextRequest) {
             await setMatchingCache(userId, cacheKey, transformed, userVersion);
             await matchingServiceBreaker.recordSuccess();
 
+            const filteredGroups = await filterBlockedGroups(userId, transformed);
+
             return formatStandardResponse(
-              { groups: transformed },
+              { groups: filteredGroups },
               { 
                 source: "go", 
                 contractState: state,
@@ -174,8 +177,9 @@ export async function POST(request: NextRequest) {
   }
 
     // 4. Fallback: Return Unscored Candidates
+    const filteredCandidates = await filterBlockedGroups(userId, rawCandidates);
     return formatStandardResponse(
-      { groups: rawCandidates },
+      { groups: filteredCandidates },
       { source: "db", degraded: true, hasMore: false },
       { requestId, latencyMs: Date.now() - start }
     );
@@ -285,4 +289,25 @@ async function enrichGroups(groups: any[], currentUserId: string, supabase: any)
     logger.warn("Enrichment", "Batch enrichment failed, using available data", err);
     return groups;
   }
+}
+
+async function filterBlockedGroups(userId: string, groups: any[]) {
+  if (!groups || groups.length === 0) return [];
+  const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+  
+  // Get users I blocked
+  const { data: iBlocked } = await supabase.from("blocked_users").select("blocked_id").eq("blocker_id", userId);
+  
+  // Get users who blocked me
+  const { data: theyBlockedMe } = await supabase.from("blocked_users").select("blocker_id").eq("blocked_id", userId);
+
+  const blockedSet = new Set<string>();
+  iBlocked?.forEach((b: any) => blockedSet.add(b.blocked_id));
+  theyBlockedMe?.forEach((b: any) => blockedSet.add(b.blocker_id));
+
+  return groups.filter(g => {
+    const creatorId = g.creatorId || g.creator_id || g.creator?.userId;
+    if (!creatorId) return true; // If no creator, can't block
+    return !blockedSet.has(creatorId);
+  });
 }

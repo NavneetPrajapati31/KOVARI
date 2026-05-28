@@ -45,6 +45,36 @@ const isWaitlistPublicPath = createRouteMatcher([
   "/google54b5f6252311fa10.html",
 ]);
 
+/** Public paths allowed during standard launch (when waitlist is off) */
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/landing",
+  "/pricing",
+  "/about",
+  "/about-us",
+  "/user-safety",
+  "/community-guidelines",
+  "/privacy",
+  "/terms",
+  "/data-deletion",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/forgot-password(.*)",
+  "/verify-email(.*)",
+  "/sso-callback(.*)",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/manifest.json",
+  "/manifest.webmanifest",
+  "/api/auth/(.*)",
+  "/api/profile(.*)",
+  "/api/settings/accept-policies",
+  "/api/webhooks/clerk",
+  "/opengraph-image(.*)",
+  "/twitter-image(.*)",
+  "/google54b5f6252311fa10.html",
+]);
+
 /** Check if user is in launch_bypass_users table */
 async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -167,6 +197,18 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
   }
 
   const { userId, sessionId } = authData;
+
+  // Normal Mode: Enforce login requirement on all non-public routes
+  if (!isPublicRoute(req)) {
+    if (!userId) {
+      if (pathname.startsWith("/api/") || pathname.startsWith("/trpc/")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const urlObj = req.nextUrl.clone();
+      urlObj.pathname = "/sign-in";
+      return NextResponse.redirect(urlObj);
+    }
+  }
 
   if (userId) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -325,6 +367,29 @@ export default async function middleware(req: NextRequest, evt: any) {
     res.headers.set("Access-Control-Allow-Credentials", "true");
     res.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-Id");
+  }
+
+  // Apply Security Headers to all responses
+  if (res) {
+    const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+    const cspHeader = `
+      default-src 'self';
+      script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https: http: 'unsafe-eval';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
+      img-src 'self' https://res.cloudinary.com https://utfs.io data: blob:;
+      font-src 'self' https://fonts.gstatic.com https://api.fontshare.com;
+      connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev wss:;
+      frame-ancestors 'none';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+    `.replace(/\s{2,}/g, " ").trim();
+
+    res.headers.set("Content-Security-Policy", cspHeader);
+    res.headers.set("X-Frame-Options", "DENY");
+    res.headers.set("X-Content-Type-Options", "nosniff");
+    res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
 
   return res;

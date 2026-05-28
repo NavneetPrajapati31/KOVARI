@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCoordinatesForLocation } from "@kovari/api";
 import { getGeminiPlaceOverview } from "@/lib/gemini";
 import { createAdminSupabaseClient } from "@kovari/api";
+import { assertNoProfanity } from "@/lib/moderation/filter";
 
 // --- Schema validation ---
 const GroupSchema = z.object({
@@ -43,6 +44,17 @@ export async function POST(req: Request) {
           headers: { "Content-Type": "application/json" },
         }
       );
+    }
+
+    // SECURITY: Profanity filter on write
+    try {
+      if (parsed.data.name) assertNoProfanity(parsed.data.name, "Group name");
+      if (parsed.data.description) assertNoProfanity(parsed.data.description, "Group description");
+    } catch (err: any) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createAdminSupabaseClient();

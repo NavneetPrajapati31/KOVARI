@@ -38,8 +38,11 @@ export const getRedisClient = () => {
     return null as any;
   }
 
+  const redisPassword = process.env.REDIS_PASSWORD || "kovari_dev_redis_pw";
+  const defaultUrl = `redis://:${redisPassword}@localhost:6380`;
+
   _redis = createClient({
-    url: redisUrl || "redis://localhost:6380",
+    url: redisUrl || defaultUrl,
     socket: {
       connectTimeout: 5000, // 5 seconds
       reconnectStrategy: (retries) => {

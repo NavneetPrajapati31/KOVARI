@@ -62,8 +62,9 @@ export async function GET(request: NextRequest) {
       if (cache.isStale) {
         triggerBackgroundRefresh(userId, clerkId, userVersion, cacheKey, params);
       }
+      const filteredMatches = await filterBlockedMatches(userId, cache.data);
       return formatStandardResponse(
-        { matches: await enrichMatchesWithFollowing(userId, cache.data) },
+        { matches: await enrichMatchesWithFollowing(userId, filteredMatches) },
         { source: "cache", degraded: false, hasMore: false },
         { requestId, latencyMs: Date.now() - start }
       );
@@ -106,9 +107,11 @@ export async function GET(request: NextRequest) {
             const transformed = transformMatches(validItems);
             await setMatchingCache(userId, cacheKey, transformed, userVersion);
             await matchingServiceBreaker.recordSuccess();
+            
+            const filteredMatches = await filterBlockedMatches(userId, transformed);
 
             return formatStandardResponse(
-              { matches: await enrichMatchesWithFollowing(userId, transformed) },
+              { matches: await enrichMatchesWithFollowing(userId, filteredMatches) },
               { 
                 source: "go", 
                 contractState: state,
@@ -132,8 +135,9 @@ export async function GET(request: NextRequest) {
 
     // 3. Fallback to DB
     const fallbackResults = await performSoloDbMatchingFallback(userId, params);
+    const filteredFallback = await filterBlockedMatches(userId, fallbackResults);
     return formatStandardResponse(
-      { matches: await enrichMatchesWithFollowing(userId, fallbackResults) },
+      { matches: await enrichMatchesWithFollowing(userId, filteredFallback) },
       { source: "db", degraded: true, hasMore: false },
       { requestId, latencyMs: Date.now() - start }
     );
@@ -194,4 +198,21 @@ function transformMatches(rawData: any[]) {
     const res = safeTransform(matchTransformer, item);
     return res.ok ? res.data : null;
   }).filter(Boolean);
+}
+
+async function filterBlockedMatches(userId: string, matches: any[]) {
+  if (!matches || matches.length === 0) return [];
+  const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+  
+  // Get users I blocked
+  const { data: iBlocked } = await supabase.from("blocked_users").select("blocked_id").eq("blocker_id", userId);
+  
+  // Get users who blocked me
+  const { data: theyBlockedMe } = await supabase.from("blocked_users").select("blocker_id").eq("blocked_id", userId);
+
+  const blockedSet = new Set<string>();
+  iBlocked?.forEach(b => blockedSet.add(b.blocked_id));
+  theyBlockedMe?.forEach(b => blockedSet.add(b.blocker_id));
+
+  return matches.filter(m => !blockedSet.has(m.userId));
 }

@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/responseHelpers";
 import { profileTransformer } from "@/lib/transformers/profileTransformer";
 import { ApiErrorCode, KovariClient } from "@/types/api";
+import { assertNoProfanity } from "@/lib/moderation/filter";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -60,6 +61,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: result.error.flatten() }, { status: 400 });
       }
 
+      // SECURITY: Profanity filter on write
+      try {
+        if (result.data.name) assertNoProfanity(result.data.name, "Name");
+        if (result.data.bio) assertNoProfanity(result.data.bio, "Bio");
+      } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+
       const supabase = createAdminSupabaseClient();
       const profileData = { user_id: authUser.id, ...result.data };
 
@@ -98,6 +107,14 @@ async function handleStandardProfile(
     const body = await req.json();
     const result = schema.safeParse(body);
     if (!result.success) return formatErrorResponse("Validation failed", ApiErrorCode.BAD_REQUEST, requestId, 400, result.error.flatten());
+
+    // SECURITY: Profanity filter on write
+    try {
+      assertNoProfanity(result.data.name, "Name");
+      assertNoProfanity(result.data.bio, "Bio");
+    } catch (err: any) {
+      return formatErrorResponse(err.message, ApiErrorCode.BAD_REQUEST, requestId, 400);
+    }
 
     const supabase = createAdminSupabaseClient();
     const profileData = { user_id: authUser.id, ...result.data };

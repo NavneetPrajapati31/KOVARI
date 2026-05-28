@@ -41,6 +41,13 @@ export async function POST(request: Request) {
 
     const currentUserId = userRow.id;
 
+    if (targetId === currentUserId) {
+      return NextResponse.json(
+        { error: "You cannot block yourself" },
+        { status: 400 }
+      );
+    }
+
     if (action === "block") {
       // Check if already blocked to avoid unique constraint error
       const { data: existingBlock } = await supabase
