@@ -378,7 +378,7 @@ export default async function middleware(req: NextRequest, evt: any) {
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
       img-src 'self' https://res.cloudinary.com https://utfs.io data: blob:;
       font-src 'self' https://fonts.gstatic.com https://api.fontshare.com;
-      connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev wss:;
+      connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://clerk.kovari.in https://*.uploadthing.com wss:;
       frame-ancestors 'none';
       object-src 'none';
       base-uri 'self';
