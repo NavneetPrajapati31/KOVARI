@@ -8,7 +8,7 @@ COPY . .
 # Move into the matching-service directory and build the binary
 WORKDIR /app/apps/matching-service
 RUN go mod download
-RUN go build -o /app/bin/matching-service main.go
+RUN go build -o /app/bin/matching-service .
 
 # Stage 2: Run (Lightweight Alpine container)
 FROM alpine:latest
