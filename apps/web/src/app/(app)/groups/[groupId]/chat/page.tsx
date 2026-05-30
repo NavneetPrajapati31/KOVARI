@@ -236,6 +236,10 @@ export default function GroupChatInterface() {
     sendTypingEvent,
     onlineMembers,
     notifyMessagesSeen,
+    currentUserUuid,
+    hasMoreMessages,
+    loadingMore,
+    loadMoreMessages,
   } = useGroupChat(groupId);
 
   const { members, loading: membersLoading } = useGroupMembers(groupId);
@@ -261,7 +265,38 @@ export default function GroupChatInterface() {
     }
   }, [user?.id]);
 
+  // Track if we're loading more messages to prevent scroll to bottom
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  useEffect(() => {
+    setIsLoadingMore(loadingMore);
+  }, [loadingMore]);
+
   const isNearBottomRef = useRef(true);
+  const previousScrollHeight = useRef<number>(0);
+  const previousScrollTop = useRef<number>(0);
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (loadingMore || !hasMoreMessages) return;
+      if (observerRef.current) observerRef.current.disconnect();
+      
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMoreMessages) {
+          if (messagesContainerRef.current) {
+            previousScrollHeight.current = messagesContainerRef.current.scrollHeight;
+            previousScrollTop.current = messagesContainerRef.current.scrollTop;
+          }
+          loadMoreMessages();
+        }
+      });
+      
+      if (node) observerRef.current.observe(node);
+    },
+    [loadingMore, hasMoreMessages, loadMoreMessages]
+  );
+
   const handleScroll = useCallback(() => {
     if (!messagesContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -335,21 +370,36 @@ export default function GroupChatInterface() {
     };
   }, [showEmoji]);
 
-  // Scroll to bottom when chat is opened or messages/groupId change (e.g. initial load or switching group)
+  // Scroll to bottom when chat is opened or messages/groupId change
   useLayoutEffect(() => {
+    if (loading) return;
+    if (!messagesContainerRef.current) return;
+    
+    const container = messagesContainerRef.current;
+    
+    if (isLoadingMore) {
+       // Maintain scroll position when prepending older messages
+       const currentScrollHeight = container.scrollHeight;
+       if (previousScrollHeight.current > 0 && currentScrollHeight > previousScrollHeight.current) {
+          const heightDifference = currentScrollHeight - previousScrollHeight.current;
+          container.scrollTop = previousScrollTop.current + heightDifference;
+       }
+       return;
+    }
+
     const scrollToBottom = () => {
-      const container = messagesContainerRef.current;
-      if (container) {
-        container.scrollTop = container.scrollHeight;
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
       }
     };
-    scrollToBottom();
-    // Run again after layout/paint in case content wasn't fully measured yet
-    const raf = requestAnimationFrame(() => {
-      scrollToBottom();
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [messages, groupId]);
+    
+    // Only scroll to bottom if we were already near bottom (smart scrolling)
+    if (isNearBottomRef.current) {
+       scrollToBottom();
+       const raf = requestAnimationFrame(() => scrollToBottom());
+       return () => cancelAnimationFrame(raf);
+    }
+  }, [messages.length, groupId, loading, isLoadingMore]);
 
   // Show error toast if there's an error
   useEffect(() => {
@@ -415,7 +465,12 @@ export default function GroupChatInterface() {
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
-    if (!file || !userId) return; // Only proceed if userId is loaded
+    if (!file) return;
+
+    if (!currentUserUuid) {
+      toast.error("User information not loaded yet. Please try again.");
+      return;
+    }
 
     // File size validation (10MB limit)
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -432,9 +487,18 @@ export default function GroupChatInterface() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folder: `kovari-group-chat/${groupId}` }),
       });
-      if (!signRes.ok) throw new Error("Failed to get Cloudinary signature");
+      if (!signRes.ok) {
+        const errBody = await signRes.json().catch(() => ({}));
+        console.error("[Upload] Sign API failed:", signRes.status, errBody);
+        throw new Error("Failed to get upload permission");
+      }
       const responseJson = await signRes.json();
       const { signature, timestamp, folder, api_key, cloud_name } = responseJson.data;
+
+      if (!signature || !api_key || !cloud_name) {
+        console.error("[Upload] Sign response missing fields:", responseJson);
+        throw new Error("Invalid upload credentials");
+      }
 
       const formData = new FormData();
       formData.append("file", file);
@@ -450,8 +514,16 @@ export default function GroupChatInterface() {
         method: "POST",
         body: formData,
       });
-      if (!uploadRes.ok) throw new Error("Cloudinary upload failed");
+      if (!uploadRes.ok) {
+        const errBody = await uploadRes.json().catch(() => ({}));
+        console.error("[Upload] Cloudinary upload failed:", uploadRes.status, errBody);
+        throw new Error("File upload to Cloudinary failed");
+      }
       const uploaded = await uploadRes.json();
+      if (!uploaded.secure_url) {
+        console.error("[Upload] No secure_url in Cloudinary response:", uploaded);
+        throw new Error("Upload succeeded but no URL returned");
+      }
 
       // Register the media in the group
       const res = await fetch(`/api/groups/${groupId}/media`, {
@@ -464,14 +536,16 @@ export default function GroupChatInterface() {
         }),
       });
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
+        console.error("[Upload] Failed to register media:", err);
         throw new Error(err.error || "Failed to register upload");
       }
       const mediaRecord = await res.json();
       // Send a message with the media URL and type
       await sendMessage("", mediaRecord.url, mediaRecord.type);
     } catch (err: any) {
-      toast.error(err.message || "Failed to upload file");
+      console.error("[Upload] File upload error:", err?.message || err);
+      toast.error(err?.message || "Failed to upload file");
     } finally {
       setChatUploading(false);
       if (chatFileInputRef.current) chatFileInputRef.current.value = "";
@@ -973,7 +1047,7 @@ export default function GroupChatInterface() {
             className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-none bg-card"
             data-testid="messages-container"
           >
-            {messages.length === 0 ? (
+            {messages.length === 0 && !loading ? (
               <div className="text-center flex items-center justify-center h-full">
                 <span className="text-sm text-muted-foreground">
                   No messages yet. Start the conversation!
@@ -981,6 +1055,16 @@ export default function GroupChatInterface() {
               </div>
             ) : (
               <>
+                {hasMoreMessages && (
+                  <div ref={loadMoreRef} className="flex justify-center py-4 text-xs text-muted-foreground w-full">
+                    {loadingMore && (
+                      <div className="flex items-center gap-2">
+                        <Spinner variant="spinner" size="sm" classNames={{ spinnerBars: "bg-black" }} />
+                        Loading older messages...
+                      </div>
+                    )}
+                  </div>
+                )}
                 {messagesWithSeparators.map((item, idx) => {
                   if (item.type === "separator") {
                     return (

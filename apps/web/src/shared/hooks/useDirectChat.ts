@@ -65,7 +65,13 @@ export const useDirectChat = (
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const [offset, setOffset] = useState(0);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const cursorRef = useRef<string | null>(null);
+
+  // Keep ref in sync with state for fetchMessages
+  useEffect(() => {
+    cursorRef.current = cursor;
+  }, [cursor]);
 
   // UX Feature States
   const [isPartnerTyping, setIsPartnerTyping] = useState<boolean>(false);
@@ -98,19 +104,21 @@ export const useDirectChat = (
 
 
       try {
-        const effectiveOffset = loadMore ? offset : 0;
+        const queryParams = new URLSearchParams({
+          partnerId: partnerUuid,
+          limit: "30",
+        });
+        if (loadMore && cursorRef.current) {
+          queryParams.append("cursor", cursorRef.current);
+        }
+
         const response = await fetch(
-          `/api/direct-chat/messages?partnerId=${encodeURIComponent(
-            partnerUuid,
-          )}&offset=${effectiveOffset}&limit=30`,
+          `/api/direct-chat/messages?${queryParams.toString()}`,
           { method: "GET", credentials: "include" },
         );
         if (!response.ok) {
           const errorBody = await response.json().catch(() => ({}));
           setError(errorBody?.error || "Failed to fetch messages");
-          if (!loadMore) {
-            setMessages([]);
-          }
         } else {
           const payload = await response.json();
           const data = Array.isArray(payload?.messages) ? payload.messages : [];
@@ -163,9 +171,13 @@ export const useDirectChat = (
               const newMessages = chronologicalMessages.filter(
                 (msg: DirectChatMessage) => !existingIds.has(msg.id) && !existingClientIds.has(msg.client_id),
               );
-              return [...newMessages, ...prev];
+              
+              const combined = [...newMessages, ...prev];
+              if (combined.length > 0) {
+                setCursor(combined[0].created_at); // oldest is at index 0
+              }
+              return combined;
             });
-            setOffset((prev) => prev + 30);
           } else {
             // For regular polling refresh, we merge gracefully to preserve temp messages and avoid duplicates
             setMessages((prev) => {
@@ -184,18 +196,22 @@ export const useDirectChat = (
                  }
               });
               // Sort by created_at 
-              return merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+              const sorted = merged.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+              
+              // Only update cursor if we don't have one, or if we completely replaced messages (which shouldn't happen here)
+              // Actually, since this is polling the *latest* messages, the oldest message shouldn't change unless we fetched the very first batch.
+              if (!cursor && sorted.length > 0) {
+                setCursor(sorted[0].created_at);
+              }
+              return sorted;
             });
-            setOffset(30);
           }
 
           setHasMoreMessages(transformedMessages.length === 30);
         }
       } catch (err: any) {
         setError(err.message || "Failed to fetch messages");
-        if (!loadMore) {
-          setMessages([]);
-        }
+        // DO NOT clear messages on transient errors (like rate limiting)
       } finally {
         if (loadMore) {
           setLoadingMore(false);
@@ -204,7 +220,7 @@ export const useDirectChat = (
         }
       }
     },
-    [currentUserUuid, partnerUuid, offset],
+    [currentUserUuid, partnerUuid, sharedSecret],
   );
 
   // Load more messages function
@@ -580,9 +596,9 @@ export const useDirectChat = (
     return () => window.clearInterval(interval);
   }, [currentUserUuid, partnerUuid, fetchMessages]);
 
-  // Reset offset when chat changes
+  // Reset cursor when chat changes
   useEffect(() => {
-    setOffset(0);
+    setCursor(null);
     setHasMoreMessages(true);
     setMessages([]);
   }, [partnerUuid]);

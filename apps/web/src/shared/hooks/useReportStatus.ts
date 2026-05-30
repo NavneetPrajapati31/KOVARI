@@ -15,7 +15,12 @@ export function useReportStatus(targetId?: string, targetType?: "user" | "group"
       try {
         setLoading(true);
         const res = await fetch(`/api/flags/check?targetType=${targetType}&targetId=${targetId}`);
-        if (!res.ok) throw new Error("Failed to check report status");
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          console.warn(`[useReportStatus] Failed to check status (Status: ${res.status}):`, errorData);
+          if (isMounted) setHasReported(false);
+          return;
+        }
         
         const data = await res.json();
         if (isMounted) {

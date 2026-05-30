@@ -42,6 +42,16 @@ export const useGroupChat = (groupId: string) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const cursorRef = useRef<string | null>(null);
+
+  // Keep ref in sync with state for fetchMessages
+  useEffect(() => {
+    cursorRef.current = cursor;
+  }, [cursor]);
+
   const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
   const [currentUserUuid, setCurrentUserUuid] = useState<string>("");
 
@@ -88,14 +98,27 @@ export const useGroupChat = (groupId: string) => {
   }, [groupKey]);
 
   // Fetch initial messages
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = useCallback(async (loadMore = false) => {
     if (!user) return;
 
+    if (loadMore) {
+      setLoadingMore(true);
+    }
+
     try {
-      setLoading(true);
+      if (!loadMore) {
+        setLoading(true);
+      }
       setError(null);
 
-      const response = await fetch(`/api/groups/${groupId}/messages`);
+      const queryParams = new URLSearchParams({
+        limit: "30",
+      });
+      if (loadMore && cursorRef.current) {
+        queryParams.append("cursor", cursorRef.current);
+      }
+
+      const response = await fetch(`/api/groups/${groupId}/messages?${queryParams.toString()}`);
       if (!response.ok) {
         if (response.status === 403) throw new Error("Not a member of this group");
         if (response.status === 404) throw new Error("Group not found");
@@ -163,22 +186,52 @@ export const useGroupChat = (groupId: string) => {
           return { ...msg, status };
         });
 
-        // Combine new messages with existing ones that are still in-flight or delivered but not yet seen in the DB list
-        const pendingMessages = prev.filter(
-          (m) =>
-            m.tempId && // Is an optimistic message
-            (m.status === "sending" || m.status === "sent" || m.status === "delivered") &&
-            !decryptedMessages.some((dm) => dm.id === m.id || dm.id === m.tempId)
-        );
+        if (loadMore) {
+          const newMessages = mergedMessages.filter(
+            (msg) => !existingMessages.has(msg.id)
+          );
+          
+          const combined = [...newMessages, ...prev];
+          if (combined.length > 0) {
+            setCursor(combined[0].createdAt || combined[0].timestamp);
+          }
+          return combined;
+        } else {
+          // Combine new messages with existing ones that are still in-flight or delivered but not yet seen in the DB list
+          const pendingMessages = prev.filter(
+            (m) =>
+              m.tempId && // Is an optimistic message
+              (m.status === "sending" || m.status === "sent" || m.status === "delivered") &&
+              !decryptedMessages.some((dm) => dm.id === m.id || dm.id === m.tempId)
+          );
 
-        return [...mergedMessages, ...pendingMessages];
+          const combined = [...mergedMessages, ...pendingMessages];
+          const sorted = combined.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          
+          if (!cursorRef.current && sorted.length > 0) {
+            setCursor(sorted[0].createdAt);
+          }
+          return sorted;
+        }
       });
+      
+      setHasMoreMessages(data.length === 30);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch messages");
     } finally {
-      setLoading(false);
+      if (loadMore) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [groupId, user?.id]);
+
+  // Load more messages function
+  const loadMoreMessages = useCallback(async () => {
+    if (loadingMore || !hasMoreMessages) return;
+    await fetchMessages(true);
+  }, [fetchMessages, loadingMore, hasMoreMessages]);
 
   // Fetch group information
   const fetchGroupInfo = useCallback(async () => {
@@ -547,6 +600,9 @@ export const useGroupChat = (groupId: string) => {
     onlineMembers,
     currentUserUuid,
     notifyMessagesSeen,
+    hasMoreMessages,
+    loadingMore,
+    loadMoreMessages,
   };
 };
 
