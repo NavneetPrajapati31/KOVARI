@@ -420,15 +420,7 @@ export default function ExplorePage() {
 
   // Action handlers
   const handleConnect = async (matchId: string) => {
-    if (user) {
-      const dest = lastSearchData?.destination || searchData.destination;
-      const res = await createSoloInterest(user.id, matchId, dest);
-      if (!res.success) {
-        toast({ title: "Error", description: res.error || "Failed to connect", variant: "destructive" });
-      } else {
-        toast({ title: "Interest sent!", description: "They will be notified." });
-      }
-    }
+    // API call is handled directly in SoloMatchCard
     handleNextGroup();
   };
 
@@ -438,10 +430,7 @@ export default function ExplorePage() {
   };
 
   const handlePass = async (matchId: string) => {
-    if (user) {
-      const dest = lastSearchData?.destination || searchData.destination;
-      await createSkipRecord(user.id, matchId, dest, "solo");
-    }
+    // API call is handled directly in SoloMatchCard
     handleNextGroup();
   };
 
@@ -459,15 +448,7 @@ export default function ExplorePage() {
   };
 
   const handleJoinGroup = async (groupId: string) => {
-    if (user) {
-      const dest = lastSearchData?.destination || searchData.destination;
-      const res = await createGroupInterest(user.id, groupId, dest);
-      if (!res.success) {
-        toast({ title: "Error", description: res.error || "Failed to join group", variant: "destructive" });
-      } else {
-        toast({ title: "Request sent!", description: "Group admins will be notified." });
-      }
-    }
+    // API call is handled directly in GroupMatchCard
     handleNextGroup();
   };
 
@@ -476,10 +457,7 @@ export default function ExplorePage() {
   };
 
   const handlePassGroup = async (groupId: string) => {
-    if (user) {
-      const dest = lastSearchData?.destination || searchData.destination;
-      await createSkipRecord(user.id, groupId, dest, "group");
-    }
+    // API call is handled directly in GroupMatchCard
     handleNextGroup();
   };
 

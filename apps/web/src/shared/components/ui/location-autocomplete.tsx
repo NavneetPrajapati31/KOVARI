@@ -88,7 +88,7 @@ export function LocationAutocomplete({
 
     debounceTimer.current = setTimeout(() => {
       fetchSuggestions(val);
-    }, 400); // 400ms debounce
+    }, 200); // 200ms debounce for faster feel
   };
 
   const handleSelect = async (result: GeoapifyResult) => {

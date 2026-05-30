@@ -26,9 +26,10 @@ export function BottomNav() {
           setProfilePhotoUrl(null);
           return;
         }
-        const data = (await res.json()) as { avatar?: string };
+        const json = await res.json();
+        const avatarUrl = json?.data?.avatar;
         setProfilePhotoUrl(
-          data?.avatar && data.avatar.trim() !== "" ? data.avatar : null,
+          avatarUrl && avatarUrl.trim() !== "" ? avatarUrl : null,
         );
       } catch {
         setProfilePhotoUrl(null);

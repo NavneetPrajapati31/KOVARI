@@ -5,10 +5,8 @@ import { searchLocationDirect, getLocationDetailsDirect } from "@kovari/utils";
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Removed auth check to allow public Explore page location search.
+    // Rate limiting is still active via IP below.
 
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type"); // 'autocomplete' or 'details'
