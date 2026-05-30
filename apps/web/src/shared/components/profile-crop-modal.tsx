@@ -23,7 +23,7 @@ interface ProfileCropModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   imageUrl: string;
-  onCropComplete: (croppedImageUrl: string) => void;
+  onCropComplete: (croppedImage: Blob | string) => void;
   isLoading?: boolean;
 }
 
@@ -84,7 +84,7 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
   };
 
   // Generate cropped image
-  const getCroppedImg = useCallback(async (): Promise<string> => {
+  const getCroppedImg = useCallback(async (): Promise<Blob> => {
     if (!imgRef.current || !completedCrop) {
       throw new Error("No image or crop data available");
     }
@@ -134,13 +134,14 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
       ctx.restore();
     }
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       // Use quality 1.0 for maximum JPEG quality (no compression artifacts)
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            const url = URL.createObjectURL(blob);
-            resolve(url);
+            resolve(blob);
+          } else {
+            reject(new Error("Canvas is empty"));
           }
         },
         "image/jpeg",
@@ -156,8 +157,8 @@ const ProfileCropModal: React.FC<ProfileCropModalProps> = ({
     }
 
     try {
-      const croppedImageUrl = await getCroppedImg();
-      onCropComplete(croppedImageUrl);
+      const blob = await getCroppedImg();
+      onCropComplete(blob);
     } catch (error) {
       console.error("Error cropping image:", error);
     }

@@ -24,16 +24,7 @@ export async function GET(req: NextRequest) {
 
     if (type === "autocomplete") {
       if (!query) return NextResponse.json({ features: [] });
-      const results = await searchLocationDirect(query);
-      // Return in the format expected by the client (Geoapify features format)
-      // Note: searchLocationDirect returns simplified objects, so we wrap them back if needed
-      // or we can just return the raw data by fetching in route.ts, but let's keep it consistent
       
-      // Actually, it's better if searchLocationDirect returns the raw features if we want to keep the same format
-      // but let's just make route.ts return what it needs.
-      
-      // Let's modify geocoding-core.ts to optionally return raw data or just move the fetch logic here.
-      // Re-implementing the fetch logic here for format compatibility.
       const apiKey = process.env.GEOAPIFY_API_KEY || process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY;
       const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
       url.searchParams.append("text", query);

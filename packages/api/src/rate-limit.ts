@@ -21,20 +21,27 @@ export async function checkRateLimit(
   limit: number = 5,
   windowSeconds: number = 60
 ): Promise<RateLimitResult> {
-  const redis = await ensureRedisConnection();
-  const current = await redis.incr(key);
+  try {
+    const redis = await ensureRedisConnection();
+    if (!redis) {
+      return { success: true, limit, remaining: limit, reset: 0 };
+    }
+    const current = await redis.incr(key);
 
-  if (current === 1) {
-    await redis.expire(key, windowSeconds);
+    if (current === 1) {
+      await redis.expire(key, windowSeconds);
+    }
+
+    const ttl = await redis.ttl(key);
+
+    return {
+      success: current <= limit,
+      limit,
+      remaining: Math.max(0, limit - current),
+      reset: Math.max(0, ttl),
+    };
+  } catch (error) {
+    console.warn("Rate limit check failed, failing open:", error);
+    return { success: true, limit, remaining: limit, reset: 0 };
   }
-
-  const ttl = await redis.ttl(key);
-
-  return {
-    success: current <= limit,
-    limit,
-    remaining: Math.max(0, limit - current),
-    reset: Math.max(0, ttl),
-  };
 }
-

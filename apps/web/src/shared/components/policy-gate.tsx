@@ -54,10 +54,14 @@ export function PolicyGate({ children }: { children: React.ReactNode }) {
           return; 
         }
         const data: PolicyData = await res.json();
-        const outdated =
-          (data.terms_version || "") !== TERMS_VERSION ||
-          (data.privacy_version || "") !== PRIVACY_VERSION ||
-          (data.guidelines_version || "") !== GUIDELINES_VERSION;
+        // Only trigger the gate if they HAVE accepted a policy previously, but it's an OLD version.
+        // If they have never accepted any policy (versions are null/empty), we assume they are a fresh signup
+        // and let the /onboarding flow handle their initial policy acceptance without race conditions.
+        const outdated = !!(
+          (data.terms_version && data.terms_version !== TERMS_VERSION) ||
+          (data.privacy_version && data.privacy_version !== PRIVACY_VERSION) ||
+          (data.guidelines_version && data.guidelines_version !== GUIDELINES_VERSION)
+        );
         
         if (mounted && !manuallyAccepted) {
           setNeedsAcceptance(outdated);

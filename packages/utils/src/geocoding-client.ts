@@ -22,9 +22,12 @@ export interface LocationData {
  * Searches for locations using Geoapify Autocomplete API via server proxy.
  * Safe for client-side usage.
  */
-export const searchLocation = async (query: string): Promise<GeoapifyResult[]> => {
+export const searchLocation = async (query: string, signal?: AbortSignal): Promise<GeoapifyResult[]> => {
   try {
-    const res = await fetch(`/api/proxy/geocoding?type=autocomplete&q=${encodeURIComponent(query)}`);
+    const res = await fetch(`/api/proxy/geocoding?type=autocomplete&q=${encodeURIComponent(query)}`, {
+      signal,
+      credentials: "same-origin",
+    });
     if (!res.ok) {
        console.error(`Geocoding proxy error: ${res.status}`);
        return [];
@@ -43,7 +46,8 @@ export const searchLocation = async (query: string): Promise<GeoapifyResult[]> =
       address_line1: feature.properties.address_line1,
       address_line2: feature.properties.address_line2,
     }));
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError') return [];
     console.error("Geocoding search error:", error);
     return [];
   }
