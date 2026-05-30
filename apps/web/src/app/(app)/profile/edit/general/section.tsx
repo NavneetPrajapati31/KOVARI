@@ -153,12 +153,16 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
   };
 
   // Handle crop completion
-  const handleCropComplete = async (croppedImageUrl: string) => {
+  const handleCropComplete = async (croppedImage: string | Blob) => {
     setCropLoading(true);
     try {
-      // Convert blob URL to File object for upload
-      const response = await fetch(croppedImageUrl);
-      const blob = await response.blob();
+      let blob: Blob;
+      if (typeof croppedImage === "string") {
+        const response = await fetch(croppedImage);
+        blob = await response.blob();
+      } else {
+        blob = croppedImage;
+      }
       const file = new File([blob], "profile-crop.jpg", { type: "image/jpeg" });
 
       // 1. Get signature
