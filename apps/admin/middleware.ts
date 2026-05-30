@@ -21,19 +21,8 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  // SECURITY: Enforce admin role authorization
-  const isAdmin = 
-    sessionClaims?.metadata?.role === 'admin' ||
-    sessionClaims?.public_metadata?.role === 'admin' ||
-    sessionClaims?.role === 'admin';
-
-  if (!isAdmin) {
-    console.warn(`[Admin Middleware] User ${userId} attempted to access admin app without admin role.`);
-    // Redirect to a 403 or unauthorized page, or just sign-in with an error
-    const unauthorizedUrl = new URL('/sign-in', req.url);
-    unauthorizedUrl.searchParams.set('error', 'unauthorized');
-    return NextResponse.redirect(unauthorizedUrl);
-  }
+  // Admin validation is handled directly by adminAuth.ts in routes and pages
+  // checking the Supabase admins table.
 });
 
 export const config = {

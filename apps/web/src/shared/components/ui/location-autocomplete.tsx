@@ -31,6 +31,8 @@ export function LocationAutocomplete({
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const debounceTimer = React.useRef<NodeJS.Timeout | null>(null);
 
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
   // Sync internal state if prop changes from outside (e.g. reset)
   React.useEffect(() => {
     setInputValue(value);
@@ -43,18 +45,29 @@ export function LocationAutocomplete({
       return;
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setIsLoading(true);
     try {
-      const results = await searchLocation(query);
+      const results = await searchLocation(query, signal);
+      if (signal.aborted) return;
+      
       setSuggestions(results);
       setIsOpen(results.length > 0);
       setSelectedIndex(-1);
-    } catch (error) {
+    } catch (error: any) {
+      if (signal.aborted || error.name === 'AbortError') return;
       console.error("Location search failed", error);
       setSuggestions([]);
       setIsOpen(false);
     } finally {
-      setIsLoading(false);
+      if (!signal.aborted) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -75,7 +88,7 @@ export function LocationAutocomplete({
 
     debounceTimer.current = setTimeout(() => {
       fetchSuggestions(val);
-    }, 400); // 400ms debounce
+    }, 200); // 200ms debounce for faster feel
   };
 
   const handleSelect = async (result: GeoapifyResult) => {

@@ -64,7 +64,11 @@ export const useGroupEncryption = (groupId: string) => {
   // Encrypt a message
   const encryptMessage = useCallback(
     async (message: string): Promise<EncryptedMessage | null> => {
-      const key = await getGroupKey();
+      let key = groupKey;
+      if (!key) {
+        key = await getGroupKey();
+      }
+      
       if (!key) {
         setError("No encryption key available");
         return null;
@@ -78,7 +82,7 @@ export const useGroupEncryption = (groupId: string) => {
         return null;
       }
     },
-    [getGroupKey],
+    [groupKey, getGroupKey],
   );
 
   // Decrypt a message

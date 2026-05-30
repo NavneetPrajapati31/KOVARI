@@ -97,62 +97,78 @@ export function GroupMatchCard({
     );
   }
 
-  const handleJoinGroup = async () => {
+  const handleJoinGroup = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     if (interestSent) return;
 
-    setIsInteresting(true);
+    setInterestSent(true);
+
+    // 🚀 INSTANT-FIRST: Advance to the next match immediately
+    if (onInterested) {
+      onInterested(group.id, destinationId);
+    }
+
     try {
-      // Create interest record first
-      const result = await createGroupInterest(
-        currentUserId,
-        group.id,
-        destinationId,
-      );
-      if (!result.success) {
-        console.error("Failed to create interest:", result.error);
-        setIsInteresting(false);
+      // Validate IDs for background sync
+      if (!currentUserId || !group?.id) {
+        console.warn("handleJoinGroup background sync skipped: missing IDs", {
+          currentUserId,
+          groupId: group?.id,
+        });
         return;
       }
 
-      setInterestSent(true);
+      // Fire and forget the network request in the background
+      createGroupInterest(
+        currentUserId,
+        group.id,
+        destinationId,
+      ).catch((err) => {
+        console.error("Background group interest sync failed:", err);
+      });
 
-      // Call onInterested handler to move to next match
-      if (onInterested) {
-        await onInterested(group.id, destinationId);
-      }
-
-      setIsInteresting(false);
     } catch (error) {
-      console.error("Error sending interest:", error);
-      setIsInteresting(false);
+      console.error("Unexpected error in handleJoinGroup:", error);
     }
   };
 
-  const handleSkip = async () => {
-    setIsSkipping(true);
+  const handleSkip = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // 🚀 INSTANT-FIRST: Advance to the next match immediately
+    if (onSkip) {
+      onSkip(group.id, destinationId);
+    }
+
     try {
-      // Create skip record
-      const result = await createSkipRecord(
+      // Validate IDs only for the background recording
+      if (!currentUserId || !group?.id) {
+        console.warn("handleSkip background sync skipped: missing IDs", {
+          currentUserId,
+          groupId: group?.id,
+        });
+        return;
+      }
+
+      // Fire and forget the network request in the background
+      createSkipRecord(
         currentUserId,
         group.id,
         destinationId,
         "group",
-      );
-      if (!result.success) {
-        console.error("Failed to skip:", result.error);
-        setIsSkipping(false);
-        return;
-      }
+      ).catch((err) => {
+        console.error("Background skip sync failed:", err);
+      });
 
-      // Call onSkip handler to move to next match
-      if (onSkip) {
-        await onSkip(group.id, destinationId);
-      }
-
-      setIsSkipping(false);
     } catch (error) {
-      console.error("Error in handleSkip:", error);
-      setIsSkipping(false);
+      console.error("Unexpected error in handleSkip:", error);
     }
   };
 

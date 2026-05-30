@@ -496,11 +496,16 @@ export default function ProfileSetupForm() {
     }
   };
 
-  const handleProfileCropComplete = async (croppedImageUrl: string) => {
+  const handleProfileCropComplete = async (croppedImage: string | Blob) => {
     setCropLoading(true);
     try {
-      const response = await fetch(croppedImageUrl);
-      const blob = await response.blob();
+      let blob: Blob;
+      if (typeof croppedImage === "string") {
+        const response = await fetch(croppedImage);
+        blob = await response.blob();
+      } else {
+        blob = croppedImage;
+      }
       const file = new File([blob], "profile-crop.jpg", {
         type: "image/jpeg",
       });
@@ -548,8 +553,8 @@ export default function ProfileSetupForm() {
         URL.revokeObjectURL(tempImageUrl);
         setTempImageUrl("");
       }
-      if (croppedImageUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(croppedImageUrl);
+      if (typeof croppedImage === "string" && croppedImage.startsWith("blob:")) {
+        URL.revokeObjectURL(croppedImage);
       }
     }
   };

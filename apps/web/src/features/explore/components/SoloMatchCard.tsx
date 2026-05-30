@@ -129,47 +129,42 @@ export function SoloMatchCard({
 
   const { hasReported, setHasReported } = useReportStatus(user?.userId, "user");
 
-  const handleInterested = async () => {
+  const handleInterested = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     if (interestSent) return;
 
-    setIsInteresting(true);
+    setInterestSent(true);
+
+    // 🚀 INSTANT-FIRST: Advance to the next match immediately
+    if (onInterested) {
+      onInterested(user.userId || "", destinationId);
+    }
+
     try {
-      // Validate required IDs
+      // Validate required IDs for the background recording
       if (!currentUserId || !user?.userId) {
-        console.error(
-          "handleInterested: missing currentUserId or target userId",
-          {
-            currentUserId,
-            targetUserId: user?.userId,
-          },
-        );
-        setIsInteresting(false);
+        console.warn("handleInterested background sync skipped: missing IDs", {
+          currentUserId,
+          targetUserId: user?.userId,
+        });
         return;
       }
 
-      // Create interest record first
-      const result = await createSoloInterest(
+      // Fire and forget the network request in the background
+      createSoloInterest(
         currentUserId,
         user.userId,
         destinationId,
-      );
-      if (!result.success) {
-        console.error("Failed to create interest:", result.error);
-        setIsInteresting(false);
-        return;
-      }
+      ).catch((err) => {
+        console.error("Background interest sync failed:", err);
+      });
 
-      setInterestSent(true);
-
-      // Call onInterested handler to move to next match
-      if (onInterested) {
-        await onInterested(user.userId, destinationId);
-      }
-
-      setIsInteresting(false);
     } catch (error) {
-      console.error("Error sending interest:", error);
-      setIsInteresting(false);
+      console.error("Unexpected error in handleInterested:", error);
     }
   };
 

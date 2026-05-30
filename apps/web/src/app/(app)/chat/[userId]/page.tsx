@@ -822,6 +822,30 @@ const DirectChatPage = () => {
 
   // Smart auto-scroll and intersection observer
   const isNearBottomRef = useRef(true);
+  const previousScrollHeight = useRef<number>(0);
+  const previousScrollTop = useRef<number>(0);
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (loadingMore || !hasMoreMessages) return;
+      if (observerRef.current) observerRef.current.disconnect();
+      
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMoreMessages) {
+          // Capture scroll position before loading
+          if (messagesContainerRef.current) {
+            previousScrollHeight.current = messagesContainerRef.current.scrollHeight;
+            previousScrollTop.current = messagesContainerRef.current.scrollTop;
+          }
+          loadMoreMessages();
+        }
+      });
+      
+      if (node) observerRef.current.observe(node);
+    },
+    [loadingMore, hasMoreMessages, loadMoreMessages]
+  );
 
   const handleScroll = useCallback(() => {
     if (!messagesContainerRef.current) return;
@@ -831,9 +855,21 @@ const DirectChatPage = () => {
 
   useLayoutEffect(() => {
     if (blockLoading || partnerLoading || !currentUserUuid) return;
-    if (loading || isLoadingMore) return;
+    if (loading) return;
     if (!messagesContainerRef.current) return;
     
+    const container = messagesContainerRef.current;
+    
+    if (isLoadingMore) {
+       // Maintain scroll position when prepending older messages
+       const currentScrollHeight = container.scrollHeight;
+       if (previousScrollHeight.current > 0 && currentScrollHeight > previousScrollHeight.current) {
+          const heightDifference = currentScrollHeight - previousScrollHeight.current;
+          container.scrollTop = previousScrollTop.current + heightDifference;
+       }
+       return;
+    }
+
     // Only scroll to bottom if we were already near bottom (smart scrolling)
     if (isNearBottomRef.current) {
        scrollToBottom();
@@ -1389,6 +1425,7 @@ const DirectChatPage = () => {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
+        onScroll={handleScroll}
         className="flex-1 min-h-0 overflow-y-auto scrollbar-hide p-4 bg-card flex flex-col w-full"
         data-testid="messages-container"
         aria-live="polite"
@@ -1401,34 +1438,17 @@ const DirectChatPage = () => {
           /* safe: hardcoded string, no user input */
           .intersect-observer-child { min-height: 1px; }
         `}} />
-        {hasMoreMessages && (
-          <div className="flex justify-center py-2">
-            <button
-              onClick={loadMoreMessages}
-              disabled={loadingMore}
-              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-              aria-label="Load more messages"
-            >
-              {loadingMore ? (
-                <>
-                  <Spinner
-                    variant="spinner"
-                    size="sm"
-                    classNames={{ spinnerBars: "bg-black" }}
-                  />
-                  Loading more...
-                </>
-              ) : (
-                <>
-                  <ChevronUp className="h-4 w-4" />
-                  Load more messages
-                </>
+        <div className="w-full flex-1 min-h-[min-content]">
+          {hasMoreMessages && (
+            <div ref={loadMoreRef} className="flex justify-center py-4 text-xs text-muted-foreground w-full">
+              {loadingMore && (
+                <div className="flex items-center gap-2">
+                  <Spinner variant="spinner" size="sm" classNames={{ spinnerBars: "bg-black" }} />
+                  Loading older messages...
+                </div>
               )}
-            </button>
-          </div>
-        )}
-        <div className="flex-grow min-h-2" />
-        <div onScroll={handleScroll} className="w-full flex-1 min-h-[min-content]">
+            </div>
+          )}
           <PatchedMessageList
             messages={messages}
             currentUserUuid={currentUserUuid}

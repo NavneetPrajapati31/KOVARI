@@ -18,13 +18,24 @@ export interface LocationData {
   place_id: string;
 }
 
+// In-memory cache for autocomplete queries to make them instant
+const queryCache = new Map<string, GeoapifyResult[]>();
+
 /**
  * Searches for locations using Geoapify Autocomplete API via server proxy.
  * Safe for client-side usage.
  */
-export const searchLocation = async (query: string): Promise<GeoapifyResult[]> => {
+export const searchLocation = async (query: string, signal?: AbortSignal): Promise<GeoapifyResult[]> => {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (queryCache.has(normalizedQuery)) {
+    return queryCache.get(normalizedQuery)!;
+  }
+
   try {
-    const res = await fetch(`/api/proxy/geocoding?type=autocomplete&q=${encodeURIComponent(query)}`);
+    const res = await fetch(`/api/proxy/geocoding?type=autocomplete&q=${encodeURIComponent(query)}`, {
+      signal,
+      credentials: "same-origin",
+    });
     if (!res.ok) {
        console.error(`Geocoding proxy error: ${res.status}`);
        return [];
@@ -32,7 +43,7 @@ export const searchLocation = async (query: string): Promise<GeoapifyResult[]> =
     const data = await res.json();
     
     // Map features to simplified properties (data format is from Geoapify)
-    return (data.features || []).map((feature: any) => ({
+    const results = (data.features || []).map((feature: any) => ({
       place_id: feature.properties.place_id,
       formatted: feature.properties.formatted,
       city: feature.properties.city || feature.properties.town || feature.properties.village || feature.properties.suburb,
@@ -43,7 +54,11 @@ export const searchLocation = async (query: string): Promise<GeoapifyResult[]> =
       address_line1: feature.properties.address_line1,
       address_line2: feature.properties.address_line2,
     }));
-  } catch (error) {
+    
+    queryCache.set(normalizedQuery, results);
+    return results;
+  } catch (error: any) {
+    if (error.name === 'AbortError') return [];
     console.error("Geocoding search error:", error);
     return [];
   }
