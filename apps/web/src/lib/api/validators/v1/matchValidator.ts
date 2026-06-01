@@ -63,11 +63,11 @@ export function safeBatchValidate<T>(
   const validityRatio = validCount / totalCount;
 
   // 🏛️ ADAPTIVE THRESHOLD LOGIC
-  // In production or test environments, we enforce strict thresholds (minimum 3 items, 30% validity ratio).
+  // In production or test environments, we enforce strict thresholds (minimum 30% validity ratio).
   // In local development, we are more relaxed (only degrade if we have zero valid matches).
   const isProdOrTest = process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test";
   const isDegraded = isProdOrTest
-    ? validCount < 3 || validityRatio < 0.3
+    ? validityRatio < 0.3
     : validCount === 0;
 
   return {
