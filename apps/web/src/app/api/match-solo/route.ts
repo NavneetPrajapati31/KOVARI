@@ -220,13 +220,29 @@ async function filterInteractedMatches(userId: string, matches: any[]) {
   const { data: matchesA } = await supabase.from("matches").select("user_b_id").eq("user_a_id", userId).eq("match_type", "solo").neq("status", "ended");
   const { data: matchesB } = await supabase.from("matches").select("user_a_id").eq("user_b_id", userId).eq("match_type", "solo").neq("status", "ended");
 
-  const excludeSet = new Set<string>();
-  iBlocked?.forEach(b => excludeSet.add(b.blocked_id));
-  theyBlockedMe?.forEach(b => excludeSet.add(b.blocker_id));
-  interests?.forEach(i => excludeSet.add(i.to_user_id));
-  skips?.forEach(s => excludeSet.add(s.skipped_user_id));
-  matchesA?.forEach(m => excludeSet.add(m.user_b_id));
-  matchesB?.forEach(m => excludeSet.add(m.user_a_id));
+  // 1. Collect all UUIDs to exclude
+  const excludeUuidSet = new Set<string>();
+  iBlocked?.forEach(b => excludeUuidSet.add(b.blocked_id));
+  theyBlockedMe?.forEach(b => excludeUuidSet.add(b.blocker_id));
+  interests?.forEach(i => excludeUuidSet.add(i.to_user_id));
+  skips?.forEach(s => excludeUuidSet.add(s.skipped_user_id));
+  matchesA?.forEach(m => excludeUuidSet.add(m.user_b_id));
+  matchesB?.forEach(m => excludeUuidSet.add(m.user_a_id));
 
-  return matches.filter(m => !excludeSet.has(m.userId));
+  // 2. Resolve those UUIDs to Clerk IDs (Go service returns Clerk IDs)
+  const uuidsToResolve = Array.from(excludeUuidSet).filter(id => id.includes("-"));
+  let clerkIds = new Set<string>();
+  if (uuidsToResolve.length > 0) {
+    const { data: usersData } = await supabase.from("users").select("id, clerk_user_id").in("id", uuidsToResolve);
+    usersData?.forEach(u => {
+      if (u.clerk_user_id) clerkIds.add(u.clerk_user_id);
+    });
+  }
+
+  // 3. Filter out if m.userId matches EITHER a UUID or a Clerk ID
+  return matches.filter(m => {
+    const id = m.userId;
+    if (!id) return true;
+    return !excludeUuidSet.has(id) && !clerkIds.has(id);
+  });
 }
