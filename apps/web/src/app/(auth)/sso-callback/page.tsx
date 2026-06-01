@@ -26,6 +26,11 @@ export default function SSOCallback() {
     handleCallback();
   }, [handleRedirectCallback, router]);
 
-  return <Spinner />;
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <Spinner />
+      <div id="clerk-captcha" />
+    </div>
+  );
 }
 
