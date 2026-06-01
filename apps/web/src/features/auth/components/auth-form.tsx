@@ -337,7 +337,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           )}
         </Button>
         {/* Add CAPTCHA element */}
-        {/* <div id="clerk-captcha" className="mb-4" /> */}
+        <div id="clerk-captcha" className="mb-4" />
       </form>
 
       {/* Toggle Auth Mode */}
