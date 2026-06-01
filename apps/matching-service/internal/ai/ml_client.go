@@ -36,8 +36,8 @@ func (c *MLClient) ScoreBatch(ctx context.Context, featuresList []models.MLFeatu
 		return nil, nil
 	}
 
-	// 100ms timeout as per production requirement
-	ctx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	// 1000ms timeout for cloud environments
+	ctx, cancel := context.WithTimeout(ctx, 1000*time.Millisecond)
 	defer cancel()
 
 	payload := models.MLBatchRequest{
