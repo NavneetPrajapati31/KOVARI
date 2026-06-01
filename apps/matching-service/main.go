@@ -78,7 +78,7 @@ func main() {
 	}
 
 	// Fail-fast on Redis connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	if err := repo.Ping(ctx); err != nil {
 		cancel()
 		logger.Fatal("Redis ping failed during startup", err)
