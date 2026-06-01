@@ -289,8 +289,8 @@ func main() {
 		mlUsed := false
 		mlStartTime := time.Now()
 
-		// Strict ML Timeout (150ms)
-		mlCtx, mlCancel := context.WithTimeout(ctx, 150*time.Millisecond)
+		// Cloud environment ML Timeout (1000ms)
+		mlCtx, mlCancel := context.WithTimeout(ctx, 1000*time.Millisecond)
 		defer mlCancel()
 
 		mlGroup, _ := errgroup.WithContext(mlCtx)
@@ -418,7 +418,7 @@ func main() {
 			featuresList = append(featuresList, ai.ExtractGroupFeatures(*userSession, group))
 		}
 
-		mlCtx, mlCancel := context.WithTimeout(ctx, 500*time.Millisecond)
+		mlCtx, mlCancel := context.WithTimeout(ctx, 1000*time.Millisecond)
 		mlResults, _ := mlClient.ScoreBatch(mlCtx, featuresList)
 		mlCancel()
 
