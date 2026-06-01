@@ -64,12 +64,12 @@ describe("Matching Contract Validation (Hardened)", () => {
       expect(result.droppedCount).toBe(1);
     });
 
-    it("should trigger 'degraded' if valid count is below absolute threshold (3)", () => {
-      // 2 valid, 1 invalid (validCount = 2, total = 3, ratio = 0.66 > 0.3, but validCount < 3)
+    it("should trigger 'filtered' if valid count is below 3 but ratio is still good", () => {
+      // 2 valid, 1 invalid (validCount = 2, total = 3, ratio = 0.66 > 0.3)
       const items = [validMatch, validMatch, invalidMatch];
       const result = safeBatchValidate(items, GoSoloMatchSchema, requestId);
 
-      expect(result.state).toBe("degraded");
+      expect(result.state).toBe("filtered");
       expect(result.validItems.length).toBe(2);
       expect(result.droppedCount).toBe(1);
     });
