@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       if (cache.isStale) {
         triggerBackgroundRefresh(userId, clerkId, userVersion, cacheKey, params);
       }
-      const filteredMatches = await filterBlockedMatches(userId, cache.data);
+      const filteredMatches = await filterInteractedMatches(userId, cache.data);
       return formatStandardResponse(
         { matches: await enrichMatchesWithFollowing(userId, filteredMatches) },
         { source: "cache", degraded: false, hasMore: false },
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
             await setMatchingCache(userId, cacheKey, transformed, userVersion);
             await matchingServiceBreaker.recordSuccess();
             
-            const filteredMatches = await filterBlockedMatches(userId, transformed);
+            const filteredMatches = await filterInteractedMatches(userId, transformed);
 
             return formatStandardResponse(
               { matches: await enrichMatchesWithFollowing(userId, filteredMatches) },
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     // 3. Fallback to DB
     const fallbackResults = await performSoloDbMatchingFallback(userId, params);
-    const filteredFallback = await filterBlockedMatches(userId, fallbackResults);
+    const filteredFallback = await filterInteractedMatches(userId, fallbackResults);
     return formatStandardResponse(
       { matches: await enrichMatchesWithFollowing(userId, filteredFallback) },
       { source: "db", degraded: true, hasMore: false },
@@ -200,7 +200,7 @@ function transformMatches(rawData: any[]) {
   }).filter(Boolean);
 }
 
-async function filterBlockedMatches(userId: string, matches: any[]) {
+async function filterInteractedMatches(userId: string, matches: any[]) {
   if (!matches || matches.length === 0) return [];
   const supabase = createRouteHandlerSupabaseClientWithServiceRole();
   
@@ -210,9 +210,23 @@ async function filterBlockedMatches(userId: string, matches: any[]) {
   // Get users who blocked me
   const { data: theyBlockedMe } = await supabase.from("blocked_users").select("blocker_id").eq("blocked_id", userId);
 
-  const blockedSet = new Set<string>();
-  iBlocked?.forEach(b => blockedSet.add(b.blocked_id));
-  theyBlockedMe?.forEach(b => blockedSet.add(b.blocker_id));
+  // Get users I showed interest in
+  const { data: interests } = await supabase.from("match_interests").select("to_user_id").eq("from_user_id", userId).eq("match_type", "solo");
 
-  return matches.filter(m => !blockedSet.has(m.userId));
+  // Get users I skipped
+  const { data: skips } = await supabase.from("match_skips").select("skipped_user_id").eq("user_id", userId).eq("match_type", "solo");
+
+  // Get my active matches (so I don't see them in discovery again)
+  const { data: matchesA } = await supabase.from("matches").select("user_b_id").eq("user_a_id", userId).eq("match_type", "solo").neq("status", "ended");
+  const { data: matchesB } = await supabase.from("matches").select("user_a_id").eq("user_b_id", userId).eq("match_type", "solo").neq("status", "ended");
+
+  const excludeSet = new Set<string>();
+  iBlocked?.forEach(b => excludeSet.add(b.blocked_id));
+  theyBlockedMe?.forEach(b => excludeSet.add(b.blocker_id));
+  interests?.forEach(i => excludeSet.add(i.to_user_id));
+  skips?.forEach(s => excludeSet.add(s.skipped_user_id));
+  matchesA?.forEach(m => excludeSet.add(m.user_b_id));
+  matchesB?.forEach(m => excludeSet.add(m.user_a_id));
+
+  return matches.filter(m => !excludeSet.has(m.userId));
 }
