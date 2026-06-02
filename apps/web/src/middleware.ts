@@ -96,7 +96,7 @@ async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
 
     const { data, error } = await supabase
       .from("launch_bypass_users")
-      .select("clerk_user_id")
+      .select("clerk_user_id, tier")
       .eq("clerk_user_id", clerkUserId)
       .maybeSingle();
 
@@ -105,14 +105,19 @@ async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
       return false;
     }
 
-    const isMatch = !!data?.clerk_user_id;
-    if (!isMatch) {
-      console.log("[Waitlist] User not in bypass table:", clerkUserId);
-    } else {
-      console.log("[Waitlist] Bypass granted for user:", clerkUserId);
+    if (data) {
+      const isBetaMode = process.env.BETA_MODE === "true";
+      const isAdmin = data.tier === "admin";
+      const isBetaUser = data.tier === "beta" && isBetaMode;
+
+      if (isAdmin || isBetaUser) {
+        console.log("[Waitlist] Bypass granted for user:", clerkUserId, "Tier:", data.tier);
+        return true;
+      }
     }
 
-    return isMatch;
+    console.log("[Waitlist] User not granted bypass or tier insufficient:", clerkUserId);
+    return false;
   } catch (err) {
     console.error("[Waitlist] Unexpected error in bypass check:", err);
     return false;
@@ -181,7 +186,7 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
     if (isApiRoute) {
       return NextResponse.json(
         {
-          error: "App is in waitlist mode. Join the waitlist for early access.",
+          error: "Access restricted. Beta not yet available.",
         },
         { status: 403 },
       );
