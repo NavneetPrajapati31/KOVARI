@@ -6,9 +6,11 @@ import Link from "next/link";
 import { useSyncUserToSupabase } from "@kovari/api/client";
 import ProfileSetupForm from "@/features/onboarding/components/ProfileSetupForm";
 import { Button } from "@/shared/components/ui/button";
+import { useAuth } from "@clerk/nextjs";
 
 export default function ProfileSetupPage() {
   const { syncUser } = useSyncUserToSupabase();
+  const { signOut } = useAuth();
   const router = useRouter();
   const [status, setStatus] = useState<
     "loading" | "needs_onboarding" | "already_complete"
@@ -37,8 +39,11 @@ export default function ProfileSetupPage() {
         } else {
           setStatus("needs_onboarding");
         }
-      } catch {
-        setStatus("needs_onboarding");
+      } catch (err: any) {
+        // If syncUser fails (e.g., 403 Access restricted for non-beta users), 
+        // sign them out using Clerk's useAuth hook and redirect.
+        await signOut();
+        window.location.href = "/?error=beta_required";
       }
     };
 

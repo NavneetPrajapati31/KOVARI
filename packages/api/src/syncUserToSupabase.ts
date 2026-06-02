@@ -47,6 +47,9 @@ export function useSyncUserToSupabase() {
             } catch {}
             return true;
           }
+        } else if (syncRes.status === 403) {
+          // Explicitly rejected (e.g., Beta gate)
+          throw new Error("403 Forbidden: User rejected by sync");
         }
 
         // Fallback or retry
@@ -57,8 +60,11 @@ export function useSyncUserToSupabase() {
 
         console.warn(`${debugPrefix} Sync failed after retries`);
         return false;
-      } catch (error) {
+      } catch (error: any) {
         console.error("[syncUserToSupabase] Error in syncUser:", error);
+        if (error.message && error.message.includes("403 Forbidden")) {
+          throw error;
+        }
         if (retries > 0) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           return syncUser(retries - 1);

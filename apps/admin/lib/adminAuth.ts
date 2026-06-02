@@ -20,7 +20,14 @@ export async function requireAdmin(): Promise<{
 
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
-  const email = user.emailAddresses[0].emailAddress.toLowerCase();
+  
+  // Safely extract email
+  const emailObj = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId) || user.emailAddresses[0];
+  const email = emailObj?.emailAddress?.toLowerCase();
+
+  if (!email) {
+    throw NextResponse.json({ error: 'No email found on Clerk user' }, { status: 400 });
+  }
 
   // Check if email exists in Supabase admins table using service role key
   const { data: adminData, error } = await supabaseAdmin
@@ -57,7 +64,14 @@ export async function requireAdminPage(): Promise<{
 
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
-  const email = user.emailAddresses[0].emailAddress.toLowerCase();
+  
+  // Safely extract email
+  const emailObj = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId) || user.emailAddresses[0];
+  const email = emailObj?.emailAddress?.toLowerCase();
+
+  if (!email) {
+    redirect('/not-authorized');
+  }
 
   // Check if email exists in Supabase admins table using service role key
   const { data: adminData, error } = await supabaseAdmin

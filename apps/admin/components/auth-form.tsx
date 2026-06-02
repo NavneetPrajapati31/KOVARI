@@ -44,7 +44,7 @@ export default function AuthForm() {
         await setActive({
           session: result.createdSessionId,
         });
-        router.push("/");
+        window.location.href = "/";
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "An error occurred");

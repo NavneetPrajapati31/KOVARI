@@ -33,6 +33,8 @@ const isWaitlistPublicPath = createRouteMatcher([
   "/forgot-password(.*)",
   "/verify-email(.*)",
   "/sso-callback(.*)",
+  "/onboarding(.*)",
+  "/api/supabase/sync-user(.*)",
   "/sitemap.xml",
   "/robots.txt",
   "/manifest.json",
@@ -172,14 +174,13 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
         return NextResponse.next();
       }
 
-      // User present but not a bypass user? Sign them out immediately.
-      if (sessionId) {
-        try {
-          const client = await clerkClient();
-          await client.sessions.revokeSession(sessionId);
-        } catch (e) {
-          console.error("Failed to revoke session for non-bypass user:", e);
-        }
+      // User present but not a bypass user?
+      // They might have signed up but failed to sync due to a network error or previous bug.
+      // Redirect them to /onboarding. If they are not approved, /api/supabase/sync-user will reject them and /onboarding will sign them out.
+      if (!req.nextUrl.pathname.startsWith("/onboarding") && !req.nextUrl.pathname.startsWith("/api/supabase/sync-user")) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/onboarding";
+        return NextResponse.redirect(url);
       }
     }
 

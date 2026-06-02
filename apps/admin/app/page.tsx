@@ -13,6 +13,7 @@ import { GroupContainer } from '@/components/ui/ios/GroupContainer';
 import { ListRow } from '@/components/ui/ios/ListRow';
 import { SectionHeader } from '@/components/ui/ios/SectionHeader';
 import { DashboardAutoRefresh } from '@/components/DashboardAutoRefresh';
+import { BetaInvitePanel } from '@/components/BetaInvitePanel';
 
 interface Metrics {
   sessionsActive: number;
@@ -236,6 +237,11 @@ export default async function DashboardPage() {
               />
             </Link>
           </GroupContainer>
+        </section>
+
+        <section>
+          <SectionHeader>Beta Access Management</SectionHeader>
+          <BetaInvitePanel />
         </section>
 
         <section>
