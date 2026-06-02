@@ -13,61 +13,57 @@ export async function POST() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("[api/supabase/sync-user] Missing server env", {
-      hasUrl: !!supabaseUrl,
-      hasServiceRoleKey: !!serviceRoleKey,
-    });
-    return NextResponse.json(
-      { error: "Server not configured" },
-      { status: 500 },
-    );
+    console.error("[api/supabase/sync-user] Missing server env");
+    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
 
   try {
-    // 1. Fetch user from Clerk (Identity source of truth)
     const { clerkClient } = await import("@clerk/nextjs/server");
     const clerk = await clerkClient();
     const clerkUser = await clerk.users.getUser(userId);
-    const email = clerkUser.primaryEmailAddress?.emailAddress || 
-                  clerkUser.emailAddresses[0]?.emailAddress;
+    const email =
+      clerkUser.primaryEmailAddress?.emailAddress ||
+      clerkUser.emailAddresses[0]?.emailAddress;
 
     if (!email) {
       console.error("[api/supabase/sync-user] No email found for Clerk user", userId);
-      return NextResponse.json({ error: "Email required for identity resolution" }, { status: 400 });
+      return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
-    console.log(`[SYNC-USER] Starting identity resolution for Clerk user: ${userId} (${email})`);
+    console.log(`[SYNC-USER] Starting identity resolution for: ${userId} (${email})`);
 
-    // 2. Atomic Identity Sync (Consolidated Source of Truth)
-    // This RPC handles find-or-create atomically and handles concurrent requests.
-    // It also handles reconciliation by email if the Clerk ID has changed (Dev vs Prod).
-    const { data: userIdFromRpc, error: syncError } = await supabase
-      .rpc("sync_user_identity", {
+    // ─── BETA GATE: Auto-provision access if email is approved ───────────────
+    if (process.env.LAUNCH_WAITLIST_MODE === "true") {
+      const isProvisioned = await provisionBetaAccessIfApproved(supabase, email, userId);
+      if (!isProvisioned) {
+        // Not a beta user. Reject sync.
+        console.log(`[BETA-GATE] Rejecting sync for non-beta user: ${email}`);
+        return NextResponse.json({ error: "Access restricted. Beta not yet available." }, { status: 403 });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Atomic identity sync (unchanged from your existing logic)
+    const { data: userIdFromRpc, error: syncError } = await supabase.rpc(
+      "sync_user_identity",
+      {
         p_email: email,
-        p_name: (clerkUser.firstName || "") + " " + (clerkUser.lastName || ""),
+        p_name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim(),
         p_clerk_id: userId,
         p_google_id: null,
         p_password_hash: null,
-      });
+      }
+    );
 
     if (syncError) {
-      console.error("[api/supabase/sync-user] Atomic identity sync failed:", syncError);
+      console.error("[api/supabase/sync-user] Identity sync failed:", syncError);
       return NextResponse.json({ error: "Identity resolution failed" }, { status: 500 });
     }
 
-    if (!userIdFromRpc) {
-      console.warn("[api/supabase/sync-user] No ID returned from RPC, possible reconciliation delay");
-    }
-
-    // 3. Final Check (Optional: check for soft deletion)
     const { data: user, error: fetchError } = await supabase
       .from("users")
       .select('id, "isDeleted"')
@@ -80,10 +76,7 @@ export async function POST() {
     }
 
     if (user.isDeleted === true) {
-      return NextResponse.json(
-        { error: "Account has been deleted" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "Account has been deleted" }, { status: 403 });
     }
 
     return NextResponse.json({ success: true, userId: user.id }, { status: 200 });
@@ -97,4 +90,72 @@ export async function POST() {
   }
 }
 
+/**
+ * If the user's email is marked 'beta_invited' in waitlist,
+ * auto-insert them into launch_bypass_users and mark them active.
+ * Safe to call multiple times — uses upsert, won't duplicate.
+ */
+async function provisionBetaAccessIfApproved(
+  supabase: any,
+  email: string,
+  clerkUserId: string
+): Promise<boolean> {
+  try {
+    // 1. Check if already provisioned (fast path — avoids unnecessary writes)
+    const { data: existing } = await supabase
+      .from("launch_bypass_users")
+      .select("clerk_user_id")
+      .eq("clerk_user_id", clerkUserId)
+      .maybeSingle();
+
+    if (existing) {
+      console.log(`[BETA-GATE] Already provisioned: ${clerkUserId}`);
+      return true;
+    }
+
+    // 2. Check if email is approved in waitlist
+    const { data: waitlistEntry } = await supabase
+      .from("waitlist")
+      .select("id, status, email")
+      .eq("email", email.toLowerCase().trim())
+      .maybeSingle();
+
+    if (!waitlistEntry || (waitlistEntry.status !== "beta_invited" && waitlistEntry.status !== "beta_active")) {
+      console.log(`[BETA-GATE] Email not approved for beta: ${email}`);
+      return false;
+    }
+
+    // 3. Provision beta access
+    const { error: insertError } = await supabase
+      .from("launch_bypass_users")
+      .upsert(
+        {
+          clerk_user_id: clerkUserId,
+          tier: "beta",
+          email: email.toLowerCase().trim(),
+          notes: `Auto-provisioned from waitlist on signup/signin`,
+          added_at: new Date().toISOString(),
+        },
+        { onConflict: "clerk_user_id" }
+      );
+
+    if (insertError) {
+      console.error("[BETA-GATE] Failed to insert into launch_bypass_users:", insertError);
+      return false;
+    }
+
+    // 4. Update waitlist status to beta_active
+    await supabase
+      .from("waitlist")
+      .update({ status: "beta_active" })
+      .eq("id", waitlistEntry.id);
+
+    console.log(`[BETA-GATE] ✅ Beta access provisioned for: ${email} (${clerkUserId})`);
+    return true;
+  } catch (err) {
+    // Non-fatal — log but don't block user sync
+    console.error("[BETA-GATE] Unexpected error in provisionBetaAccessIfApproved:", err);
+    return false;
+  }
+}
 

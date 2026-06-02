@@ -79,7 +79,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           await setActive({
             session: result.createdSessionId,
           });
-          router.push("/");
+          router.push("/dashboard");
         } else if (result?.status === "needs_first_factor") {
           // Handle MFA or other first factor requirements
           setError("Additional verification required");
@@ -109,7 +109,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
         await signIn?.authenticateWithRedirect({
           strategy: provider,
           redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/",
+          redirectUrlComplete: "/dashboard",
         });
       }
     } catch (err: any) {

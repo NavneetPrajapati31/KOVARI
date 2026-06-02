@@ -244,7 +244,7 @@ export const sendRegistrationVerificationEmail = async ({
       const systemEmailConfig = getEmailConfig("system");
       span.setAttribute("sender", systemEmailConfig.email);
 
-      const subject = `${code} is your KOVARI verification code`;
+      const subject = `${code} is your Kovari verification code`;
       const html = registrationVerificationEmail({ code });
 
       const sendSmtpEmail = {
@@ -337,6 +337,72 @@ export const sendPasswordChangedAlert = async ({
       span.setAttribute("error", true);
       span.setAttribute("error_message", errorMsg);
       console.error("Error sending password changed alert email:", { to, error: errorMsg });
+      return { success: false, error: errorMsg };
+    }
+  );
+};
+
+import { betaInviteEmail } from "./email-templates/beta-invite";
+
+export interface SendBetaInviteEmailParams {
+  to: string;
+  position?: number;
+}
+
+/**
+ * Sends a beta invite email via Brevo.
+ */
+export const sendBetaInviteEmail = async ({
+  to,
+  position,
+}: SendBetaInviteEmailParams): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+}> => {
+  if (!process.env.BREVO_API_KEY) {
+    return { success: false, error: "BREVO_API_KEY is not configured" };
+  }
+
+  return Sentry.startSpan(
+    {
+      op: "email.send",
+      name: "Send Beta Invite Email",
+    },
+    async (span) => {
+      span.setAttribute("recipient", to);
+      const productEmailConfig = getEmailConfig("product");
+      span.setAttribute("sender", productEmailConfig.email);
+
+      const subject = "You're in 🎉";
+      const html = betaInviteEmail({ recipientEmail: to });
+
+      const sendSmtpEmail = {
+        to: [{ email: to }],
+        sender: { email: productEmailConfig.email, name: productEmailConfig.name },
+        replyTo: { email: productEmailConfig.replyTo, name: productEmailConfig.name },
+        subject,
+        htmlContent: html,
+      };
+
+      const result = await sendBrevoWithRetry(sendSmtpEmail);
+
+      if ("messageId" in result) {
+        const messageId = result.messageId || "unknown";
+        span.setAttribute("success", true);
+        span.setAttribute("message_id", messageId);
+        console.log("Beta invite email sent successfully:", { to, messageId });
+        return { success: true, messageId };
+      }
+
+      const errorMsg = "error" in result ? result.error : "Unknown error";
+      Sentry.captureMessage("Beta invite email send failed", {
+        level: "error",
+        extra: { error: errorMsg, recipient: to },
+      });
+      span.setAttribute("error", true);
+      span.setAttribute("error_message", errorMsg);
+      console.error("Error sending beta invite email:", { to, error: errorMsg });
       return { success: false, error: errorMsg };
     }
   );
