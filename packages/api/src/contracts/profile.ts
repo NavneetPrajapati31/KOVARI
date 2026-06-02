@@ -21,9 +21,7 @@ export const ProfileResponseSchema = z.object({
   personality: z.string().default(""),
   foodPreference: z.string().default(""),
   verified: z.boolean().default(false),
-  destinations: z.array(z.string()).default([]),
-  tripFocus: z.array(z.string()).default([]),
-  travelFrequency: z.string().default(""),
+
   followers: z.number().default(0),
   following: z.number().default(0),
   onboardingCompleted: z.boolean().default(false),

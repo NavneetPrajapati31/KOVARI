@@ -71,26 +71,7 @@ export const foodPreferenceOptions = [
   "No preference",
 ];
 
-export const tripFocusOptions = [
-  "Hiking",
-  "Photography",
-  "Culture",
-  "Food",
-  "Music",
-  "History",
-  "Adventure",
-  "Nightlife",
-  "Local Tours",
-  "Beach",
-  "Shopping",
-];
 
-export const travelFrequencyOptions = [
-  "Once a year",
-  "Every 6 months",
-  "Monthly",
-  "Digital nomad",
-];
 
 export const genderOptions = [
   "Male",

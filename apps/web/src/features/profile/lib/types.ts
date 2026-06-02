@@ -53,10 +53,6 @@ export const profileEditSchema = z.object({
   bio: z
     .string()
     .max(300, { message: "Bio must be less than 300 characters" })
-    .optional(),
-  destinations: z.array(z.string()).optional(),
-  tripFocus: z.array(z.string()).optional(),
-  travelFrequency: z.string().optional(),
 });
 
 export type ProfileEditForm = z.infer<typeof profileEditSchema>;

@@ -33,9 +33,5 @@ export interface UserProfileDTO {
   
   // Verification
   verified: boolean;
-  
-  // Travel Specifics (Optional/Nullable)
-  destinations?: string[];
-  tripFocus?: string[];
-  travelFrequency?: string;
+
 }

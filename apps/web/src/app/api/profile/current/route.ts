@@ -39,13 +39,6 @@ export async function GET(request: NextRequest) {
     // 2. Map to standardized DTO
     const userDto = profileMapper.fromDb(dbUser, dbProfile);
 
-    // 3. Get auxiliary data (travel preferences, counts)
-    const { data: travelPrefs } = await supabase
-      .from("travel_preferences")
-      .select("*")
-      .eq("user_id", internalUserId)
-      .maybeSingle();
-
     const hasCompletedOnboarding = Boolean(dbUser.onboarding_completed ?? false);
 
     // 🚀 AUTO-REPAIR: If profile exists but flag is false, mark as complete.
@@ -78,10 +71,6 @@ export async function GET(request: NextRequest) {
       onboardingCompleted: hasCompletedOnboarding,
       followers: followersCount || 0,
       following: followingCount || 0,
-      // Travel preferences (overrides DTO if found in separate table)
-      destinations: travelPrefs?.destinations || userDto.destinations || [],
-      tripFocus: travelPrefs?.trip_focus || userDto.tripFocus || [],
-      travelFrequency: travelPrefs?.frequency || userDto.travelFrequency || "",
     };
 
 
