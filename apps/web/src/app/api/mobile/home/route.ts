@@ -46,7 +46,6 @@ export async function GET(req: NextRequest) {
             unreadNotificationsRes,
             pendingInvitesRes,
             recentNotificationsRes,
-            travelPreferencesRes,
             impressionsRes,
             interestsRes,
         ] = await Promise.all([
@@ -100,13 +99,6 @@ export async function GET(req: NextRequest) {
                 .order("created_at", { ascending: false })
                 .range(0, 4),
 
-            // Travel Preferences
-            supabase
-                .from("travel_preferences")
-                .select("destinations, trip_focus, frequency")
-                .eq("user_id", userId)
-                .maybeSingle(),
-
             // Profile Impressions Count
             supabase
                 .from("profile_impressions")
@@ -131,7 +123,6 @@ export async function GET(req: NextRequest) {
         const unreadNotificationCount = unreadNotificationsRes.count || 0;
         const pendingInvitesCount = pendingInvitesRes.count || 0;
         const notificationsData = recentNotificationsRes.data || [];
-        const travelPreferences = travelPreferencesRes.data || null;
         const profileImpressions = impressionsRes.count || 0;
         const pendingInterests = interestsRes.data || [];
 
@@ -299,8 +290,7 @@ export async function GET(req: NextRequest) {
                 unreadNotificationCount,
                 activeGroups,
                 pendingInvitesCount,
-                connectionRequests,
-                travelPreferences
+                connectionRequests
             },
             { contractState: 'clean', degraded: false },
             { requestId, latencyMs: Date.now() - start }

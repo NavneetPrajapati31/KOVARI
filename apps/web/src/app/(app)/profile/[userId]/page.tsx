@@ -38,7 +38,7 @@ const fetchUserProfile = async (
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select(
-        `name, username, age, gender, nationality, bio, languages, profile_photo, job, location, religion, smoking, drinking, personality, food_preference, birthday, verified`,
+        `name, username, age, gender, nationality, bio, languages, profile_photo, job, location, religion, smoking, drinking, personality, food_preference, birthday, verified, interests`,
       )
       .eq("user_id", userId)
       .single();
@@ -48,14 +48,7 @@ const fetchUserProfile = async (
       return null;
     }
 
-    // 2. Fetch travel preferences (for interests)
-    const { data: travelPrefData } = await supabase
-      .from("travel_preferences")
-      .select("interests")
-      .eq("user_id", userId)
-      .single();
-
-    const interests = travelPrefData?.interests || [];
+    const interests = profileData?.interests || [];
 
     // 3. Fetch posts from user_posts
     // const { data: postsData } = await supabase

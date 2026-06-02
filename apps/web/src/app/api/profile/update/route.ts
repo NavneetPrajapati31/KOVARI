@@ -169,33 +169,12 @@ export async function PATCH(req: Request) {
       "username", "bio", "avatar", "profession", "interests", "languages", 
       "gender", "age", "nationality", "location", "location_details", 
       "religion", "smoking", "drinking", "personality", "foodPreference",
-      "destinations", "tripFocus", "travelFrequency", "name", "email", "birthday"
+      "name", "email", "birthday"
     ];
 
     if (!safeFields.includes(field)) {
       return new Response(JSON.stringify({ error: "Update rejected: Unauthorized field" }), {
         status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // 4. Handle Travel Preferences (Dedicated Table)
-    const travelFields = ["destinations", "tripFocus", "travelFrequency"];
-    if (travelFields.includes(field)) {
-      const { profileUpdates } = profileMapper.toDbUpdate({ [field]: value });
-      const { error: travelUpdateError } = await supabase
-        .from("travel_preferences")
-        .upsert({ user_id: user.id, ...profileUpdates }, { onConflict: "user_id" });
-
-      if (travelUpdateError) {
-        logger.error("TRAVEL-UPDATE", "Error updating travel prefs", travelUpdateError);
-        return new Response(JSON.stringify({ error: "Failed to update travel preferences" }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ message: "Travel preferences updated", field, value }), {
-        status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }

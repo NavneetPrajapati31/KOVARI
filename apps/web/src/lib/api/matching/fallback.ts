@@ -46,21 +46,8 @@ export async function performSoloDbMatchingFallback(
   const { data: dbRows, error } = await query;
   if (error || !dbRows) return [];
 
-  // 2. Fetch travel preferences for these users
-  const userIds = (dbRows as any[]).map(p => p.user_id);
-  const { data: travelPrefs } = await supabase
-    .from("travel_preferences")
-    .select("*")
-    .in("user_id", userIds);
-
-  const prefsMap = (travelPrefs || []).reduce((acc: any, pref) => {
-    acc[pref.user_id] = pref;
-    return acc;
-  }, {});
-
   // 3. Transform via profileMapper to standardized MatchDTO
   return (dbRows as any[]).map(p => {
-    const pref = prefsMap[p.user_id];
     const userDto = profileMapper.fromDb(p.users, p);
 
     return {
@@ -72,12 +59,10 @@ export async function performSoloDbMatchingFallback(
       compatibilityScore: 0.5, // Constant score for fallback
       breakdown: { source: "db_fallback" },
       budgetDifference: 0,
-      startDate: pref?.start_date || filters.startDate || new Date().toISOString(),
-      endDate: pref?.end_date || filters.endDate || new Date().toISOString(),
-      budget: pref?.budget || filters.budget || 0,
-      destination: filters.destination || pref?.destination || userDto.location || 'India',
-
-
+      startDate: filters.startDate || new Date().toISOString(),
+      endDate: filters.endDate || new Date().toISOString(),
+      budget: filters.budget || 0,
+      destination: filters.destination || userDto.location || 'India',
 
       user: {
         userId: userDto.id,

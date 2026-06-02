@@ -37,9 +37,6 @@ const DEFAULT_VALUES: ProfileEditForm = {
   drinking: "",
   personality: "",
   foodPreference: "",
-  destinations: [],
-  tripFocus: [],
-  travelFrequency: "",
 };
 
 const SectionContent = memo(

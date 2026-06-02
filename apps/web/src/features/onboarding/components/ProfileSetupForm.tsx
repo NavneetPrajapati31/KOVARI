@@ -140,17 +140,8 @@ const step2Schema = z.object({
     .min(1, { message: "Please select food preference" }),
 });
 
-const step3Schema = z.object({
-  destinations: z.string().min(1, "Please enter at least one destination"),
-  tripFocus: z
-    .array(z.string())
-    .min(1, "Please select at least one trip focus"),
-  frequency: z.string().optional(),
-});
-
 type Step1Data = z.infer<typeof step1Schema>;
 type Step2Data = z.infer<typeof step2Schema>;
-type Step3Data = z.infer<typeof step3Schema>;
 
 // Sample data for dropdowns
 const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
@@ -280,32 +271,13 @@ const foodPreferenceOptions = [
   "No preference",
 ];
 
-const tripFocusList = [
-  "Hiking",
-  "Photography",
-  "Culture",
-  "Food",
-  "Music",
-  "History",
-  "Adventure",
-  "Nightlife",
-  "Local Tours",
-  "Beach",
-  "Shopping",
-];
 
-const tripFrequencies = [
-  "Once a year",
-  "Every 6 months",
-  "Monthly",
-  "Digital nomad",
-];
 
 export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 7;
+  const totalSteps = 6;
   const [policyAccepted, setPolicyAccepted] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
@@ -323,7 +295,6 @@ export default function ProfileSetupForm() {
   const [locationDetails, setLocationDetails] = useState<LocationData | null>(null);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
   const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
-  const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameCheckLoading, setUsernameCheckLoading] = useState(false);
   const [usernameCheckError, setUsernameCheckError] = useState<string | null>(
@@ -389,14 +360,7 @@ export default function ProfileSetupForm() {
     },
   });
 
-  const step3Form = useForm<Step3Data>({
-    resolver: zodResolver(step3Schema),
-    defaultValues: {
-      destinations: "",
-      tripFocus: [],
-      frequency: "",
-    },
-  });
+
 
   // Async username uniqueness check
   const checkUsernameUnique = async (username: string) => {
@@ -645,12 +609,7 @@ export default function ProfileSetupForm() {
         return;
       }
       setStep2Data(step2Form.getValues());
-      const defaultTravelData: Step3Data = {
-        destinations: "",
-        tripFocus: [],
-        frequency: "",
-      };
-      await submitProfileAndPreferences(defaultTravelData);
+      await submitProfileAndPreferences();
       return;
     }
   };
@@ -664,12 +623,6 @@ export default function ProfileSetupForm() {
 
 
 
-  // Handle step 3 submission
-  const onStep3Submit = async (data: Step3Data) => {
-    console.log("Step 3 data:", data);
-    setStep3Data(data);
-    await submitProfileAndPreferences(data);
-  };
 
   // Format date as ISO datetime string at midnight UTC to preserve the selected date
   const formatDateOnly = (date: Date | undefined): string | undefined => {
@@ -685,7 +638,7 @@ export default function ProfileSetupForm() {
   };
 
   // Original step 3 submission logic moved to a separate function
-  const submitProfileAndPreferences = async (data: Step3Data) => {
+  const submitProfileAndPreferences = async () => {
     const readErrorMessage = async (res: Response) => {
       const tryFormatZod = (payload: any) => {
         const err = payload?.error ?? payload;
@@ -730,7 +683,6 @@ export default function ProfileSetupForm() {
       const completeData = {
         ...currentStep1Data,
         ...currentStep2Data,
-        ...data,
       };
       console.log("Complete form data:", completeData);
 
@@ -814,13 +766,7 @@ export default function ProfileSetupForm() {
         interests: interestsLabels,
       };
 
-      const travelPreferencesData = {
-        destinations: completeData.destinations
-          ? completeData.destinations.split(",").map((dest) => dest.trim())
-          : [],
-        trip_focus: completeData.tripFocus,
-        frequency: completeData.frequency,
-      };
+
 
       if (!user) {
         throw new Error("User not found");
@@ -844,7 +790,6 @@ export default function ProfileSetupForm() {
           drinking: completeData.drinking,
           personality: completeData.personality,
           foodPreference: completeData.foodPreference,
-          travel_preferences: travelPreferencesData,
         },
       });
 
@@ -874,17 +819,7 @@ export default function ProfileSetupForm() {
         throw new Error(`Profile (${profileRes.status}): ${errorMsg}`);
       }
 
-      // Step 4: Submit travel preferences data to API
-      const preferencesRes = await fetch("/api/travel-preferences", {
-        method: "POST",
-        body: JSON.stringify(travelPreferencesData),
-        headers: { "Content-Type": "application/json" },
-      });
 
-      if (!preferencesRes.ok) {
-        const errorMsg = await readErrorMessage(preferencesRes);
-        throw new Error(`Preferences (${preferencesRes.status}): ${errorMsg}`);
-      }
 
       toast.success("Profile saved successfully!");
 

@@ -71,10 +71,6 @@ export const profileMapper = {
       // Verification
       verified: !!p.verified,
       
-      // Optional Travel Context
-      destinations: Array.isArray(p.destinations) ? p.destinations : [],
-      tripFocus: Array.isArray(p.trip_focus || p.tripFocus) ? (p.trip_focus || p.tripFocus) : [],
-      travelFrequency: p.frequency || p.travelFrequency || "",
     };
   },
 
@@ -125,11 +121,6 @@ export const profileMapper = {
     
     // Verification
     if (dto.verified !== undefined) profileUpdates.verified = dto.verified;
-
-    // Travel preferences (mapped to profile)
-    if (dto.destinations !== undefined) profileUpdates.destinations = dto.destinations;
-    if (dto.tripFocus !== undefined) profileUpdates.trip_focus = dto.tripFocus;
-    if (dto.travelFrequency !== undefined) profileUpdates.frequency = dto.travelFrequency;
 
     return { userUpdates, profileUpdates };
   }
