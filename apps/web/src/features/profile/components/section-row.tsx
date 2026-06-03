@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Pencil, Check, X, ChevronDown, Search } from "lucide-react";
+import { Pencil, Check, X, ChevronDown, Search, Lock } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -58,6 +58,7 @@ interface SectionRowProps {
   isChecking?: boolean;
   startYear?: number;
   endYear?: number;
+  locked?: boolean;
 }
 
 const SectionRow: React.FC<SectionRowProps> = ({
@@ -79,6 +80,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
   isChecking = false,
   startYear,
   endYear,
+  locked = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState<any>(
@@ -476,16 +478,27 @@ const SectionRow: React.FC<SectionRowProps> = ({
         {children}
       </div>
       {!isEditing && (onEdit || onSave) && (
-        <button
-          type="button"
-          onClick={onSave ? handleEdit : onEdit}
-          disabled={isLoading}
-          className={`ml-4 border border-border rounded-lg text-muted-foreground hover:bg-gray-200 transition-all duration-300 flex items-center ${isMobile ? "p-2" : "px-3 py-1.5 gap-1 text-xs font-semibold"} disabled:opacity-50`}
-          aria-label={editLabel}
-        >
-          <Pencil className="w-4 h-4" />
-          {!isMobile && editLabel}
-        </button>
+        locked ? (
+          <div
+            className={`ml-4 border border-border/50 rounded-lg text-muted-foreground/50 bg-gray-50 flex items-center ${isMobile ? "p-2" : "px-3 py-1.5 gap-1 text-xs font-semibold"} cursor-not-allowed`}
+            aria-label="Locked field"
+            title="This field cannot be changed after account creation"
+          >
+            <Lock className="w-4 h-4" />
+            {!isMobile && "Locked"}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onSave ? handleEdit : onEdit}
+            disabled={isLoading}
+            className={`ml-4 border border-border rounded-lg text-muted-foreground hover:bg-gray-200 transition-all duration-300 flex items-center ${isMobile ? "p-2" : "px-3 py-1.5 gap-1 text-xs font-semibold"} disabled:opacity-50`}
+            aria-label={editLabel}
+          >
+            <Pencil className="w-4 h-4" />
+            {!isMobile && editLabel}
+          </button>
+        )
       )}
     </div>
   );
