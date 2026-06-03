@@ -484,8 +484,8 @@ const SectionRow: React.FC<SectionRowProps> = ({
             aria-label="Locked field"
             title="This field cannot be changed after account creation"
           >
-            <Lock className="w-4 h-4" />
-            {!isMobile && "Locked"}
+            <Pencil className="w-4 h-4" />
+            {!isMobile && editLabel}
           </div>
         ) : (
           <button
