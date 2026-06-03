@@ -118,6 +118,31 @@ async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
   }
 }
 
+const isOnboardingExemptPath = createRouteMatcher([
+  "/onboarding",
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/verify-email",
+  "/sso-callback",
+  "/api/auth/(.*)",
+  "/api/users/sync",
+  "/api/profile/create",
+  "/api/profile/current",
+  "/api/travel-preferences",
+  "/api/check-username",
+  "/api/cloudinary/sign",
+  "/api/settings/accept-policies",
+  "/",
+  "/landing",
+  "/pricing",
+  "/about",
+  "/user-safety",
+  "/community-guidelines",
+  "/privacy",
+  "/terms"
+]);
+
 const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
   const pathname = req.nextUrl.pathname;
   if (pathname.startsWith("/api/direct-chat")) {
@@ -238,7 +263,7 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
 
         const { data: user, error } = await supabase
           .from("users")
-          .select('banned, ban_expires_at, "isDeleted"')
+          .select('banned, ban_expires_at, "isDeleted", onboarding_completed')
           .eq("clerk_user_id", userId)
           .maybeSingle();
 
@@ -303,6 +328,23 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
           if (isBanned) {
             return NextResponse.redirect(new URL("/banned", req.url));
           }
+        }
+
+        // Server-side onboarding gate
+        if (user && !user.onboarding_completed && !isOnboardingExemptPath(req)) {
+          const isApiRoute =
+            pathname.startsWith("/api") || pathname.startsWith("/trpc");
+
+          if (isApiRoute) {
+            return NextResponse.json(
+              { error: "Onboarding incomplete" },
+              { status: 403 }
+            );
+          }
+
+          const url = req.nextUrl.clone();
+          url.pathname = "/onboarding";
+          return NextResponse.redirect(url);
         }
       } catch (error) {
         console.error("Middleware ban check error:", error);
