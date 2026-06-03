@@ -433,6 +433,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             error={fieldErrors.name}
             placeholder="Enter your full name"
             maxLength={50}
+            locked={!!profileData?.name}
           />
           <SectionRow
             label="Username"
@@ -463,6 +464,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             endYear={new Date().getFullYear()}
             error={fieldErrors.birthday}
             placeholder="Select your birthday"
+            locked={!!profileData?.birthday}
           />
           <SectionRow
             label="Gender"
@@ -475,6 +477,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             }))}
             error={fieldErrors.gender}
             placeholder="Select gender"
+            locked={!!profileData?.gender}
           />
           <SectionRow
             label="Nationality"
@@ -493,6 +496,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             editValue={form.watch("nationality")}
             placeholder="Search nationality..."
             error={fieldErrors.nationality}
+            locked={!!profileData?.nationality}
           />
           <SectionRow
             label="Location"

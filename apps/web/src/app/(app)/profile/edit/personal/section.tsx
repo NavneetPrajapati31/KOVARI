@@ -35,6 +35,7 @@ interface PersonalSectionProps {
 
 const PersonalSection: React.FC<PersonalSectionProps> = ({
   form,
+  profileData,
   updateProfileField,
 }) => {
   // Use the custom hook for standard field logic
@@ -143,6 +144,7 @@ const PersonalSection: React.FC<PersonalSectionProps> = ({
             onSave={(value) => handleSaveField("religion", value as string)}
             editValue={form.watch("religion")}
             error={fieldErrors.religion}
+            locked={!!profileData?.religion}
           />
           <SectionRow
             label="Smoking"
