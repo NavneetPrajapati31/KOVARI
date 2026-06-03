@@ -9,7 +9,7 @@ interface UserAvatarFallbackProps extends React.ComponentPropsWithoutRef<typeof 
 export function UserAvatarFallback({ className, iconClassName, ...props }: UserAvatarFallbackProps) {
   return (
     <AvatarFallback
-      className={cn("bg-secondary text-foreground text-xs font-medium", className)}
+      className={cn("bg-secondary text-foreground text-xs font-medium border border-border", className)}
       {...props}
     >
       <svg

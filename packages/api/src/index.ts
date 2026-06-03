@@ -15,3 +15,4 @@ export * from "./send-waitlist-confirmation";
 export * from "./email-config";
 export * from "./geocoding";
 export * from "./contracts/profile";
+export * from "./email-templates/feedback-alert";

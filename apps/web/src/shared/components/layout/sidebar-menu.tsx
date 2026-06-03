@@ -7,11 +7,13 @@ import {
   SheetTitle,
 } from "@/shared/components/ui/sheet";
 import { Button } from "@/shared/components/ui/button";
-import { Home, Search, User2, Inbox, Settings } from "lucide-react";
+import { Home, Search, User2, Inbox, Settings, MessageSquarePlus } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
+import { FeedbackDialog } from "@/features/feedback/components/FeedbackDialog";
+import { useFeedback } from "@/features/feedback/hooks/useFeedback";
 
 interface MenuItem {
   label: string;
@@ -69,6 +71,8 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
   onClose,
   menuItems = defaultMenuItems,
 }) => {
+  const { open: feedbackOpen, setOpen: setFeedbackOpen } = useFeedback();
+
   useEffect(() => {
     if (open) {
       document.body.classList.add("overflow-hidden");
@@ -160,7 +164,7 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
                   }}
                   tabIndex={0}
                   aria-label={item.label}
-                  className={`text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 w-full text-left ${index !== menuItems.length - 1 ? "border-b border-border pb-4" : ""}`}
+                  className={`text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 w-full text-left border-b border-border pb-4`}
                 >
                   {item.label}
                 </button>
@@ -169,7 +173,7 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
                   href={item.href}
                   tabIndex={0}
                   aria-label={item.label}
-                  className={`text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 ${index !== menuItems.length - 1 ? "border-b border-border pb-4" : ""}`}
+                  className={`text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 border-b border-border pb-4`}
                   onClick={onClose}
                 >
                   {item.label}
@@ -177,9 +181,44 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({
               )}
             </motion.div>
           ))}
+          
+          <motion.div
+            initial={{ opacity: 0, x: 20, filter: "blur(8px)" }}
+            animate={
+              open
+                ? { opacity: 1, x: 0, filter: "blur(0px)" }
+                : { opacity: 0, x: 20, filter: "blur(8px)" }
+            }
+            transition={{
+              opacity: {
+                duration: 0.4,
+                delay: 0.4 + menuItems.length * 0.1,
+                ease: "easeOut",
+              },
+              x: { duration: 0.4, delay: 0.4 + menuItems.length * 0.1, ease: "easeOut" },
+              filter: {
+                duration: 0.4,
+                delay: 0.4 + menuItems.length * 0.1,
+                ease: "easeOut",
+              },
+            }}
+          >
+            <button
+              onClick={() => {
+                setFeedbackOpen(true);
+                onClose();
+              }}
+              tabIndex={0}
+              aria-label="Feedback"
+              className="text-sm font-bold uppercase text-foreground flex items-center gap-4 focus:outline-none hover:text-primary transition-colors duration-300 w-full text-left"
+            >
+              Feedback
+            </button>
+          </motion.div>
         </motion.nav>
       </SheetContent>
       {/* Overlay handled by Sheet */}
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </Sheet>
   );
 };
