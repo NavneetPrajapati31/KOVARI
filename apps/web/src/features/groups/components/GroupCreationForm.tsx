@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -70,6 +70,7 @@ type FormData = z.infer<typeof formSchema>;
 export function GroupCreationForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const todayJs = new Date();
@@ -169,7 +170,9 @@ export function GroupCreationForm() {
   };
 
   const onSubmit = async (data: FormData) => {
+    if (isSubmittingRef.current) return;
     try {
+      isSubmittingRef.current = true;
       setIsSubmitting(true);
       setError(null);
 
@@ -214,6 +217,7 @@ export function GroupCreationForm() {
       setError(err instanceof Error ? err.message : "Failed to create group");
     } finally {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
