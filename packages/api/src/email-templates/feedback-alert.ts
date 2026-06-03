@@ -18,9 +18,9 @@ export const feedbackAlertEmail = ({
   submittedAt,
 }: FeedbackAlertOptions) => {
   const typeLabel =
-    type === "bug" ? "🐛 Bug Report"
-    : type === "suggestion" ? "💡 Suggestion"
-    : "📝 Other";
+    type === "bug" ? "Bug Report"
+    : type === "suggestion" ? "Suggestion"
+    : "Other";
 
   const content = `
     <div style="display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #1d4ed8; background: #eff6ff; border-radius: 4px; padding: 3px 10px; margin-bottom: 20px;">

@@ -849,7 +849,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                   <img
                     src={getFullImageUrl(profile.profileImage)}
                     alt="Profile"
-                    className="w-full h-full object-cover rounded-3xl"
+                    className="w-full h-full object-cover rounded-3xl border border-border"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-secondary rounded-3xl border border-border">

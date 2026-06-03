@@ -7,7 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 const FeedbackSchema = z.object({
   type: z.enum(["bug", "suggestion", "other"]),
   message: z.string().min(5, "Message too short").max(2000, "Message too long"),
-  page_url: z.string().url().optional().or(z.literal("")),
+  page_url: z.string().optional().nullable(),
 });
 
 async function sendFeedbackEmail(payload: {
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     sendFeedbackEmail({
       type,
       message,
-      pageUrl: page_url,
+      pageUrl: page_url || "",
       userEmail: user?.email ?? undefined,
       userId: user?.id ?? undefined,
       submittedAt: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),

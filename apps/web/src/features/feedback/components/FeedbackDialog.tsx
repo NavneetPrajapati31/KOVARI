@@ -12,11 +12,12 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { cn } from "@kovari/utils";
+import { Spinner } from "@heroui/react";
 
 const TYPES = [
-  { value: "bug", label: "Bug", emoji: "🐛" },
-  { value: "suggestion", label: "Suggestion", emoji: "💡" },
-  { value: "other", label: "Other", emoji: "📝" },
+  { value: "bug", label: "Bug"},
+  { value: "suggestion", label: "Suggestion"},
+  { value: "other", label: "Other"},
 ] as const;
 
 type FeedbackType = (typeof TYPES)[number]["value"];
@@ -48,7 +49,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
 
       if (!res.ok) throw new Error();
 
-      toast.success("Thanks! Your feedback helps us improve KOVARI.");
+      toast.success("Thanks! Your feedback helps us improve Kovari.");
       setMessage("");
       setType("bug");
       onOpenChange(false);
@@ -61,7 +62,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] sm:w-full rounded-xl sm:max-w-md mx-auto">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
             Share feedback
@@ -78,11 +79,10 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
                 className={cn(
                   "flex-1 flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium transition-colors",
                   type === t.value
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:bg-muted"
+                    ? "border-primary text-primary"
+                    : "border-border text-muted-foreground hover:bg-secondary"
                 )}
               >
-                <span>{t.emoji}</span>
                 {t.label}
               </button>
             ))}
@@ -94,7 +94,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
               type === "bug"
                 ? "What happened? What did you expect?"
                 : type === "suggestion"
-                ? "What would make KOVARI better for you?"
+                ? "What would make Kovari better for you?"
                 : "What's on your mind?"
             }
             value={message}
@@ -115,7 +115,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-primary-foreground"}} />
                 Sending...
               </span>
             ) : (
@@ -124,7 +124,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
           </Button>
 
           <p className="text-xs text-muted-foreground text-center">
-            Your feedback goes directly to the KOVARI team.
+            Your feedback goes directly to the Kovari team.
           </p>
         </div>
       </DialogContent>
