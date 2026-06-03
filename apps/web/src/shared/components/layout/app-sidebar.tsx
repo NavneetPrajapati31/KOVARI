@@ -18,11 +18,14 @@ import {
   Bell,
   Send,
   Heart,
+  MessageSquarePlus,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import HomeIcon from "@mui/icons-material/Home";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import { FeedbackDialog } from "@/features/feedback/components/FeedbackDialog";
+import { useFeedback } from "@/features/feedback/hooks/useFeedback";
 
 import {
   Sidebar,
@@ -166,6 +169,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { state } = useSidebar();
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const { open: feedbackOpen, setOpen: setFeedbackOpen } = useFeedback();
 
   useEffect(() => {
     const fetchProfilePhoto = async () => {
@@ -342,6 +346,15 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setFeedbackOpen(true)}
+                  className="cursor-pointer"
+                >
+                  <MessageSquarePlus className="text-foreground" />
+                  <span className="text-foreground font-normal">Feedback</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               {/* <SidebarMenuItem>
                         <div className="flex items-center justify-between px-2 py-2 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2">
@@ -400,6 +413,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </Sidebar>
   );
 }
