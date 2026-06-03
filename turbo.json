@@ -67,7 +67,9 @@
         "NEXT_PUBLIC_ENABLE_V1_MATCHING",
         "GOOGLE_CLIENT_ID",
         "JWT_ACCESS_SECRET",
-        "JWT_REFRESH_SECRET"
+        "JWT_REFRESH_SECRET",
+        "CLERK_WEBHOOK_SECRET",
+        "BETA_MODE"
       ]
     },
     "dev": {
