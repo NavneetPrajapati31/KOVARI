@@ -11,7 +11,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn } from "@kovari/utils";
 
 const TYPES = [
   { value: "bug", label: "Bug", emoji: "🐛" },
