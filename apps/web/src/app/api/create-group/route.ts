@@ -173,19 +173,8 @@ export async function POST(req: Request) {
       );
     }
 
-    if (parsed.data.destination && !groupData.ai_overview) {
-      const overview = await getGeminiPlaceOverview(parsed.data.destination);
-      if (overview) {
-        const { error: overviewError } = await supabase
-          .from("groups")
-          .update({ ai_overview: overview })
-          .eq("id", groupData.id);
-
-        if (overviewError) {
-          console.error("Failed to save AI overview:", overviewError);
-        }
-      }
-    }
+    // Removed synchronous AI overview generation to prevent API timeouts and duplicate group creation.
+    // The AI overview is automatically generated asynchronously by the group home page via /api/groups/[id]/ai-overview.
 
     // Try to create group membership with multiple fallback approaches
     const membershipPayload = {
