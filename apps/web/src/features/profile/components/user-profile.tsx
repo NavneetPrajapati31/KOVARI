@@ -31,12 +31,15 @@ import {
   LogOut,
   UserRound,
   ShieldCheck,
+  MessageSquarePlus,
 } from "lucide-react";
 import ProfileImageModal from "./profile-image-modal";
 import { AnimatePresence } from "framer-motion";
 // import CreatePostModal from "./create-post-modal";
 import { ReportDialog } from "@/shared/components/ReportDialog";
 import { cn } from "@kovari/utils";
+import { FeedbackDialog } from "@/features/feedback/components/FeedbackDialog";
+import { useFeedback } from "@/features/feedback/hooks/useFeedback";
 
 export interface UserProfile {
   name: string;
@@ -71,6 +74,7 @@ export interface UserProfileProps {
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
+  const { open: feedbackOpen, setOpen: setFeedbackOpen } = useFeedback();
   // Dynamic posts array for the feed (now from profile)
   const [activeTab, setActiveTab] = React.useState("About");
 
@@ -275,7 +279,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                       role="button"
                     >
                       {profile.profileImage ? (
-                        <Avatar className="h-[70px] w-[70px]">
+                        <Avatar className="h-[70px] w-[70px] border border-border">
                           <AvatarImage src={profile.profileImage || ""} />
                           <UserAvatarFallback
                             className="h-[70px] w-[70px]"
@@ -283,7 +287,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           />
                         </Avatar>
                       ) : (
-                        <Avatar className="h-[70px] w-[70px]">
+                        <Avatar className="h-[70px] w-[70px] border border-border">
                           <UserAvatarFallback
                             className="h-[70px] w-[70px]"
                             iconClassName="w-8 h-8"
@@ -392,6 +396,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
                           >
                             <Settings className="mr-1 h-4 w-4" />
                             <span>Settings</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => {
+                              // We don't have a state for Dropdown open in this particular usage, it closes automatically on click usually, or we can just open feedback
+                              setFeedbackOpen(true);
+                            }}
+                            className="px-2 cursor-pointer hover:!bg-transparent hover:!border-none hover:!outline-none focus-within:!bg-transparent focus-within:!border-none focus-within:!outline-none focus-within:!text-foreground"
+                          >
+                            <MessageSquarePlus className="mr-1 h-4 w-4" />
+                            <span>Feedback</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -1296,6 +1311,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ profile }) => {
         targetName={profile.name}
         onSuccess={() => setHasReported(true)}
       />
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </>
   );
 };

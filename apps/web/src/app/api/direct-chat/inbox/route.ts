@@ -61,6 +61,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: e.message }, { status: 400 });
     }
 
+    // Fetch blocked users to exclude them from the inbox
+    const { data: blockedData } = await supabase
+      .from("blocked_users")
+      .select("blocked_id, blocker_id")
+      .or(`blocker_id.eq.${userId},blocked_id.eq.${userId}`);
+
+    const blockedUserIds = new Set(
+      (blockedData || []).map((b) =>
+        b.blocker_id === userId ? b.blocked_id : b.blocker_id
+      )
+    );
+
     // Fetch unique conversations by getting messages where user is sender or receiver
     const { data, error } = await supabase
       .from("direct_messages")
@@ -77,6 +89,10 @@ export async function GET(req: NextRequest) {
     const latestMap = new Map<string, any>();
     (data || []).forEach(m => {
       const partnerId = m.sender_id === userId ? m.receiver_id : m.sender_id;
+      
+      // Filter out blocked users
+      if (blockedUserIds.has(partnerId)) return;
+
       if (!latestMap.has(partnerId)) {
         latestMap.set(partnerId, m);
       }
