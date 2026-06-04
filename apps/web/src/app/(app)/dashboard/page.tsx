@@ -72,6 +72,7 @@ import { ConnectionRequestsCard } from "@/features/dashboard/ConnectionRequestsC
 
 import ItineraryUI from "@/shared/components/comp-542";
 import Link from "next/link";
+import { OnboardingChecklist } from "@/features/onboarding-tour/components/OnboardingChecklist";
 
 interface ItineraryEvent {
   id: string;
@@ -146,9 +147,12 @@ function DashboardSkeleton() {
   );
 }
 
+import { useOnboardingTour } from "@/features/onboarding-tour/hooks/useOnboardingTour";
+
 export default function Dashboard() {
   const { user, isSignedIn } = useUser();
   const setUser = useAuthStore((s) => s.setUser);
+  const tourState = useOnboardingTour();
 
   const { groups, loading: groupsLoading } = useUserGroups();
   const { trips } = useUserTrips();
@@ -389,15 +393,19 @@ export default function Dashboard() {
     window.open(url, "_blank");
   };
 
-  const showFullSkeleton = !isSignedIn;
+  const showFullSkeleton = !isSignedIn || tourState.loading;
 
   return (
-    <div className="h-full bg-background p-4 flex flex-col gap-3">
+    <div className="h-full bg-background p-4 flex flex-col gap-3 overflow-y-auto scrollbar-hide">
       {showFullSkeleton ? (
         <DashboardSkeleton />
       ) : (
         <>
-          <div className="flex items-center justify-between pb-2">
+          {!tourState.completed ? (
+            <OnboardingChecklist tourState={tourState} />
+          ) : (
+            <>
+              <div className="flex items-center justify-between pb-2 flex-shrink-0">
             <div>
               <h1 className="text-sm font-semibold">
                 Hi, {user?.firstName || "User"}
@@ -557,8 +565,8 @@ export default function Dashboard() {
                 <Heart className="w-5 h-5 text-foreground cursor-pointer" />
               </Link>
             </div>
-          </div>
-          <div className="flex flex-col lg:flex-row gap-3 h-full">
+              </div>
+              <div className="flex flex-col lg:flex-row gap-3 h-full min-h-0">
             <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
               <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
                 <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
@@ -642,7 +650,9 @@ export default function Dashboard() {
                 <ItineraryUI />
               </div>
             </div>
-          </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
