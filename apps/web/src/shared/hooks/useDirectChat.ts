@@ -233,7 +233,7 @@ export const useDirectChat = (
      const chatId = currentUserUuid && partnerUuid ? getDirectChatId(currentUserUuid, partnerUuid) : null;
      if (user?.id && chatId) {
         const socket = getSocket(user.id);
-        if (socket.connected) socket.emit("typing_stop", { chatId });
+        socket.emit("typing_stop", { chatId });
      }
   }, [user?.id, currentUserUuid, partnerUuid]);
 
@@ -241,11 +241,9 @@ export const useDirectChat = (
      const chatId = currentUserUuid && partnerUuid ? getDirectChatId(currentUserUuid, partnerUuid) : null;
      if (user?.id && chatId) {
         const socket = getSocket(user.id);
-        if (socket.connected) {
-           socket.emit("typing_start", { chatId });
-           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-           typingTimeoutRef.current = setTimeout(stopTyping, 2500);
-        }
+        socket.emit("typing_start", { chatId });
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(stopTyping, 2500);
      }
   }, [user?.id, currentUserUuid, partnerUuid, stopTyping]);
 
@@ -254,10 +252,8 @@ export const useDirectChat = (
      const chatId = currentUserUuid && partnerUuid ? getDirectChatId(currentUserUuid, partnerUuid) : null;
      if (user?.id && chatId) {
         const socket = getSocket(user.id);
-        if (socket.connected) {
-           socket.emit("mark_seen", { chatId, messageIds });
-           setMessages(prev => prev.map(m => messageIds.includes(m.id) ? { ...m, status: "seen" } : m));
-        }
+        socket.emit("mark_seen", { chatId, messageIds });
+        setMessages(prev => prev.map(m => messageIds.includes(m.id) ? { ...m, status: "seen" } : m));
      }
   }, [user?.id, currentUserUuid, partnerUuid]);
 

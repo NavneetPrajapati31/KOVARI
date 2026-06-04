@@ -59,6 +59,11 @@ export default function AuthForm({ mode }: AuthFormProps) {
           // Prepare email verification
           await signUp?.prepareEmailAddressVerification();
           router.push("/verify-email");
+        } else if (result) {
+          console.warn("Unhandled sign-up status:", result.status);
+          setError(`Unhandled sign-up status: ${result.status}`);
+        } else {
+          setError("Sign-up failed to initialize.");
         }
       } else {
         // Sign in with email and password
@@ -80,12 +85,22 @@ export default function AuthForm({ mode }: AuthFormProps) {
             session: result.createdSessionId,
           });
           router.push("/dashboard");
-        } else if (result?.status === "needs_first_factor") {
+        } else if (result?.status === "needs_identifier") {
           // Handle MFA or other first factor requirements
-          setError("Additional verification required");
+          setError("Additional verification required (Identifier)");
+        } else if (result?.status === "needs_second_factor") {
+          setError("Two-factor authentication required");
+        } else if (result?.status === "needs_new_password") {
+          setError("Please set a new password");
+        } else if (result) {
+          console.warn("Unhandled sign-in status:", result.status, result);
+          setError(`Unhandled sign-in status: ${result.status}`);
+        } else {
+          setError("Sign-in failed to initialize. Please wait a moment and try again.");
         }
       }
     } catch (err: any) {
+      console.error("Auth error:", err);
       setError(err.errors?.[0]?.message || "An error occurred");
     } finally {
       setLoadingState(null);
