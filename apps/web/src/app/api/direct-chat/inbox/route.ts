@@ -90,9 +90,6 @@ export async function GET(req: NextRequest) {
     (data || []).forEach(m => {
       const partnerId = m.sender_id === userId ? m.receiver_id : m.sender_id;
       
-      // Filter out blocked users
-      if (blockedUserIds.has(partnerId)) return;
-
       if (!latestMap.has(partnerId)) {
         latestMap.set(partnerId, m);
       }
