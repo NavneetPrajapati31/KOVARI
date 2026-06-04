@@ -29,7 +29,7 @@ const STEPS = [
     title: "Create a travel group",
     description: "Plan a trip together with people you vibe with",
     cta: "Create group",
-    href: "/groups",
+    href: "/create-group",
   },
   {
     key: "sent_message" as const,
