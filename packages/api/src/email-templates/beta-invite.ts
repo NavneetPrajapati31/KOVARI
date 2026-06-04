@@ -1,7 +1,7 @@
 import { emailLayout, heading, paragraph } from "./layout";
 
 export const betaInviteEmail = ({ recipientEmail }: { recipientEmail: string }) => {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.WEB_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://kovari.in' : 'http://localhost:3000');
+  const baseUrl = process.env.WEB_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://kovari.in' : 'http://localhost:3000');
   const signupUrl = `${baseUrl}/sign-up`;
   const content = `
     ${heading("You're in. 🎉")}
