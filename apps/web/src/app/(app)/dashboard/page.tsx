@@ -401,19 +401,26 @@ export default function Dashboard() {
         <DashboardSkeleton />
       ) : (
         <>
-          {!tourState.completed ? (
-            <OnboardingChecklist tourState={tourState} />
-          ) : (
-            <>
-              <div className="flex items-center justify-between pb-2 flex-shrink-0">
-            <div>
-              <h1 className="text-sm font-semibold">
+          <div className={`flex items-center justify-between pb-2 flex-shrink-0 ${!tourState.completed ? "mt-2 gap-2 sm:px-6" : ""}`}>
+            {!tourState.completed ? (
+              <div className="mb-2">
+                <h2 className="text-xl font-bold text-foreground tracking-tight mb-1">
+                  {tourState.allDone ? "You're ready to explore! 🎉" : "Welcome to Kovari 👋🏻"}
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Complete these quick steps to get the most out of your travel experience.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h1 className="text-sm font-semibold">
                 Hi, {user?.firstName || "User"}
               </h1>
               <p className="text-muted-foreground font-medium text-sm">
                 Welcome back to Kovari 👋🏻
               </p>
             </div>
+            )}
             <div className="flex items-center gap-4">
               {/* <Search className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-foreground" /> */}
               {/* Mobile: Link to notifications page */}
@@ -565,8 +572,11 @@ export default function Dashboard() {
                 <Heart className="w-5 h-5 text-foreground cursor-pointer" />
               </Link>
             </div>
-              </div>
-              <div className="flex flex-col lg:flex-row gap-3 h-full min-h-0">
+          </div>
+          {!tourState.completed ? (
+            <OnboardingChecklist tourState={tourState} />
+          ) : (
+            <div className="flex flex-col lg:flex-row gap-3 h-full min-h-0">
             <div className="flex flex-col w-full lg:w-1/2 gap-3 h-full">
               <div className="flex flex-col md:flex-row gap-3 lg:h-[160px]">
                 <div className="w-full md:w-1/3 h-[180px] md:h-full min-h-0">
@@ -650,8 +660,7 @@ export default function Dashboard() {
                 <ItineraryUI />
               </div>
             </div>
-              </div>
-            </>
+            </div>
           )}
         </>
       )}

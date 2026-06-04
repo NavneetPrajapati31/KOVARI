@@ -13,7 +13,7 @@ const STEPS = [
     title: "Add a profile photo",
     description: "Travelers with photos get 3× more matches",
     cta: "Add photo",
-    href: "/profile?edit=photo",
+    href: "/profile/edit",
   },
   {
     key: "explored_match" as const,
@@ -61,16 +61,7 @@ export function OnboardingChecklist({ tourState }: Props) {
   const ActiveIcon = activeStep.icon;
 
   return (
-    <div className="flex-1 w-full py-4 sm:px-6">
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-foreground tracking-tight mb-1">
-          {allDone ? "You're ready to explore! 🎉" : "Welcome to Kovari 👋🏻"}
-        </h2>
-        <p className="text-muted-foreground">
-          Complete these quick steps to get the most out of your travel experience.
-        </p>
-      </div>
-
+    <div className="flex-1 w-full sm:px-6">
       <div className="flex flex-col lg:flex-row gap-4 w-full max-w-7xl">
         {/* Left: Featured Active Step */}
         <div className="flex-1 w-full">
@@ -167,7 +158,7 @@ export function OnboardingChecklist({ tourState }: Props) {
                         className={cn(
                           "w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-500",
                           done
-                            ? "bg-primary text-primary-foreground"
+                            ? "bg-primary border-primary text-primary-foreground"
                             : isCurrent
                             ? "bg-background border-border text-primary"
                             : "bg-background border-muted-foreground/30 text-muted-foreground/50"
