@@ -89,7 +89,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
           // Handle MFA or other first factor requirements
           setError("Additional verification required (Identifier)");
         } else if (result?.status === "needs_second_factor") {
-          setError("Two-factor authentication required");
+          const factors = result.supportedSecondFactors?.map((f: any) => f.strategy).join(", ") || "unknown";
+          setError(`Two-factor required by Clerk. Expected strategies: ${factors}`);
         } else if (result?.status === "needs_new_password") {
           setError("Please set a new password");
         } else if (result) {
