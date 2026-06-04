@@ -45,7 +45,7 @@ const nextConfig = {
           "img-src 'self' data: blob: https://res.cloudinary.com https://*.supabase.co https://utfs.io https://randomuser.me https://*.onrender.com https://img.clerk.com https://*.clerk.com",
           "media-src 'self' data: blob: https://res.cloudinary.com https://*.onrender.com",
           "font-src 'self' https://fonts.gstatic.com https://api.fontshare.com",
-          "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.clerk.dev wss://kovari.in http://localhost:3005 ws://localhost:3005 https://vitals.vercel-insights.com https://api.cloudinary.com https://*.onrender.com wss://*.onrender.com",
+          "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.clerk.dev wss://kovari.in https://socket.kovari.in wss://socket.kovari.in http://localhost:3005 ws://localhost:3005 https://vitals.vercel-insights.com https://api.cloudinary.com https://*.onrender.com wss://*.onrender.com",
           "frame-ancestors 'none'",
           "base-uri 'self'",
           "form-action 'self'",

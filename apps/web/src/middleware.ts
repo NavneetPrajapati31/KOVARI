@@ -386,7 +386,7 @@ export default async function middleware(req: NextRequest, evt: any) {
       img-src 'self' data: blob: https://res.cloudinary.com https://utfs.io https://img.clerk.com https://*.clerk.com https://images.clerk.dev https://*.googleusercontent.com https://*.supabase.co https://*.onrender.com;
       media-src 'self' data: blob: https://res.cloudinary.com https://*.onrender.com;
       font-src 'self' https://fonts.gstatic.com https://api.fontshare.com;
-      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.clerk.dev wss://kovari.in http://localhost:3005 ws://localhost:3005 https://vitals.vercel-insights.com https://api.cloudinary.com https://*.onrender.com wss://*.onrender.com https://*.clerk.accounts.dev https://clerk.kovari.in https://*.uploadthing.com;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.clerk.dev wss://kovari.in https://socket.kovari.in wss://socket.kovari.in http://localhost:3005 ws://localhost:3005 https://vitals.vercel-insights.com https://api.cloudinary.com https://*.onrender.com wss://*.onrender.com https://*.clerk.accounts.dev https://clerk.kovari.in https://*.uploadthing.com;
       frame-src 'self' https://challenges.cloudflare.com;
       frame-ancestors 'none';
       object-src 'none';
