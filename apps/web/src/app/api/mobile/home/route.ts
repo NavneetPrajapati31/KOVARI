@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
             supabase
                 .from("profile_impressions")
                 .select("id", { count: "exact", head: true })
-                .eq("user_id", userId),
+                .eq("viewed_user_id", userId),
 
             // Pending Connection Requests (Solo Match Interests)
             supabase
@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
 
         // 3. Stats & Analytics Calculation (Blueprint + Web Parity)
         const now = new Date();
-        let totalTravelDaysCount = 0;
+        const travelDaysSet = new Set<string>();
         const destinationFrequency: Record<string, number> = {};
 
         const activeGroups = allMemberships
@@ -138,10 +138,14 @@ export async function GET(req: NextRequest) {
                 
                 // Track travel days
                 if (g.start_date && g.end_date) {
-                    const start = parseISO(g.start_date);
-                    const end = parseISO(g.end_date);
-                    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-                    if (!isNaN(days)) totalTravelDaysCount += days;
+                    const current = new Date(g.start_date);
+                    const end = new Date(g.end_date);
+                    if (!isNaN(current.getTime()) && !isNaN(end.getTime())) {
+                        while (current <= end) {
+                            travelDaysSet.add(current.toISOString().split("T")[0]);
+                            current.setUTCDate(current.getUTCDate() + 1);
+                        }
+                    }
                 }
 
                 // Track destination frequency
@@ -187,7 +191,7 @@ export async function GET(req: NextRequest) {
             totalTrips: activeGroups.length,
             upcomingTripsCount: upcomingGroups.length,
             pastTripsCount: pastGroups.length,
-            totalTravelDays: totalTravelDaysCount,
+            totalTravelDays: travelDaysSet.size,
             profileImpressions: profileImpressions
         };
 

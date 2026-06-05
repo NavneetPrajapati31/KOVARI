@@ -70,22 +70,27 @@ export function getMostRecentGroupCoverForDestination(
 
 // 2. Total Travel Days
 export function getTotalTravelDays(groups: Group[]): number {
-  let totalDays = 0;
+  const uniqueDays = new Set<string>();
 
   for (const entry of groups) {
     const startDate = entry.group?.start_date;
     const endDate = entry.group?.end_date;
     if (startDate && endDate) {
-      const start = new Date(startDate);
+      const current = new Date(startDate);
       const end = new Date(endDate);
-      const days = Math.ceil(
-        (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      if (!isNaN(days)) totalDays += days;
+      
+      // Ensure valid dates
+      if (isNaN(current.getTime()) || isNaN(end.getTime())) continue;
+      
+      // Add each day to the set
+      while (current <= end) {
+        uniqueDays.add(current.toISOString().split("T")[0]);
+        current.setUTCDate(current.getUTCDate() + 1);
+      }
     }
   }
 
-  return totalDays;
+  return uniqueDays.size;
 }
 
 // 3. Estimated Co-Travelers (based on group count)
