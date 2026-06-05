@@ -252,11 +252,11 @@ export const ResultsDisplay = ({
             {lastSearchData ? (
               <>
                 <h3 className="sm:text-md text-sm font-medium text-foreground mb-2">
-                  No matches found
+                  You&apos;re early.
                 </h3>
                 <p className="text-muted-foreground sm:text-sm text-xs">
-                  Try adjusting your search criteria or dates to find more{" "}
-                  {activeTab === 0 ? "travel companions" : "travel groups"}.
+                  You&apos;re among the first travelers shaping Kovari. We&apos;ll
+                  notify you when others join.
                 </p>
               </>
             ) : (
