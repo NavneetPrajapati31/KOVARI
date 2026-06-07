@@ -1,11 +1,12 @@
 "use client";
 
 import React, { KeyboardEvent, useCallback, useRef } from "react";
-import { Mail, KeyRound, Trash2, FileText } from "lucide-react";
+import { Mail, KeyRound, Trash2, FileText, Palette } from "lucide-react";
 
 const TABS = [
   { key: "email", label: "Email", icon: Mail },
   { key: "password", label: "Password", icon: KeyRound },
+  { key: "appearance", label: "Appearance", icon: Palette },
   { key: "delete", label: "Delete Account", icon: Trash2 },
   { key: "legal", label: "Legal", icon: FileText },
 ] as const;
@@ -101,8 +102,8 @@ export function SettingsSidebar({
           className={
             `flex items-center gap-2 px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors font-medium text-xs sm:text-sm flex-shrink-0 md:w-full md:justify-start justify-center min-w-[80px]` +
             (activeTab === tab.key
-              ? " text-primary bg-primary-light font-semibold"
-              : " text-muted-foreground hover:text-foreground hover:bg-gray-100")
+              ? " text-primary bg-secondary font-semibold"
+              : " text-muted-foreground hover:text-foreground hover:bg-secondary")
           }
           aria-current={activeTab === tab.key ? "page" : undefined}
           aria-label={tab.label}

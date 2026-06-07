@@ -143,7 +143,15 @@ export default function AuthForm({ mode }: AuthFormProps) {
           alt="Kovari"
           width={400}
           height={160}
-          className="h-5 w-auto object-contain block"
+          className="h-5 w-auto object-contain block dark:hidden"
+          priority
+        />
+        <Image
+          src="/logo_dark.webp"
+          alt="Kovari"
+          width={400}
+          height={160}
+          className="h-5 w-auto object-contain hidden dark:block"
           priority
         />
       </div>
@@ -172,7 +180,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       <div className="space-y-1.5">
         <Button
           variant={"outline"}
-          className="w-full h-10 text-foreground hover:bg-background"
+          className="w-full h-10 text-foreground hover:bg-background hover:text-foreground"
           onClick={() => handleSocialAuth("oauth_google")}
           disabled={isLoading}
         >

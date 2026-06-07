@@ -241,9 +241,17 @@ export function AppSidebar() {
               alt="Kovari"
               width={400}
               height={160}
-              className="h-4 px-2 group-data-[state=collapsed]:px-0 w-auto object-contain block"
+              className="h-4 px-2 group-data-[state=collapsed]:px-0 w-auto object-contain block dark:hidden"
               priority
-                          />
+            />
+            <Image  
+              src="/logo_dark.webp"
+              alt="Kovari"
+              width={400}
+              height={160}
+              className="h-4 px-2 group-data-[state=collapsed]:px-0 w-auto object-contain hidden dark:block"
+              priority
+            />
           </div>
           <SidebarToggle />
         </div>

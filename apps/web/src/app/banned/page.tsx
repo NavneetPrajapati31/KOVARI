@@ -100,7 +100,15 @@ export default async function BannedPage() {
             alt="Kovari"
             width={400}
             height={160}
-            className="h-5 w-auto object-contain block"
+            className="h-5 w-auto object-contain block dark:hidden"
+            priority
+          />
+          <Image
+            src="/logo_dark.webp"
+            alt="Kovari"
+            width={400}
+            height={160}
+            className="h-5 w-auto object-contain hidden dark:block"
             priority
           />
         </div>

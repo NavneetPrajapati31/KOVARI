@@ -9,20 +9,13 @@ import {
 } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 
-if (process.env.NEXT_PUBLIC_DEV_THEME === "true") {
-  try {
-    require("@/styles/dev-theme.css");
-  } catch {
-    console.warn("⚠️ dev-theme.css not found. Skipping dev theme.");
-  }
-} else {
-  require("@/styles/globals.css");
-}
+import "@/styles/globals.css";
 
 import { Poppins, Inter } from "next/font/google";
 import { Toaster } from "@/shared/components/ui/sonner";
 import { HeroUIProvider } from "@heroui/react";
 import { AuthProvider } from "@/shared/components/auth-provider";
+import { ThemeProvider } from "@/shared/components/providers/theme-provider";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -99,8 +92,25 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning className="dark">
         <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                try {
+                  var theme = localStorage.getItem('kovari-theme');
+                  var d = document.documentElement;
+                  if (theme === 'dark' || ((theme === 'system' || !theme) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    d.classList.add('dark');
+                    d.style.colorScheme = 'dark';
+                  } else {
+                    d.classList.remove('dark');
+                    d.style.colorScheme = 'light';
+                  }
+                } catch (e) {}
+              `,
+            }}
+          />
           <link
             href="https://api.fontshare.com/v2/css?f[]=clash-display@200,300,400,500,600,700&display=swap"
             rel="stylesheet"
@@ -112,16 +122,23 @@ export default function RootLayout({
         </head>
         <body
           className={`${inter.variable} ${poppins.variable} font-sans`}
-          suppressHydrationWarning
         >
-          <HeroUIProvider>
-            <AuthProvider>{children}</AuthProvider>
-            <Toaster
-              position="bottom-right"
-              duration={3000}
-            />
-            <Analytics />
-          </HeroUIProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+            storageKey="kovari-theme"
+          >
+            <HeroUIProvider>
+              <AuthProvider>{children}</AuthProvider>
+              <Toaster
+                position="bottom-right"
+                duration={3000}
+              />
+              <Analytics />
+            </HeroUIProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

@@ -137,7 +137,7 @@ function SidebarProvider({
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   );
 
-  if (!hasMounted) return null;
+  // if (!hasMounted) return null;
 
   // On mobile, do not render the sidebar wrapper, just the children (main content and mobile sidebar/Sheet)
   if (isMobile) {

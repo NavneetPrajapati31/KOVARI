@@ -11,6 +11,7 @@ import {
   SecuritySection,
   DangerZoneSection,
   LegalSection,
+  AppearanceSection,
 } from "@/shared/components/settings";
 
 export default function SettingsPage() {
@@ -24,6 +25,7 @@ export default function SettingsPage() {
   const renderContent = () => {
     if (activeTab === "email") return <AccountSection />;
     if (activeTab === "password") return <SecuritySection />;
+    if (activeTab === "appearance") return <AppearanceSection />;
     if (activeTab === "delete") return <DangerZoneSection />;
     if (activeTab === "legal") return <LegalSection />;
     return <AccountSection />;
@@ -56,6 +58,7 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               <AccountSection />
               <SecuritySection />
+              <AppearanceSection />
               <DangerZoneSection />
               <LegalSection />
             </div>

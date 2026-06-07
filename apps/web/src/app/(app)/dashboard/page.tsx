@@ -504,8 +504,8 @@ export default function Dashboard() {
                                 }}
                                 className={`flex items-start gap-3 p-4 transition-colors cursor-pointer ${
                                   !notification.is_read
-                                    ? "bg-primary-light hover:bg-primary-light/80"
-                                    : "hover:bg-muted/50"
+                                    ? "bg-secondary"
+                                    : "hover:bg-secondary"
                                 }`}
                               >
                                 {isReport ? (

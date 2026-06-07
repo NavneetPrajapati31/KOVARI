@@ -147,8 +147,8 @@ export default function NotificationsPage() {
                   onClick={() => handleNotificationClick(notification)}
                   className={`flex items-start gap-3 p-4 transition-colors cursor-pointer border-b ${
                     !notification.is_read
-                      ? "bg-primary-light border-border"
-                      : "border-border"
+                      ? "bg-secondary border-border"
+                      : "border-border hover:bg-secondary"
                   }`}
                 >
                   {isReport ? (

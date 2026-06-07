@@ -269,9 +269,9 @@ export function AccountSection() {
               </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
-                className="border border-border rounded-lg px-3 py-1 hover:bg-gray-200 transition-all duration-300"
+                className="text-muted-foreground border border-border rounded-lg px-3 py-1 transition-all duration-300"
                 onClick={() => setShowEmailForm(true)}
               >
                 Change Email
