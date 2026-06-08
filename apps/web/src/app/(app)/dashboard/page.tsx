@@ -557,8 +557,8 @@ export default function Dashboard() {
                         onClick={() => setNotificationsOpen(false)}
                       >
                         <Button
-                          variant="outline"
-                          className="w-full hover:bg-background focus-visible:border-none focus-visible:ring-0"
+                          variant="secondary"
+                          className="w-full focus-visible:ring-0"
                         >
                           See all
                         </Button>

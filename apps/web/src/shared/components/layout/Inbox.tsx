@@ -226,7 +226,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
         {/* Search Bar */}
         <div className="p-3 bg-card flex-shrink-0 border-b border-border sticky top-0 z-50">
           <div className="relative">
-            <Input
+            <input
               type="text"
               placeholder="Search"
               className="w-full pl-4 pr-12 py-2 bg-secondary border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-sm placeholder:text-sm focus:outline-none"

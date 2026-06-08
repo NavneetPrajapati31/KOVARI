@@ -171,7 +171,7 @@ export function UpcomingTripCard({
         <div
           className={cn(
             "font-medium text-[12px] sm:text-xs rounded-full px-3 py-2 h-8 flex justify-center items-center max-w-[180px] min-w-0",
-            "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)] transition-all duration-200",
+            "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border [transform:translateZ(0)] transition-all duration-200",
             hasImage
               ? "text-primary-foreground"
               : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
