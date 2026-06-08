@@ -47,17 +47,31 @@
     scrollbar-width: 50px;
     scrollbar-color: #cbd5e1 var(--background);
   }
+
+  /* Reset webkit autofill styles to match theme */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }
 
 @layer utilities {
   .custom-autofill input:-webkit-autofill {
-    color: var(--primary);
-    box-shadow: 0 0 0px 1000px var(--background) inset !important;
+    color: var(--foreground) !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+    box-shadow: 0 0 0px 1000px transparent inset !important;
+    transition: background-color 5000s ease-in-out 0s;
   }
 
   .custom-autofill-white input:-webkit-autofill {
-    color: var(--primary);
-    box-shadow: 0 0 0px 1000px #ffffff inset !important;
+    color: var(--foreground) !important;
+    -webkit-text-fill-color: var(--foreground) !important;
+    box-shadow: 0 0 0px 1000px transparent inset !important;
+    transition: background-color 5000s ease-in-out 0s;
   }
 
   .scrollbar-none {
@@ -123,7 +137,7 @@
   --foreground: #f8fafc;
 
   --primary: #1c4dff;
-  --primary-light: #e4eaff;
+  --primary-light: #577cff;
   --primary-hover: #0033ec;
   --primary-foreground: #ffffff;
 

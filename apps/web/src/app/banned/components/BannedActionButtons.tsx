@@ -28,9 +28,9 @@ export function BannedActionButtons() {
         }}
       >
         <Button 
-          variant="outline" 
+          variant="secondary" 
           disabled={isContacting}
-          className="w-full h-12 rounded-xl border-border/60 bg-transparent hover:bg-secondary text-foreground flex items-center justify-center gap-2"
+          className="w-full h-12 rounded-xl border border-border text-foreground flex items-center justify-center gap-2"
         >
           {isContacting ? (
             <Spinner variant="spinner" size="sm" classNames={{spinnerBars:"bg-foreground"}} />

@@ -46,6 +46,7 @@ import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 import { useUserProfile } from "@/shared/hooks/use-user-profile";
 import DirectChatSkeleton from "@/shared/components/layout/direct-chat-skeleton";
+import { useTheme } from "next-themes";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -136,8 +137,8 @@ const VideoWithSkeleton = ({
 const isRealTextMessage = (content: string) => {
   if (!content) return false;
   const trimmed = content.trim();
-  // We now show [Encrypted message] bubbles instead of hiding them
-  return trimmed !== "";
+  // We don't want to show [Encrypted message] bubbles
+  return trimmed !== "" && trimmed !== "[Encrypted message]";
 };
 
 const MessageRow = React.memo(
@@ -201,7 +202,7 @@ const MessageRow = React.memo(
               className={`relative min-w-0 max-w-full px-3 py-1 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-line ${
                 isSent
                   ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-gray-100 text-foreground rounded-bl-md"
+                  : "bg-secondary text-foreground rounded-bl-md"
               } ${isEncryptedPlaceholder ? "opacity-70 italic" : ""}`}
               tabIndex={0}
               aria-label={content}
@@ -332,7 +333,7 @@ const MessageList = ({
           if (item.type === "separator") {
             return (
               <div key={`separator-${item.date}`} className="text-center my-4">
-                <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full">
                   {formatMessageDate(item.date!)}
                 </span>
               </div>
@@ -426,6 +427,7 @@ const MessageInput = ({
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -624,7 +626,7 @@ const MessageInput = ({
           {/* @ts-ignore */}
           <Picker
             data={data}
-            theme="light"
+            theme={resolvedTheme === "dark" ? "dark" : "light"}
             previewPosition="none"
             skinTonePosition="search"
             emojiSet="apple"
@@ -1249,7 +1251,7 @@ const DirectChatPage = () => {
                   key={`separator-${item.date}`}
                   className="text-center my-4"
                 >
-                  <span className="text-xs text-muted-foreground bg-gray-100 px-3 py-1 rounded-full">
+                  <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full">
                     {formatMessageDate(item.date)}
                   </span>
                 </div>

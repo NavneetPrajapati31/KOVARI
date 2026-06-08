@@ -160,7 +160,7 @@ const ChatActionsDropdown: React.FC<ChatActionsDropdownProps> = ({
             <EllipsisVertical className="h-5 w-5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 transition-all duration-300 ease-in-out border-border mr-4">
+        <DropdownMenuContent className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 dark:bg-black/70 transition-all duration-300 ease-in-out border-border mr-4">
           <DropdownMenuItem
             onClick={() => {
               setMenuOpen(false);

@@ -151,51 +151,6 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
-  // Waitlist launch mode: restrict to landing + waitlist; devs/admins bypass
-  if (isWaitlistLaunchMode()) {
-    const pathname = req.nextUrl.pathname;
-    const isApiRoute =
-      pathname.startsWith("/api") || pathname.startsWith("/trpc");
-
-    if (isWaitlistPublicPath(req)) {
-      return NextResponse.next();
-    }
-
-    let authData: any = {};
-    try {
-      authData = await auth();
-    } catch (e) {
-      console.warn("Clerk auth() failed in waitlist middleware (possibly tampered session):", e);
-    }
-    
-    const { userId, sessionId } = authData;
-    if (userId) {
-      if (await isLaunchBypassUser(userId)) {
-        return NextResponse.next();
-      }
-
-      // User present but not a bypass user?
-      // They might have signed up but failed to sync due to a network error or previous bug.
-      // Redirect them to /onboarding. If they are not approved, /api/supabase/sync-user will reject them and /onboarding will sign them out.
-      if (!req.nextUrl.pathname.startsWith("/onboarding") && !req.nextUrl.pathname.startsWith("/api/supabase/sync-user")) {
-        const url = req.nextUrl.clone();
-        url.pathname = "/onboarding";
-        return NextResponse.redirect(url);
-      }
-    }
-
-    if (isApiRoute) {
-      return NextResponse.json(
-        {
-          error: "Access restricted. Beta not yet available.",
-        },
-        { status: 403 },
-      );
-    }
-
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
   let authData: any = {};
   try {
     authData = await auth();
@@ -205,21 +160,10 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
 
   const { userId, sessionId } = authData;
 
-  // Normal Mode: Enforce login requirement on all non-public routes
-  if (!isPublicRoute(req)) {
-    if (!userId) {
-      if (pathname.startsWith("/api/") || pathname.startsWith("/trpc/")) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      const urlObj = req.nextUrl.clone();
-      urlObj.pathname = "/sign-in";
-      return NextResponse.redirect(urlObj);
-    }
-  }
-
+  // 3. Absolute Priority: Ban & Deletion Checks
+  // We must do this before ANY bypass logic (like waitlist admin bypass)
   if (userId) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    // Prefer Service Role Key for admin-level checks to bypass RLS
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -228,12 +172,10 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
         let supabase;
 
         if (supabaseServiceKey) {
-          // Use Service Role to bypass RLS - safest for middleware checks
           supabase = createClient(supabaseUrl, supabaseServiceKey, {
             auth: { persistSession: false },
           });
         } else {
-          // Fallback to Anon Key with User Token
           const { getToken } = await auth();
           const token = await getToken({ template: "supabase" });
           supabase = createClient(supabaseUrl, supabaseAnonKey!, {
@@ -251,22 +193,13 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
 
         if (error) {
           console.error("Middleware Supabase error:", error);
-          // If we can't check, we should probably fail safe?
-          // However, blocking valid users on rare DB errors is bad UX.
-          // For now, log and proceed (fail open) unless it's critical.
-          // User explicitly asked for security, but infinite loops are worse.
-          // Let's stick to fail open for generic errors but handle banned=true.
         }
 
-        // Soft-deleted accounts are blocked from using the app.
-        // We keep the user row (soft delete) to preserve referential integrity and audit history,
-        // but deny access as if the account no longer exists.
         if (user?.isDeleted) {
           const pathname = req.nextUrl.pathname;
           const isApiRoute =
             pathname.startsWith("/api") || pathname.startsWith("/trpc");
 
-          // For API routes, return a proper 403 JSON error.
           if (isApiRoute) {
             return NextResponse.json(
               { error: "Account has been deleted" },
@@ -274,8 +207,6 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
             );
           }
 
-          // For page routes, revoke the current session (best-effort) and redirect to sign-in.
-          // If we returned JSON here, the browser would render it as a blank JSON page.
           try {
             if (sessionId) {
               const client = await clerkClient();
@@ -297,10 +228,8 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
         if (user?.banned) {
           let isBanned = true;
 
-          // Check if ban is expired (suspension)
           if (user.ban_expires_at) {
             const expires = new Date(user.ban_expires_at);
-            // If current time is past expiration, they are no longer banned
             const now = new Date();
             if (expires < now) {
               isBanned = false;
@@ -308,14 +237,72 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
           }
 
           if (isBanned) {
-            return NextResponse.redirect(new URL("/banned", req.url));
+            const pathname = req.nextUrl.pathname;
+            const isApiRoute = pathname.startsWith("/api") || pathname.startsWith("/trpc");
+            const isPublic = isWaitlistLaunchMode() ? isWaitlistPublicPath(req) : isPublicRoute(req);
+
+            if (!isPublic) {
+              if (isApiRoute) {
+                return NextResponse.json(
+                  { error: "Account has been banned" },
+                  { status: 403 },
+                );
+              }
+              return NextResponse.redirect(new URL("/banned", req.url));
+            }
           }
         }
       } catch (error) {
         console.error("Middleware ban check error:", error);
-        // Fail closed for maximum security as requested previously
         return NextResponse.redirect(new URL("/banned", req.url));
       }
+    }
+  }
+
+  // 4. Waitlist launch mode: restrict to landing + waitlist; devs/admins bypass
+  if (isWaitlistLaunchMode()) {
+    const pathname = req.nextUrl.pathname;
+    const isApiRoute =
+      pathname.startsWith("/api") || pathname.startsWith("/trpc");
+
+    if (isWaitlistPublicPath(req)) {
+      return NextResponse.next();
+    }
+
+    if (userId) {
+      if (await isLaunchBypassUser(userId)) {
+        return NextResponse.next();
+      }
+
+      if (!req.nextUrl.pathname.startsWith("/onboarding") && !req.nextUrl.pathname.startsWith("/api/supabase/sync-user")) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/onboarding";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    if (isApiRoute) {
+      return NextResponse.json(
+        {
+          error: "Access restricted. Beta not yet available.",
+        },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
+  // 5. Normal Mode: Enforce login requirement on all non-public routes
+  if (!isPublicRoute(req)) {
+    if (!userId) {
+      const pathname = req.nextUrl.pathname;
+      if (pathname.startsWith("/api/") || pathname.startsWith("/trpc/")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const urlObj = req.nextUrl.clone();
+      urlObj.pathname = "/sign-in";
+      return NextResponse.redirect(urlObj);
     }
   }
 

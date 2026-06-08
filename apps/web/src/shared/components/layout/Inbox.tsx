@@ -222,14 +222,14 @@ export default function Inbox({ activeUserId }: InboxProps) {
 
   if (!currentUserUuid || inbox.loading) {
     return (
-      <div className="h-full flex flex-col bg-gray-50">
+      <div className="h-full flex flex-col bg-card">
         {/* Search Bar */}
         <div className="p-3 bg-card flex-shrink-0 border-b border-border sticky top-0 z-50">
           <div className="relative">
             <Input
               type="text"
               placeholder="Search"
-              className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-sm placeholder:text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300"
+              className="w-full pl-4 pr-12 py-2 bg-secondary border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-sm placeholder:text-sm focus:outline-none"
             />
             <Search className="absolute right-2 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           </div>
@@ -247,7 +247,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
           <input
             type="text"
             placeholder="Search"
-            className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-sm placeholder:text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300"
+            className="w-full pl-4 pr-12 py-2 bg-secondary border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-sm placeholder:text-sm focus:outline-none"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Search conversations"
@@ -264,7 +264,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
               onClick={handleClearSearch}
               aria-label="Clear search"
               tabIndex={0}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md focus:outline-none"
             >
               <X className="h-5 w-5 text-gray-400" />
             </button>
@@ -274,7 +274,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
               onClick={handleSearch}
               aria-label="Search"
               tabIndex={0}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md focus:outline-none"
             >
               <Search className="h-5 w-5 text-gray-400" />
             </button>
@@ -358,7 +358,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                   index !== filteredConversations.length - 1
                     ? "border-b border-border"
                     : ""
-                } ${isActive ? "bg-primary-light" : "hover:bg-gray-100"}`}
+                } ${isActive ? "bg-secondary" : "hover:bg-secondary"}`}
                 onClick={() => handleConversationClick(conversation.userId)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -379,7 +379,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                       src={isDeleted ? "" : profile?.profile_photo || ""}
                       alt={displayName}
                     />
-                    <UserAvatarFallback className="" />
+                    <UserAvatarFallback className="border border-border" />
                   </Avatar>
                   {onlineUsers.has(conversation.userId) && (
                     <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-primary border-2 border-card" />
@@ -391,7 +391,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                   <div className="flex items-center justify-between mb-0.5">
                     <h3
                       className={`text-sm font-semibold truncate ${
-                        isActive ? "text-primary" : "text-foreground"
+                        isActive ? "text-foreground" : "text-foreground"
                       }`}
                     >
                       {displayName}
@@ -408,7 +408,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                   <div className="flex items-center justify-between">
                     <p
                       className={`text-xs truncate pr-2 flex flex-row items-center ${
-                        isActive ? "text-primary" : "text-gray-500"
+                        isActive ? "text-gray-500" : "text-gray-500"
                       }`}
                     >
                       {typingUsers.has(conversation.userId) ? (
@@ -427,7 +427,7 @@ export default function Inbox({ activeUserId }: InboxProps) {
                           </span>
                           <span>Video</span>
                         </>
-                      ) : (conversation as any).lastMediaType === "init" ? (
+                      ) : (conversation as any).lastMediaType === "init" || conversation.lastMessage === "[Encrypted message]" ? (
                         <span className="font-medium text-primary">
                           Start a conversation!
                         </span>

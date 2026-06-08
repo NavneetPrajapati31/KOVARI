@@ -55,6 +55,7 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { getFullImageUrl } from "@kovari/utils";
 import Link from "next/link";
+import { useTheme } from "next-themes";
 
 /** Standalone user icon fallback for HeroUI Avatar (cannot use UserAvatarFallback - it requires Radix Avatar context). */
 function GroupCoverAvatarFallback({ className }: { className?: string }) {
@@ -258,6 +259,7 @@ export default function GroupChatInterface() {
   } = useGroupMembership(groupId);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     if (user?.id) {
@@ -1351,7 +1353,7 @@ export default function GroupChatInterface() {
                   {/* @ts-ignore */}
                   <Picker
                     data={data}
-                    theme="light"
+                    theme={resolvedTheme === "dark" ? "dark" : "light"}
                     previewPosition="none"
                     skinTonePosition="search"
                     emojiSet="apple"

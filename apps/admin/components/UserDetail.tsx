@@ -150,10 +150,15 @@ export function UserDetail({
   ) => {
     setIsLoading(true);
     try {
+      let parsedBanUntil = banUntil;
+      if (action === "suspend" && banUntil) {
+        parsedBanUntil = new Date(banUntil).toISOString();
+      }
+
       const res = await fetch(`/api/admin/users/${profile.id}/action`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, reason, banUntil, flagId }),
+        body: JSON.stringify({ action, reason, banUntil: parsedBanUntil, flagId }),
       });
 
       if (!res.ok) {

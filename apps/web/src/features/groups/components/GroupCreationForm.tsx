@@ -222,7 +222,7 @@ export function GroupCreationForm() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-3 pb-16 md:p-6 custom-autofill-white">
+    <div className="min-h-screen bg-background flex items-center justify-center p-3 pb-16 md:p-6">
       <Card className="w-full max-w-4xl bg-card shadow-none border-border py-2">
         <CardContent className="p-4 md:p-6">
           <div className="text-center mb-8">
@@ -256,7 +256,7 @@ export function GroupCreationForm() {
                 {...register("groupName")}
                 placeholder="Enter group name"
                 className={cn(
-                  "h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-md placeholder:text-muted-foreground",
+                  "h-9 text-sm border-border focus:border-primary focus:ring-primary rounded-md placeholder:text-muted-foreground",
                   errors.groupName &&
                     "border-destructive focus:border-destructive focus:ring-destructive placeholder:text-destructive",
                 )}
@@ -296,7 +296,7 @@ export function GroupCreationForm() {
                 }}
                 placeholder="Search destination"
                 className={cn(
-                  "bg-white",
+                  "",
                   errors.destination && "border-destructive",
                 )}
               />
@@ -321,7 +321,7 @@ export function GroupCreationForm() {
                 max={1000000}
                 step={1000}
                 {...register("budget", { valueAsNumber: true })}
-                className="mt-1"
+                className="mt-1 border-border"
               />
               {errors.budget && (
                 <p className="text-sm text-destructive">
@@ -364,11 +364,11 @@ export function GroupCreationForm() {
                   }}
                   classNames={{
                     inputWrapper: cn(
-                      "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
+                      "w-full text-sm rounded-md border-1 !border-border hover:!border-border focus-within:!border-border shadow-xs",
                       errors.startDate &&
-                        "border-destructive focus:border-destructive focus:ring-destructive",
+                        "!border-destructive focus-within:!border-destructive",
                     ),
-                    calendarContent: cn("!bg-white !opacity-1"),
+                    calendarContent: cn("!bg-popover !opacity-1"),
                   }}
                 />
                 {errors.startDate && (
@@ -406,11 +406,11 @@ export function GroupCreationForm() {
                   }}
                   classNames={{
                     inputWrapper: cn(
-                      "w-full text-sm border-input focus:border-primary focus:ring-primary rounded-md border-1 border-border hover:border-border",
+                      "w-full text-sm rounded-md border-1 !border-border hover:!border-border focus-within:!border-border shadow-xs",
                       errors.endDate &&
-                        "border-destructive focus:border-destructive focus:ring-destructive",
+                        "!border-destructive focus-within:!border-destructive",
                     ),
-                    calendarContent: cn("!bg-white !opacity-1"),
+                    calendarContent: cn("!bg-popover !opacity-1"),
                   }}
                 />
                 {errors.endDate && (
@@ -442,7 +442,7 @@ export function GroupCreationForm() {
                   {...register("description")}
                   placeholder="Tell people what your group is about..."
                   className={cn(
-                    "min-h-[120px] px-4 py-3 text-sm border-input focus:border-primary focus:ring-primary rounded-md resize-none placeholder:text-muted-foreground",
+                    "min-h-[120px] px-4 py-3 text-sm border-border focus:border-primary focus:ring-primary rounded-md resize-none placeholder:text-muted-foreground",
                     errors.description &&
                       "border-destructive focus:border-destructive focus:ring-destructive",
                   )}

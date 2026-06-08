@@ -92,20 +92,28 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning className="dark">
+      <html lang="en" suppressHydrationWarning>
         <head>
           <script
             dangerouslySetInnerHTML={{
               __html: `
                 try {
-                  var theme = localStorage.getItem('kovari-theme');
+                  var marketingRoutes = ['/', '/about', '/privacy', '/terms', '/community-guidelines', '/user-safety', '/data-deletion'];
+                  var isMarketing = marketingRoutes.includes(window.location.pathname);
                   var d = document.documentElement;
-                  if (theme === 'dark' || ((theme === 'system' || !theme) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    d.classList.add('dark');
-                    d.style.colorScheme = 'dark';
-                  } else {
+                  
+                  if (isMarketing) {
                     d.classList.remove('dark');
                     d.style.colorScheme = 'light';
+                  } else {
+                    var theme = localStorage.getItem('kovari-theme');
+                    if (theme === 'dark' || ((theme === 'system' || !theme) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                      d.classList.add('dark');
+                      d.style.colorScheme = 'dark';
+                    } else {
+                      d.classList.remove('dark');
+                      d.style.colorScheme = 'light';
+                    }
                   }
                 } catch (e) {}
               `,

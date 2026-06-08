@@ -139,7 +139,7 @@ export default async function BannedPage() {
 
             {/* Expiration Box (for suspensions) */}
             {banDetails.expiresAt && (
-              <div className="mt-8 rounded-2xl border border-border/50 bg-secondary p-4">
+              <div className="mt-8 rounded-xl border border-border bg-secondary p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">Suspension active until</span>
                   <span className="text-sm text-muted-foreground">

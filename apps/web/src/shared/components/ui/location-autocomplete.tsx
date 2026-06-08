@@ -172,7 +172,7 @@ export function LocationAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="pr-10 bg-white" 
+          className="pr-10 bg-transparent border-border" 
           autoComplete="off"
         />
         {isLoading && (
