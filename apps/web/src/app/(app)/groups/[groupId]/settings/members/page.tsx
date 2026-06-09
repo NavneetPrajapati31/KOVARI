@@ -426,7 +426,7 @@ export default function Page() {
                     <Chip
                       size="sm"
                       variant="bordered"
-                      className="text-sm capitalize flex-shrink-0 self-center bg-primary-light border-none text-primary px-2"
+                      className="text-sm capitalize flex-shrink-0 self-center bg-secondary border-none text-primary px-2"
                     >
                       <span className="font-medium text-xs">Admin</span>
                     </Chip>
