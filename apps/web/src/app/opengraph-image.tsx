@@ -48,21 +48,10 @@ export default async function Image() {
           <img
             src={logoData as any}
             alt="Kovari Logo"
-            width={800}
-            height={165}
+            width={500}
+            height={104}
             style={{ objectFit: 'contain' }}
           />
-          <div
-            style={{
-              marginTop: 40,
-              fontSize: 48,
-              fontWeight: 600,
-              color: "#374151",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Plan Group Travel with Friends
-          </div>
         </div>
       </div>
     ),

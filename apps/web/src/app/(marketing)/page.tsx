@@ -4,7 +4,7 @@ import LandingContent from "@/shared/components/landing/LandingContent";
 
 export async function generateMetadata() {
   return {
-    title: "Kovari — Plan Group Travel with Friends",
+    title: "Kovari",
     description: "Kovari helps you plan trips, build travel groups, and find companions who match your travel style. Join the waitlist.",
     alternates: {
       canonical: "https://kovari.in",

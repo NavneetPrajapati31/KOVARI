@@ -33,7 +33,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kovari.in"),
   title: {
-    default: "Kovari — Plan Group Travel with Friends",
+    default: "Kovari",
     template: "%s | Kovari",
   },
   description: "Kovari is the social travel platform to plan trips, find travel companions, and explore the world together. Built for groups who travel differently.",
@@ -68,12 +68,12 @@ export const metadata: Metadata = {
     locale: "en_IN",
     url: "https://kovari.in",
     siteName: "Kovari",
-    title: "Kovari — Plan Group Travel with Friends",
+    title: "Kovari",
     description: "The social travel platform for people who travel in groups. Plan trips, find companions, explore together.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kovari — Plan Group Travel with Friends",
+    title: "Kovari",
     description: "The social travel platform for people who travel in groups.",
     creator: "@kovariapp",
   },
