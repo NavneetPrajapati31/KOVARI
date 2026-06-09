@@ -742,7 +742,7 @@ const GroupHomePage = () => {
                   </>
                 )}
 
-                <Divider />
+                <Divider className="bg-border" />
 
                 {/* Calendar Accordion */}
                 <div>
@@ -782,7 +782,7 @@ const GroupHomePage = () => {
                         </>
                       )}
 
-                      <Divider />
+                      <Divider className="bg-border" />
                     </div>
                     {/* <div className="flex flex-col space-y-4 items-center justify-between"> */}
                     {/* {groupInfoLoading ||
@@ -1035,7 +1035,7 @@ const GroupHomePage = () => {
                   {groupInfoLoading ? (
                     <Skeleton className="w-full h-[150px] rounded-3xl" />
                   ) : (
-                    <Card className="bg-primary-light border-3 border-card rounded-3xl shadow-sm">
+                    <Card className="bg-secondary border-3 border-card rounded-3xl shadow-sm">
                       <CardBody className="p-4">
                         <h3 className="text-xs font-semibold text-primary mb-2">
                           AI Overview
@@ -1166,7 +1166,7 @@ const GroupHomePage = () => {
                         />
                       </div>
                       {/* AI Overview */}
-                      <Card className="bg-primary-light border-3 border-card rounded-3xl shadow-sm flex-1 basis-1/3 lg:basis-1/2 max-h-[220px] overflow-y-auto hide-scrollbar">
+                      <Card className="bg-secondary border-3 border-card rounded-3xl shadow-sm flex-1 basis-1/3 lg:basis-1/2 max-h-[220px] overflow-y-auto hide-scrollbar">
                         <CardBody className="p-4">
                           <h3 className="text-xs font-semibold text-primary mb-2">
                             AI Overview
@@ -1211,7 +1211,7 @@ const GroupHomePage = () => {
                           `${Array.isArray(groupMembers) ? groupMembers.length : 0} members`
                         )}
                       </h2>
-                      {membersLoading ? "" : <Divider />}
+                      {membersLoading ? "" : <Divider className="bg-border" />}
                     </CardHeader>
 
                     <CardBody className="px-3 pb-4 pt-1">
@@ -1584,7 +1584,7 @@ const GroupHomePage = () => {
                     `${Array.isArray(groupMembers) ? groupMembers.length : 0} members`
                   )}
                 </h2>
-                {membersLoading ? "" : <Divider />}
+                {membersLoading ? "" : <Divider className="bg-border" />}
               </CardHeader>
 
               <CardBody className="px-3 pb-4 pt-1">
