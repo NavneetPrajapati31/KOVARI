@@ -147,7 +147,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
     if (fieldType === "select") {
       return (
         <Select value={editValue as string} onValueChange={setEditValue}>
-          <SelectTrigger className="w-full h-9 text-sm focus:ring-0 rounded-lg bg-white">
+          <SelectTrigger className="w-full h-9 text-sm focus:ring-0 rounded-lg bg-transparent">
             <SelectValue
               placeholder={placeholder || "Select an option"}
             />
@@ -173,10 +173,10 @@ const SectionRow: React.FC<SectionRowProps> = ({
           value={editValue as string}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`w-full min-h-[80px] p-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-0 placeholder:text-sm bg-white ${
+          className={`w-full min-h-[80px] p-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-0 placeholder:text-sm bg-transparent ${
             error
               ? "border-destructive focus:border-destructive"
-              : "border-input"
+              : "border-border"
           }`}
           disabled={isSaving}
           placeholder={placeholder}
@@ -204,7 +204,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
               });
             }}
             placeholder={placeholder || "Search your location"}
-            className="w-full bg-white"
+            className="w-full"
             disabled={isSaving}
           />
         </div>
@@ -249,7 +249,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
             <Button
               variant="outline"
               disabled={isSaving}
-              className="w-full h-9 text-sm border-input justify-between font-normal bg-white hover:bg-white px-3 py-2 rounded-lg"
+              className="w-full h-9 text-sm justify-between font-normal bg-secondary hover:bg-secondary px-3 py-2 rounded-lg"
             >
                 <span className={cn(!editValue && "text-muted-foreground", "truncate")}>
                   {isMulti 
@@ -260,13 +260,13 @@ const SectionRow: React.FC<SectionRowProps> = ({
               <ChevronDown className="h-4 w-4 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="p-0 border border-border shadow-xl rounded-xl overflow-hidden bg-white" align="start" sideOffset={4}>
+          <PopoverContent className="p-0 border border-border shadow-xl rounded-xl overflow-hidden bg-popover" align="start" sideOffset={4}>
             <Command className="w-[280px] sm:w-[320px]">
               <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
                 <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                 <input
                   placeholder={placeholder || "Search..."}
-                  className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-none"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -288,7 +288,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
                       return (
                         <div
                           key={option.value}
-                          className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center group"
+                          className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-secondary flex items-center group"
                           onClick={async () => {
                             if (isMulti) {
                               const next = currentValues.includes(option.value)
@@ -363,7 +363,7 @@ const SectionRow: React.FC<SectionRowProps> = ({
           value={editValue as string}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg bg-white ${error ? "border-destructive focus:border-destructive" : ""} placeholder:text-muted-foreground pr-9`}
+          className={`w-full h-9 text-sm border-border focus:border-primary focus:ring-primary rounded-lg bg-white ${error ? "border-destructive focus:border-destructive" : ""} placeholder:text-muted-foreground pr-9`}
           disabled={isSaving}
           placeholder={placeholder}
           min={min}
@@ -480,19 +480,19 @@ const SectionRow: React.FC<SectionRowProps> = ({
       {!isEditing && (onEdit || onSave) && (
         locked ? (
           <div
-            className={`ml-4 border border-border/50 rounded-lg text-muted-foreground/50 bg-gray-50 flex items-center ${isMobile ? "p-2" : "px-3 py-1.5 gap-1 text-xs font-semibold"} cursor-not-allowed`}
+            className={`ml-4 border border-border/50 rounded-lg text-muted-foreground bg-secondary flex items-center ${isMobile ? "p-2" : "px-3 py-1.5 gap-1 text-xs font-semibold"} cursor-not-allowed`}
             aria-label="Locked field"
             title="This field cannot be changed after account creation"
           >
-            <Pencil className="w-4 h-4" />
-            {!isMobile && editLabel}
+            <Lock className="w-4 h-4" />
+            {!isMobile && "Locked"}
           </div>
         ) : (
           <button
             type="button"
             onClick={onSave ? handleEdit : onEdit}
             disabled={isLoading}
-            className={`ml-4 border border-border rounded-lg text-muted-foreground hover:bg-gray-200 transition-all duration-300 flex items-center ${isMobile ? "p-2" : "px-3 py-1.5 gap-1 text-xs font-semibold"} disabled:opacity-50`}
+            className={`ml-4 border border-border rounded-lg text-foreground bg-secondary hover:bg-muted transition-all duration-300 flex items-center ${isMobile ? "p-2" : "px-3 py-1.5 gap-1 text-xs font-semibold"}`}
             aria-label={editLabel}
           >
             <Pencil className="w-4 h-4" />

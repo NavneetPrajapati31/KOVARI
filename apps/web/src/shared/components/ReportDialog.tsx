@@ -399,10 +399,10 @@ export function ReportDialog({
               <DialogFooter className="gap-2 sm:gap-0 mt-1">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => onOpenChange(false)}
                   disabled={isSubmitting || isUploadingEvidence}
-                  className="rounded-full font-medium hover:bg-background text-xs sm:text-sm"
+                  className="rounded-full font-medium text-xs sm:text-sm"
                 >
                   Cancel
                 </Button>

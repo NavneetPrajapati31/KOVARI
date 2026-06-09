@@ -127,14 +127,16 @@ export function DangerZoneSection() {
               value={confirmInput}
               onChange={(e) => setConfirmInput(e.target.value)}
               aria-invalid={confirmInput.length > 0 && !canConfirm}
+              className="border-border"
             />
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={handleCloseModal}
               disabled={isDeleting}
+              className="bg-secondary"
             >
               Cancel
             </Button>

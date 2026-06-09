@@ -127,8 +127,8 @@ export function InterestCard({
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <Button
-              variant="outline"
-              className="w-full h-9 text-xs font-semibold rounded-lg border-border hover:bg-accent/50"
+              variant="secondary"
+              className="w-full h-9 text-xs font-semibold rounded-lg border-borderbg"
               disabled={!!loadingAction}
               onClick={async () => {
                 setLoadingAction("decline");

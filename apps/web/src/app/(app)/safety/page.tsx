@@ -414,7 +414,7 @@ export default function SafetyPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={`Search ${reportTargetType === "user" ? "users" : "groups"}...`}
-                className="pl-10 pr-10 h-11 bg-secondary/60 border-border/40 rounded-xl focus-visible:ring-0 focus-visible:bg-secondary/80 shadow-none transition-colors placeholder:text-muted-foreground"
+                className="pl-10 pr-10 h-11 !bg-card border-border/40 rounded-xl focus-visible:ring-0 focus-visible:bg-card shadow-none transition-colors placeholder:text-muted-foreground"
               />
               {searchQuery.length > 0 && (
                 <button
@@ -448,7 +448,7 @@ export default function SafetyPage() {
                       <button
                         key={target.id}
                         onClick={() => handleSelectTarget(target.id, target.name)}
-                        className="w-full flex items-center p-3 px-4 hover:bg-secondary active:bg-secondary duration-150 transition-colors"
+                        className="w-full flex items-center p-3 px-4 duration-150 transition-colors"
                       >
                         <Avatar className="w-9 h-9 mr-3">
                           <AvatarImage src={target.imageUrl} />

@@ -307,7 +307,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
 
             <div className="flex items-center gap-1">
               <Button
-                className="mt-6 bg-transparent border border-border hover:bg-gray-200 shadow-none rounded-lg px-3 py-1 transition-all duration-300 disabled:opacity-50"
+                className="mt-6 bg-secondary border border-border shadow-none rounded-lg px-3 py-1 transition-all duration-300 disabled:opacity-50"
                 aria-label="Upload avatar"
                 onClick={handleUploadClick}
                 disabled={avatarUploadLoading || avatarDeleteLoading}
@@ -325,7 +325,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
                 )}
               </Button>
               <Button
-                className="mt-6 px-3 py-1 bg-transparent border border-border shadow-none rounded-lg text-destructive hover:bg-gray-200 transition-all duration-300"
+                className="mt-6 px-3 py-1 bg-secondary border border-border shadow-none rounded-lg text-destructive transition-all duration-300"
                 aria-label="Delete avatar"
                 onClick={handleAvatarDelete}
                 disabled={
@@ -375,7 +375,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             />
             <Button
               size="sm"
-              className="ml-auto border bg-transparent border-border rounded-lg px-3 py-1 text-destructive hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
+              className="ml-auto border bg-secondary border-border rounded-lg px-3 py-1 text-destructive transition-all duration-300 disabled:opacity-50"
               aria-label="Delete avatar"
               onClick={handleAvatarDelete}
               disabled={
@@ -396,7 +396,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({
             </Button>
             <Button
               size="sm"
-              className="bg-transparent border border-border rounded-lg px-3 py-1 hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
+              className="bg-secondary border border-border rounded-lg px-3 py-1 transition-all duration-300 disabled:opacity-50"
               aria-label="Upload avatar"
               onClick={handleUploadClick}
               disabled={avatarUploadLoading || avatarDeleteLoading}

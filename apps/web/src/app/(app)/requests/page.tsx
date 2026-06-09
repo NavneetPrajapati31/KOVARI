@@ -77,11 +77,11 @@ export default function RequestsPage() {
       REQUEST_TABS.map((tab, idx) => (
         <Button
           key={tab.label}
-          variant={"outline"}
-          className={`text-xs sm:text-sm ${
+          variant={"secondary"}
+          className={`text-xs sm:text-sm bg-card border border-border ${
             activeTab === idx
-              ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
-              : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary hover:bg-card"
+              ? "text-primary font-semibold rounded-2xl shadow-sm hover:text-primary border-1 border-primary"
+              : "text-foreground font-semibold rounded-2xl hover:text-primary"
           }`}
           onClick={() => handleTabChange(idx)}
           onKeyDown={(e) => handleTabKeyDown(e, idx)}

@@ -179,8 +179,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
       {/* Social Auth Buttons */}
       <div className="space-y-1.5">
         <Button
-          variant={"outline"}
-          className="w-full h-10 text-foreground hover:bg-background hover:text-foreground"
+          variant="secondary"
+          className="w-full h-10 text-foreground hover:text-foreground"
           onClick={() => handleSocialAuth("oauth_google")}
           disabled={isLoading}
         >

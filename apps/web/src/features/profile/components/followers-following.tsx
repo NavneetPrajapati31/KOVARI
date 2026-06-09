@@ -302,7 +302,7 @@ export default function FollowersFollowing() {
           <input
             type="text"
             placeholder="Search"
-            className="w-full pl-4 pr-12 py-2 bg-gray-100 border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-xs placeholder:text-xs sm:text-sm sm:placeholder:text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-gray-300"
+            className="w-full pl-4 pr-12 py-2 bg-secondary border-0 rounded-md text-muted-foreground placeholder:text-gray-400 text-xs placeholder:text-xs sm:text-sm sm:placeholder:text-sm focus:outline-none focus-visible:ring-none"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Search followers or following"
@@ -319,7 +319,7 @@ export default function FollowersFollowing() {
               onClick={handleClearSearch}
               aria-label="Clear search"
               tabIndex={0}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <X className="h-4 w-4 text-gray-400" />
             </button>
@@ -329,7 +329,7 @@ export default function FollowersFollowing() {
               onClick={handleSearch}
               aria-label="Search"
               tabIndex={0}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Search className="h-4 w-4 text-gray-400" />
             </button>

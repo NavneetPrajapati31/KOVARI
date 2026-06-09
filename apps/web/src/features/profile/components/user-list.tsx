@@ -42,10 +42,10 @@ export default function UserList({
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="text-gray-400 text-center">
-          <h3 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">
+          <h3 className="text-xs sm:text-sm font-medium text-foreground mb-2">
             {type === "followers" ? "No followers yet" : "Not following anyone"}
           </h3>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {type === "followers"
               ? "When people follow you, you'll see them here."
               : "When you follow people, you'll see them here."}

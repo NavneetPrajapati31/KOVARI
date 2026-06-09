@@ -281,6 +281,12 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
       }
     }
 
+    if (!userId) {
+      const urlObj = req.nextUrl.clone();
+      urlObj.pathname = "/sign-in";
+      return NextResponse.redirect(urlObj);
+    }
+
     if (isApiRoute) {
       return NextResponse.json(
         {
