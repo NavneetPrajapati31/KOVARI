@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, MessageSquare, Users, User, Send } from "lucide-react";
+import { Home, Search, Users, Send } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { UserAvatarFallback } from "@/shared/components/UserAvatarFallback";
@@ -67,7 +67,7 @@ export function BottomNav() {
     {
       label: "Chats",
       href: "/chat",
-      icon: Send, // Using MessageSquare or Send/PaperPlane style if preferred, usually MessageSquare matches "Chats" title well.
+      icon: Send,
       isActive: (path: string) => path.startsWith("/chat"),
     },
     {
@@ -84,57 +84,100 @@ export function BottomNav() {
     },
   ];
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden pb-safe">
-      <div className="flex justify-around items-center h-14 px-2">
-        {tabs.map((tab) => {
-          const active = tab.isActive(pathname);
-          const Icon = tab.icon;
+  const activeIndex = tabs.findIndex((tab) => tab.isActive(pathname));
+  const validActiveIndex = activeIndex !== -1 ? activeIndex : 0;
 
-          return (
-            <Link
-              key={tab.label}
-              href={tab.href}
-              className={cn(
-                "flex flex-col items-center justify-center w-full h-full space-y-1",
-                active ? "text-primary" : "text-foreground ",
-              )}
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none md:hidden flex flex-col justify-end">
+      {/* iOS 26 Content Mask Gradient */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[120px] pointer-events-none bg-background"
+        style={{
+          maskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,1) 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.05) 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,1) 100%)",
+        }}
+      />
+
+      {/* The Floating Nav Bar */}
+      <div className="relative pointer-events-auto px-4 pb-6 pt-2">
+        <div className="h-[56px] rounded-[40px] bg-transparent border border-border backdrop-blur-[10px] p-[2px]">
+          <div className="relative w-full h-full flex">
+            {/* Active Indicator Overlay Slider (Matches mobile AnimatedAlign) */}
+            <div
+              className="absolute top-0 bottom-0 left-0 flex items-center justify-center pointer-events-none transition-transform duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] px-[2px]"
+              style={{ 
+                width: `${100 / tabs.length}%`,
+                transform: `translateX(${validActiveIndex * 100}%)` 
+              }}
             >
-              {tab.label === "Profile" ? (
-                <Avatar
-                  className={cn(
-                    "h-6 w-6",
-                    active ? "ring-2 ring-primary ring-offset-2" : "ring-0",
-                  )}
+              <div className="w-full max-w-[70px] h-full bg-primary opacity-15 rounded-[28px]" />
+            </div>
+
+            {tabs.map((tab) => {
+              const active = tab.isActive(pathname);
+              const Icon = tab.icon;
+
+              return (
+                <Link
+                  key={tab.label}
+                  href={tab.href}
+                  className="relative flex-1 h-full flex flex-col items-center justify-center group z-10"
+                  style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <AvatarImage
-                    src={profileAvatarSrc}
-                    alt={user?.fullName || "Profile"}
-                  />
-                  <UserAvatarFallback />
-                </Avatar>
-              ) : (
-                Icon && (
-                  <Icon
-                    className={cn(
-                      "h-5 w-5",
-                      active
-                        ? tab.label === "Explore"
-                          ? "text-primary"
-                          : "text-primary fill-current"
-                        : "text-foreground",
-                    )}
-                    strokeWidth={
-                      active && tab.label === "Explore" ? 3 : undefined
-                    }
-                  />
-                )
-              )}
-            </Link>
-          );
-        })}
+                  <div className="flex flex-col items-center justify-center space-y-[1px]">
+                    <div className="h-[30px] flex items-center justify-center">
+                      {tab.label === "Profile" ? (
+                        <div
+                          className={cn(
+                            "p-[1px] rounded-full border-[1.5px] transition-colors duration-300",
+                            active ? "border-primary" : "border-transparent",
+                          )}
+                        >
+                          <Avatar className="h-[22px] w-[22px]">
+                            <AvatarImage
+                              src={profileAvatarSrc}
+                              alt={user?.fullName || "Profile"}
+                            />
+                            <UserAvatarFallback />
+                          </Avatar>
+                        </div>
+                      ) : (
+                        Icon && (
+                          <Icon
+                            className={cn(
+                              "h-[20px] w-[20px] transition-colors duration-300",
+                              active
+                                ? tab.label === "Explore"
+                                  ? "text-primary"
+                                  : "text-primary fill-current"
+                                : "text-muted-foreground",
+                            )}
+                            strokeWidth={
+                              tab.label === "Explore" ? (active ? 3.5 : 2.5) : 2
+                            }
+                          />
+                        )
+                      )}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-[11px] transition-all duration-300",
+                        active
+                          ? "text-primary font-extrabold"
+                          : "text-muted-foreground font-semibold",
+                      )}
+                    >
+                      {tab.label}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
 
