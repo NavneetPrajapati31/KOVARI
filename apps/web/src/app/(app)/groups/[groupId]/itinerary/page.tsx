@@ -89,33 +89,33 @@ const COLUMNS = [
   {
     id: "pending",
     title: "To do",
-    color: "bg-yellow-50 text-yellow-700",
+    color: "bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400",
     dotClass: "bg-[#F59E0B]",
   },
   {
     id: "confirmed",
     title: "In Progress",
-    color: "bg-blue-50 text-blue-700",
+    color: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400",
     dotClass: "bg-[#007aff]",
   },
   {
     id: "completed",
     title: "Done",
-    color: "bg-purple-50 text-purple-700",
+    color: "bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400",
     dotClass: "bg-[#34c759]",
   },
   {
     id: "cancelled",
     title: "Cancelled",
-    color: "bg-red-50 text-red-700",
+    color: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400",
     dotClass: "bg-[#f31260]",
   },
 ] as const;
 
 const PRIORITY_COLORS = {
-  low: "bg-gray-100 text-gray-700 border-gray-300",
-  medium: "bg-yellow-100 text-yellow-700 border-yellow-300",
-  high: "bg-green-100 text-green-700 border-green-300",
+  low: "bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-500/10 dark:text-gray-400 dark:border-gray-500/30",
+  medium: "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/30",
+  high: "bg-green-100 text-green-700 border-green-300 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30",
 };
 
 // Updated type icons based on database schema
@@ -139,10 +139,10 @@ const TYPE_COLORS = {
 
 // Status badge mapping based on database values
 const COLUMN_BADGES: Record<string, { label: string; color: string }> = {
-  pending: { label: "Not Started", color: "bg-yellow-50 text-yellow-700" },
-  confirmed: { label: "In Progress", color: "bg-blue-50 text-blue-700" },
-  completed: { label: "Completed", color: "bg-green-50 text-green-700" },
-  cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
+  pending: { label: "Not Started", color: "bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400" },
+  confirmed: { label: "In Progress", color: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" },
+  completed: { label: "Completed", color: "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400" },
+  cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400" },
 };
 
 // Get initials for avatar fallback (e.g. "Navneet Prajapati" -> "NP")
@@ -932,7 +932,7 @@ export default function ItineraryPage() {
                 </div>
                 <div className="flex items-center gap-1">
                   <button
-                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-secondary transition-colors"
                     onClick={openAddDialog}
                     aria-label="Add task"
                   >
@@ -959,7 +959,7 @@ export default function ItineraryPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
-                            className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+                            className="w-6 h-6 flex items-center justify-center rounded hover:bg-secondary transition-colors"
                             aria-label="Column actions"
                           >
                             <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
@@ -967,7 +967,7 @@ export default function ItineraryPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 transition-all duration-300 ease-in-out border-border mr-4"
+                          className="p-4 py-2 min-w-[160px] rounded-2xl shadow-sm backdrop-blur-2xl bg-white/70 dark:bg-black/70 transition-all duration-300 ease-in-out border-border mr-4"
                         >
                           <DropdownMenuItem
                             onClick={(e) => {
@@ -1009,10 +1009,10 @@ export default function ItineraryPage() {
                           <Chip
                             className={`inline-flex items-center text-xs font-medium rounded-full px-2 py-1 ${
                               item.priority === "high"
-                                ? "bg-green-50 text-green-700"
+                                ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400"
                                 : item.priority === "medium"
-                                  ? "bg-yellow-50 text-yellow-700"
-                                  : "bg-blue-50 text-blue-700"
+                                  ? "bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400"
+                                  : "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
                             }`}
                           >
                             <span className="font-semibold">
@@ -1127,7 +1127,7 @@ export default function ItineraryPage() {
                               );
                             })}
                           {(item.assigned_to || []).length > 3 && (
-                            <div className="w-6 h-6 rounded-full  shadow-sm bg-gray-100 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full  shadow-sm bg-secondary flex items-center justify-center">
                               <span className="text-xs text-muted-foreground">
                                 +{(item.assigned_to || []).length - 3}
                               </span>
@@ -1423,7 +1423,7 @@ export default function ItineraryPage() {
           <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap sm:justify-between">
             <div className="flex gap-2 order-1 sm:order-2 ml-auto">
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => setIsEditDialogOpen(false)}
                 className="rounded-lg min-w-[80px]"
               >
@@ -1657,7 +1657,7 @@ export default function ItineraryPage() {
           <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-t border-border gap-2 flex-row flex-wrap">
             <div className="flex gap-2 order-1 sm:order-2 ml-auto">
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => setIsAddDialogOpen(false)}
                 className="rounded-lg order-2 sm:order-1 min-w-[80px]"
               >
@@ -1708,7 +1708,7 @@ export default function ItineraryPage() {
           <DialogFooter className="shrink-0 px-4 sm:px-6 py-4 sm:py-5 gap-2 flex-row flex-wrap justify-end">
             <div className="flex gap-2 order-1 sm:order-2 ml-auto">
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => setItemToDelete(null)}
                 disabled={isDeleting}
                 className="rounded-lg min-w-[80px] border-border text-muted-foreground hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border"

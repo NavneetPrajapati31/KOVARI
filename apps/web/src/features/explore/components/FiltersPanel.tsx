@@ -221,7 +221,7 @@ export const FiltersPanel = ({
             <Badge
               key={language}
               variant={
-                filters.languages.includes(language) ? "default" : "outline"
+                filters.languages.includes(language) ? "default" : "secondary"
               }
               className="cursor-pointer rounded-full px-4 py-1.5 text-xs font-normal"
               onClick={() => {

@@ -66,7 +66,7 @@ export default function GroupsPage() {
       <header className="mb-0 flex gap-2 sticky top-0 z-50 bg-background py-4">
         <Button
           variant="outline"
-          className="text-xs sm:text-sm text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border border-primary pointer-events-none cursor-default"
+          className="text-xs sm:text-sm text-primary bg-card font-semibold rounded-2xl shadow-sm hover:bg-card hover:text-primary border border-primary dark:border-primary pointer-events-none cursor-default"
         >
           My Groups
         </Button>

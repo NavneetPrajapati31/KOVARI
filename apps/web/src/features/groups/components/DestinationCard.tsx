@@ -221,7 +221,7 @@ export function DestinationCard({
                 deleting
                   ? "opacity-100 pointer-events-none"
                   : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
-                "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)]"
+                "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground dark:border-primary-foreground [transform:translateZ(0)]"
               )}
               aria-label={
                 deleting ? "Removing image…" : "Remove destination image"
@@ -243,10 +243,10 @@ export function DestinationCard({
             size="icon"
             className={cn(
               "rounded-full shrink-0 font-medium w-8 h-8",
-              "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground [transform:translateZ(0)]",
+              "bg-transparent hover:bg-transparent hover:text-primary-foreground backdrop-blur-md border border-primary-foreground dark:border-primary-foreground [transform:translateZ(0)]",
               hasImage
                 ? "text-primary-foreground"
-                : "text-gray-400 border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
+                : "text-gray-400 border-gray-400 dark:border-gray-400 hover:text-gray-400 hover:bg-gray-400/20"
             )}
             onClick={onExplore}
             aria-label="Explore destination"

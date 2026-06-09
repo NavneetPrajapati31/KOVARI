@@ -3,12 +3,14 @@
 import { toast } from "sonner";
 import { CloudUpload } from "lucide-react";
 import { useRef, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 
 export default function ProfileImageUpload({
   onUpload,
 }: {
   onUpload: (url: string) => void;
 }) {
+  const { getToken } = useAuth();
   const toastId = useRef<string | number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -30,8 +32,13 @@ export default function ProfileImageUpload({
       formData.append("file", file);
       formData.append("folder", "kovari-profiles");
 
+      const token = await getToken();
+
       const uploadRes = await fetch(`/api/upload/image`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 

@@ -341,7 +341,7 @@ export function GroupMatchCard({
     className?: string;
   }) => (
     <span
-      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm bg-background text-foreground border border-border ${className}`}
+      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm bg-secondary text-foreground border border-border ${className}`}
     >
       {icon && (
         <span className="flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4 [&_svg]:shrink-0 [&_svg]:text-current">
@@ -569,7 +569,7 @@ export function GroupMatchCard({
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="flex-1 h-11 rounded-full text-foreground bg-background border border-border"
+            className="flex-1 h-11 rounded-full text-foreground bg-secondary border border-border"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -595,7 +595,7 @@ export function GroupMatchCard({
             className={`flex-1 h-11 rounded-full border border-border ${
               hasReported 
                 ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed pointer-events-none" 
-                : "text-foreground bg-background"
+                : "text-foreground bg-secondary"
             }`}
           >
             <Flag className="w-5 h-5 md:hidden shrink-0" aria-hidden />

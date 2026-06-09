@@ -107,7 +107,7 @@ export default function RootLayout({
                     d.style.colorScheme = 'light';
                   } else {
                     var theme = localStorage.getItem('kovari-theme');
-                    if (theme === 'dark' || ((theme === 'system' || !theme) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                       d.classList.add('dark');
                       d.style.colorScheme = 'dark';
                     } else {
@@ -133,7 +133,7 @@ export default function RootLayout({
         >
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="light"
             enableSystem
             disableTransitionOnChange
             storageKey="kovari-theme"

@@ -51,7 +51,7 @@ export const SearchForm = ({
   };
 
   return (
-    <div className="space-y-6 pb-6 border-b border-gray-200">
+    <div className="space-y-6 pb-6 border-b border-border">
       {/* Destination */}
       <div className="space-y-2">
         <Label
@@ -163,7 +163,7 @@ export const SearchForm = ({
           {[10000, 20000, 35000, 50000].map((budget) => (
             <Button
               key={budget}
-              variant={searchData.budget === budget ? "default" : "outline"}
+              variant={searchData.budget === budget ? "default" : "secondary"}
               size="sm"
               onClick={() => handleSearchDataChange({ budget })}
               className="text-xs flex-1 rounded-full"

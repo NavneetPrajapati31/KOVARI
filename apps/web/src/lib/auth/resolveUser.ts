@@ -44,10 +44,7 @@ export async function resolveUser(
         // payload.sub is the internal UUID (for mobile users)
         identity = { id: payload.sub, email: payload.email, provider: 'jwt' };
       } else {
-        logger.warn(requestId, "Invalid JWT token presented");
-        if (options.mode === 'protected') {
-          return { ok: false, reason: 'INVALID_TOKEN', message: "Invalid or expired token", requestId };
-        }
+        logger.warn(requestId, "Invalid Mobile JWT token presented (falling back to Clerk check)");
       }
     }
 
@@ -137,8 +134,12 @@ export async function resolveUser(
       requestId
     };
 
-  } catch (error) {
-    logger.error(requestId, "Internal failure in resolveUser", error);
+  } catch (error: any) {
+    logger.error(requestId, "Internal failure in resolveUser", {
+      message: error?.message || "Unknown error",
+      stack: error?.stack,
+      error
+    });
     return { ok: false, reason: 'USER_NOT_FOUND', message: "Internal identity failure", requestId };
   }
 }

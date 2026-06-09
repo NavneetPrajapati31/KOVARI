@@ -9,6 +9,7 @@ import { Label } from "@/shared/components/ui/label";
 import { cn } from "@kovari/utils";
 import { toast } from "sonner";
 import { Spinner } from "@heroui/react";
+import { useAuth } from "@clerk/nextjs";
 
 interface ImageUploadProps {
   onImageUpload?: (file: File | string) => void;
@@ -38,6 +39,7 @@ export function ImageUpload({
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(value ?? null);
+  const { getToken } = useAuth();
 
   // Sync with value prop when it changes externally (e.g., form reset)
   React.useEffect(() => {
@@ -81,8 +83,13 @@ export function ImageUpload({
       // Optional: you can pass folder name here if needed
       formData.append("folder", "kovari-uploads");
 
+      const token = await getToken();
+
       const uploadRes = await fetch(`/api/upload/image`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 

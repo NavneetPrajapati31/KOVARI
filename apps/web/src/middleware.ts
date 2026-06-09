@@ -335,9 +335,23 @@ export default async function middleware(req: NextRequest, evt: any) {
 
   const isAuthRoute = pathname.startsWith("/api/auth/");
   const authHeader = req.headers.get("authorization");
-  const isMobileToken =
-    authHeader?.startsWith("Bearer ") &&
-    !authHeader.includes("__clerk_session");
+  
+  let isMobileToken = false;
+  if (authHeader?.startsWith("Bearer ") && !authHeader.includes("__clerk_session")) {
+    try {
+      const token = authHeader.substring(7);
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        const headerStr = Buffer.from(parts[0], "base64").toString("utf8");
+        const header = JSON.parse(headerStr);
+        if (header.alg === "HS256") {
+          isMobileToken = true;
+        }
+      }
+    } catch (e) {
+      // Ignore parse errors, default to false
+    }
+  }
 
   let res: NextResponse;
 

@@ -69,10 +69,10 @@ const ITINERARY_STATUS_BADGES: Record<
   string,
   { label: string; color: string }
 > = {
-  pending: { label: "Not Started", color: "bg-yellow-50 text-yellow-700" },
-  confirmed: { label: "In Progress", color: "bg-blue-50 text-blue-700" },
-  completed: { label: "Completed", color: "bg-green-50 text-green-700" },
-  cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700" },
+  pending: { label: "Not Started", color: "bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400" },
+  confirmed: { label: "In Progress", color: "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" },
+  completed: { label: "Completed", color: "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400" },
+  cancelled: { label: "Cancelled", color: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400" },
 };
 
 const IST_TIMEZONE = "Asia/Kolkata";
@@ -686,7 +686,7 @@ const GroupHomePage = () => {
                 <Chip
                   size="sm"
                   variant="bordered"
-                  className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-none text-primary px-2"
+                  className="ml-auto text-xs capitalize flex-shrink-0 bg-secondary border-none text-primary px-2"
                 >
                   <span className="font-medium text-xs">Admin</span>
                 </Chip>
@@ -898,7 +898,7 @@ const GroupHomePage = () => {
                             <Chip
                               size="sm"
                               variant="bordered"
-                              className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-none text-primary px-2"
+                              className="ml-auto text-xs capitalize flex-shrink-0 bg-secondary border-none text-primary px-2"
                             >
                               <span className="font-medium text-xs">Admin</span>
                             </Chip>
@@ -1055,7 +1055,7 @@ const GroupHomePage = () => {
                     <Skeleton className="w-full h-[150px] rounded-3xl" />
                   </div>
                 ) : (
-                  <div className="mt-3 bg-[#fff2c0] border-none p-3 mx-1 rounded-3xl shadow-sm relative">
+                  <div className="mt-3 bg-secondary border-none p-3 mx-1 rounded-3xl shadow-sm relative">
                     <>
                       {isEditing ? (
                         <textarea
@@ -1286,7 +1286,7 @@ const GroupHomePage = () => {
                                   <Chip
                                     size="sm"
                                     variant="bordered"
-                                    className=" text-xs capitalize flex-shrink-0 bg-primary-light border-none text-primary px-2"
+                                    className=" text-xs capitalize flex-shrink-0 bg-secondary border-none text-primary px-2"
                                   >
                                     <span className="font-medium text-xs">
                                       Admin
@@ -1331,7 +1331,7 @@ const GroupHomePage = () => {
                         <Skeleton className="h-[130px] w-full p-3 rounded-3xl shadow-sm relative" />
                       </div>
                     ) : (
-                      <div className="bg-[#fff2c0] border-none p-3 m-2 mt-0 rounded-3xl shadow-sm relative">
+                      <div className="bg-secondary border-none p-3 m-2 mt-0 rounded-3xl shadow-sm relative">
                         {isEditing ? (
                           <textarea
                             ref={textareaRef}
@@ -1656,7 +1656,7 @@ const GroupHomePage = () => {
                             <Chip
                               size="sm"
                               variant="bordered"
-                              className="ml-auto text-xs capitalize flex-shrink-0 bg-primary-light border-none text-primary px-2"
+                              className="ml-auto text-xs capitalize flex-shrink-0 bg-secondary border-none text-primary px-2"
                             >
                               <span className="font-medium text-xs">Admin</span>
                             </Chip>
@@ -1695,7 +1695,7 @@ const GroupHomePage = () => {
                   <Skeleton className="w-full h-[200px] rounded-3xl" />
                 </>
               ) : (
-                <Card className="bg-primary-light border-3 p-1 border-card w-full h-[200px] rounded-3xl shadow-sm">
+                <Card className="bg-secondary border-3 p-1 border-card w-full h-[200px] rounded-3xl shadow-sm">
                   <CardBody>
                     <span className="text-sm mb-1 font-semibold text-primary">
                       AI Overview
@@ -1742,7 +1742,7 @@ const GroupHomePage = () => {
                     <Skeleton className="h-[130px] w-full p-3 rounded-3xl shadow-sm relative" />
                   </div>
                 ) : (
-                  <div className="bg-[#fff2c0] border-none p-3 rounded-3xl shadow-sm relative">
+                  <div className="bg-secondary border-none p-3 rounded-3xl shadow-sm relative">
                     {isEditing ? (
                       <textarea
                         ref={textareaRef}

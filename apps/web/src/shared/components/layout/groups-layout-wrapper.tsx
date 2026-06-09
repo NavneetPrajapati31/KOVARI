@@ -96,7 +96,7 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
           variant={"outline"}
           className={`text-xs sm:text-sm ${
             activeTab === idx
-              ? "text-primary bg-primary-light font-semibold rounded-2xl shadow-sm hover:bg-primary-light hover:text-primary border-1 border-primary"
+              ? "text-primary bg-card font-semibold rounded-2xl shadow-sm hover:bg-card hover:text-primary border-1 border-primary dark:border-primary"
               : "text-foreground font-semibold bg-card rounded-2xl hover:text-primary hover:bg-card"
           }`}
           onClick={() => handleTabClick(idx)}
