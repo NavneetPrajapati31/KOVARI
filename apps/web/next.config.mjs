@@ -58,6 +58,26 @@ const nextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      // Global default for all pages (can be overridden by page-level metadata, but useful baseline)
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'index, follow',
+          },
+        ],
+      },
+      // Override for all auth-gated app paths
+      {
+        source: '/(dashboard|chat|create-group|groups|invite|notifications|onboarding|profile|requests|safety|settings|explore)/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
     ];
   },
   async rewrites() {

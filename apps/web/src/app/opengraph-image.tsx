@@ -37,6 +37,7 @@ export default async function Image() {
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
             width: "100%",
@@ -51,6 +52,17 @@ export default async function Image() {
             height={165}
             style={{ objectFit: 'contain' }}
           />
+          <div
+            style={{
+              marginTop: 40,
+              fontSize: 48,
+              fontWeight: 600,
+              color: "#374151",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Plan Group Travel with Friends
+          </div>
         </div>
       </div>
     ),

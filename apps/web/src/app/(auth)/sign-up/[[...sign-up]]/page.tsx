@@ -6,6 +6,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Sign Up",
   description: "Create your free Kovari account today. Instantly connect with verified travelers, discover active travel circles, and start planning your next trip.",
+  robots: { index: false },
 };
 
 export default function SignUpPage() {

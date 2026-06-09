@@ -2,10 +2,15 @@ import Footer from "@/shared/components/landing/Footer";
 import React from "react";
 import { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "About Us",
-  description: "Discover the Kovari mission. We're building a smarter, safer way for solo travelers and groups to connect, structure their plans, and explore the world together.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "About Kovari | Social Travel Platform",
+    description: "Learn how Kovari is reimagining group travel planning for the WhatsApp-and-spreadsheet generation.",
+    alternates: {
+      canonical: "https://kovari.in/about",
+    },
+  };
+}
 
 export default function AboutPage() {
   return (

@@ -1,4 +1,5 @@
 import { type Metadata } from "next";
+import { WebAppJsonLd, OrganizationJsonLd } from "@/shared/components/seo/JsonLd";
 import {
   ClerkProvider,
   SignInButton,
@@ -30,23 +31,25 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.kovari.in"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kovari.in"),
   title: {
-    default: "Kovari | Connect & Travel With the Right People",
+    default: "Kovari — Plan Group Travel with Friends",
     template: "%s | Kovari",
   },
-  description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
+  description: "Kovari is the social travel platform to plan trips, find travel companions, and explore the world together. Built for groups who travel differently.",
   keywords: [
-    "social travel app",
-    "find travel companions",
-    "group trip planner",
-    "travel community",
-    "like-minded travelers",
-    "solo traveler networking",
-    "safe travel groups",
-    "Kovari",
+    "group travel planner",
+    "travel with friends",
+    "plan trips with friends app",
+    "travel companion finder",
+    "group trip organizer",
+    "social travel platform",
+    "travel planning app India",
+    "find travel companions India",
+    "kovari",
+    "kovari app"
   ],
-  authors: [{ name: "Kovari" }],
+  authors: [{ name: "Kovari", url: "https://kovari.in" }],
   creator: "Kovari",
   publisher: "Kovari",
   robots: {
@@ -62,21 +65,22 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    locale: "en_US",
-    url: "/",
-    title: "Kovari | Connect & Travel With the Right People",
-    description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
+    locale: "en_IN",
+    url: "https://kovari.in",
     siteName: "Kovari",
+    title: "Kovari — Plan Group Travel with Friends",
+    description: "The social travel platform for people who travel in groups. Plan trips, find companions, explore together.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kovari | Connect & Travel With the Right People",
-    description: "The modern social travel platform. Skip the guesswork—match with like-minded travelers, plan trips together, and explore destinations safely.",
-    creator: "@KovariApp",
+    title: "Kovari — Plan Group Travel with Friends",
+    description: "The social travel platform for people who travel in groups.",
+    creator: "@kovariapp",
   },
   alternates: {
-    canonical: "https://www.kovari.in",
+    canonical: "/",
   },
+  category: "travel",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.webp",
@@ -131,6 +135,8 @@ export default function RootLayout({
         <body
           className={`${inter.variable} ${poppins.variable} font-sans`}
         >
+          <WebAppJsonLd />
+          <OrganizationJsonLd />
           <ThemeProvider
             attribute="class"
             defaultTheme="light"

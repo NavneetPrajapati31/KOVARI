@@ -1,15 +1,25 @@
 import { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.kovari.in";
-
   return {
-    rules: {
-      userAgent: "*",
-      allow: ["/"],
-      disallow: ["/api/", "/dashboard/", "/profile/edit/", "/settings/", "/admin/"],
-    },
-    sitemap: `${baseUrl}/sitemap.xml`,
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/dashboard/",
+          "/api/",
+          "/sign-in",
+          "/sign-up",
+          "/onboarding/",
+          "/settings/",
+          "/admin/",
+          "/_next/",
+        ],
+      },
+    ],
+    sitemap: "https://kovari.in/sitemap.xml",
+    host: "https://kovari.in",
   };
 }
 

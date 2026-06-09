@@ -17,7 +17,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center">
               <Image
                 src="/logo.webp"
-                alt="Kovari"
+                alt="Kovari Logo — Social travel platform for group trip planning"
                 width={400}
                 height={160}
                 className="h-5 w-auto object-contain block dark:hidden"
@@ -25,7 +25,7 @@ export default function Footer() {
               />
               <Image
                 src="/logo_dark.webp"
-                alt="Kovari"
+                alt="Kovari Logo — Social travel platform for group trip planning"
                 width={400}
                 height={160}
                 className="h-5 w-auto object-contain hidden dark:block"
