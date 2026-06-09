@@ -99,7 +99,7 @@ export function BottomNav() {
       />
 
       {/* The Floating Nav Bar */}
-      <div className="relative pointer-events-auto px-4 pb-6 pt-2">
+      <div className="relative pointer-events-auto px-4 pb-4 pt-2">
         <div className="h-[56px] rounded-[40px] bg-transparent border border-border backdrop-blur-[10px] p-[2px]">
           <div className="relative w-full h-full flex">
             {/* Active Indicator Overlay Slider (Matches mobile AnimatedAlign) */}
