@@ -42,7 +42,7 @@ const MembersTableSkeleton = () => (
   <div className="hidden lg:block">
     <div className="bg-card rounded-3xl border border-border animate-pulse">
       {/* Table Header */}
-      <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-3xl border-b border-border bg-gray-100">
+      <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-3xl border-b border-border bg-secondary">
         <div className="col-span-3 text-xs font-medium text-foreground">
           Name
         </div>
@@ -283,7 +283,7 @@ export default function Page() {
         <div className="hidden lg:block">
           <div className="bg-card rounded-3xl border border-border">
             {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-3xl border-b border-border bg-gray-100">
+            <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-3xl border-b border-border bg-secondary">
               <div className="col-span-3 text-xs font-medium text-foreground">
                 Name
               </div>
@@ -303,7 +303,7 @@ export default function Page() {
             {sortedMembers.map((member) => (
               <div
                 key={member.id}
-                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 last:rounded-b-3xl hover:bg-gray-50 cursor-pointer transition-colors"
+                className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 last:rounded-b-3xl cursor-pointer transition-colors"
                 onClick={() => router.push(`/profile/${member.id}`)}
                 role="button"
                 tabIndex={0}
@@ -332,7 +332,7 @@ export default function Page() {
                     <Chip
                       size="sm"
                       variant="bordered"
-                      className="text-sm capitalize flex-shrink-0 self-center bg-primary-light border-none text-primary px-2"
+                      className="text-sm capitalize flex-shrink-0 self-center bg-secondary border-none text-primary px-2"
                     >
                       <span className="font-medium text-xs">Admin</span>
                     </Chip>

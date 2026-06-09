@@ -246,7 +246,7 @@ export function InviteTeammatesModal({
           </Button>
         </div>
 
-        <Divider className="mb-0 sm:mb-2" />
+        <Divider className="mb-0 sm:mb-2 bg-border" />
 
         <div className="px-4 sm:px-6 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6 space-y-5 overflow-y-auto flex-1 min-h-0">
           {inviteSentSuccess && (
@@ -295,7 +295,7 @@ export function InviteTeammatesModal({
                   setInfoMessage(null);
                 }}
                 placeholder="Email or username"
-                className="flex-1 rounded-xl min-h-11 text-sm"
+                className="flex-1 rounded-xl min-h-11 text-sm border-border"
                 aria-label="Email or username to invite"
               />
               <Button
@@ -333,10 +333,10 @@ export function InviteTeammatesModal({
               <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={handleGetLink}
-                  className="flex-1 sm:flex-initial min-h-11 sm:min-h-0 rounded-lg bg-background border-border hover:bg-muted text-foreground font-medium shrink-0 px-4 text-sm"
+                  className="flex-1 sm:flex-initial min-h-11 sm:min-h-0 rounded-lg bg-secondary border-border text-foreground font-medium shrink-0 px-4 text-sm"
                   aria-label="Get invite link"
                   disabled={isLinkLoading}
                 >

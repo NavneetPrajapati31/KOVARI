@@ -192,7 +192,7 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
               min={0}
               {...form.register("budget", { valueAsNumber: true })}
               className={cn(
-                "h-9 text-sm w-full",
+                "h-9 text-sm w-full border-border",
                 errors.budget &&
                   "border-destructive focus-visible:ring-destructive",
               )}
@@ -210,8 +210,8 @@ export const TravelDetailsSection: React.FC<TravelDetailsSectionProps> = ({
             type="button"
             onClick={() => onSubmit("travel")}
             disabled={isSubmitting}
-            variant="outline"
-            className="w-full h-9 text-sm border-border bg-background hover:bg-muted"
+            variant="secondary"
+            className="w-full h-9 text-sm inline-flex gap-2"
           >
             {isSubmitting ? (
               <>

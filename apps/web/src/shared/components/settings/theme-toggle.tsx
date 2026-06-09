@@ -33,7 +33,7 @@ export function ThemeToggle() {
     <div
       role="radiogroup"
       aria-label="Theme selection"
-      className="inline-flex items-center gap-1 rounded-full bg-secondary p-1 shadow-inner"
+      className="flex w-full md:w-auto md:inline-flex items-center gap-1 rounded-full bg-secondary p-1 shadow-inner"
     >
       {options.map(({ value, label, Icon }) => {
         const isActive = theme === value;
@@ -45,7 +45,7 @@ export function ThemeToggle() {
             aria-label={`${label} theme`}
             onClick={setters[value]}
             className={cn(
-              "relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium",
+              "relative flex flex-1 md:flex-none items-center justify-center md:justify-start gap-2 rounded-full px-2 md:px-4 py-2 text-sm font-medium",
               "transition-all duration-200 ease-in-out",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               isActive
@@ -54,7 +54,7 @@ export function ThemeToggle() {
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
-            <span>{label}</span>
+            <span className="truncate">{label}</span>
           </button>
         );
       })}

@@ -142,8 +142,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             type="button"
             className={`w-full text-left font-medium text-sm px-3 sm:px-5 py-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20  transition-colors flex items-center justify-between gap-2 ${
               activeTab === tab.key
-                ? "text-primary bg-primary-light font-semibold"
-                : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
+                ? "text-primary bg-secondary font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
             aria-current={activeTab === tab.key ? "page" : undefined}
             aria-label={tab.label}
@@ -172,12 +172,12 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   return (
     <nav
       aria-label="Settings Navigation"
-      className="flex flex-col gap-4 md:p-4 px-2 py-4 border-gray-200 overflow-y-auto"
+      className="flex flex-col gap-4 md:p-4 px-2 py-4 border-border overflow-y-auto"
     >
       {renderTabGroup("edit", groupedTabs.edit, "Edit Group")}
-      <div className="border-t border-gray-200 mb-0.5" />
+      <div className="border-t border-border mb-0.5" />
       {renderTabGroup("management", groupedTabs.management, "Management")}
-      <div className="border-t border-gray-200 mb-0.5" />
+      <div className="border-t border-border mb-0.5" />
       {renderTabGroup("danger", groupedTabs.danger, "Danger Zone")}
     </nav>
   );

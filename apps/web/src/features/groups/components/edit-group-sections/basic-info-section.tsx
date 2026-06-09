@@ -50,7 +50,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               id="group-name"
               {...register("groupName")}
               placeholder="Enter a memorable group name"
-              className={`h-9 text-sm w-full ${
+              className={`h-9 text-sm w-full border-border ${
                 errors.groupName ? "border-destructive" : ""
               }`}
               disabled={isSubmitting}
@@ -111,7 +111,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 id="description"
                 {...register("description")}
                 placeholder="Tell people what your group is about..."
-                className={`min-h-[100px] text-sm resize-none w-full ${
+                className={`min-h-[100px] text-sm resize-none w-full border-border ${
                   errors.description ? "border-destructive" : ""
                 }`}
                 maxLength={500}
@@ -147,8 +147,8 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             type="button"
             onClick={() => onSubmit("basic")}
             disabled={isSubmitting}
-            variant="outline"
-            className="w-full h-9 text-sm inline-flex gap-2 border-border bg-background hover:bg-muted"
+            variant="secondary"
+            className="w-full h-9 text-sm inline-flex gap-2"
           >
             {isSubmitting ? (
               <>

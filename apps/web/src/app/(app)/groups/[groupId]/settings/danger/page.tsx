@@ -199,7 +199,7 @@ export default function DangerPage() {
       </div>
 
       <div className="space-y-0 border border-border rounded-lg overflow-hidden divide-y divide-border">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 bg-background text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 bg-card text-left">
           <div className="space-y-0.5 min-w-0 text-left">
             <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
               <LogOut className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -210,9 +210,9 @@ export default function DangerPage() {
             </p>
           </div>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
-            className="text-destructive bg-card hover:text-destructive hover:bg-destructive/10 border-border shrink-0"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-border shrink-0"
             onClick={() => setIsLeaveDialogOpen(true)}
             disabled={isLeaving}
           >
@@ -221,7 +221,7 @@ export default function DangerPage() {
         </div>
 
         {membershipInfo.isCreator && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 bg-background text-left">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 sm:p-5 bg-card text-left">
             <div className="space-y-0.5 min-w-0 text-left">
               <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Trash2 className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -233,9 +233,9 @@ export default function DangerPage() {
               </p>
             </div>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
-              className="text-destructive bg-card hover:text-destructive hover:bg-destructive/10 border-destructive/50 shrink-0"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/50 shrink-0"
               onClick={() => setIsDeleteDialogOpen(true)}
               disabled={isDeleting}
             >
@@ -262,16 +262,16 @@ export default function DangerPage() {
           )}
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => setIsLeaveDialogOpen(false)}
               disabled={isLeaving}
-              className="hover:bg-background"
+              className=""
             >
               Cancel
             </Button>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               className="text-destructive hover:text-destructive hover:bg-destructive/10 border-border"
               onClick={handleLeaveGroup}
@@ -316,7 +316,7 @@ export default function DangerPage() {
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => {
                 setIsDeleteDialogOpen(false);
@@ -324,7 +324,7 @@ export default function DangerPage() {
                 setDeleteError(null);
               }}
               disabled={isDeleting}
-              className="hover:bg-background"
+              className=""
             >
               Cancel
             </Button>

@@ -191,7 +191,7 @@ export default function RequestsPage() {
         joinRequests.length > 0 && (
           <div className="hidden lg:block">
             <div className="bg-card rounded-xl border border-border mt-6">
-              <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-xl border-b border-border bg-gray-100">
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-xl border-b border-border bg-secondary">
                 <div className="col-span-3 text-xs font-medium text-foreground">
                   Name
                 </div>
@@ -209,7 +209,7 @@ export default function RequestsPage() {
               {joinRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:bg-gray-50 hover:rounded-xl hover:last:rounded-t-none items-center cursor-pointer transition-colors"
+                  className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border last:border-b-0 hover:rounded-xl hover:last:rounded-t-none items-center cursor-pointer transition-colors"
                   onClick={() => router.push(`/profile/${request.userId}`)}
                   role="button"
                   tabIndex={0}
@@ -421,7 +421,7 @@ export default function RequestsPage() {
         <>
           {/* Desktop Skeleton */}
           <div className="hidden lg:block bg-card rounded-xl border border-border mt-6 animate-pulse">
-            <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-xl border-b border-border bg-gray-100">
+            <div className="grid grid-cols-12 gap-4 px-6 py-4 rounded-t-xl border-b border-border bg-secondary">
               <div className="col-span-3 text-xs font-medium text-foreground">
                 Name
               </div>

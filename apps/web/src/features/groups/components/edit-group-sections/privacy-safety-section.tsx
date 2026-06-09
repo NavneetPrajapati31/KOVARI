@@ -135,8 +135,8 @@ export const PrivacySafetySection: React.FC<PrivacySafetySectionProps> = ({
                   onClick={() => setIsReportDialogOpen(true)}
                   className={`h-8 rounded-3xl text-sm border-border sm:w-auto w-full ${
                     hasReported
-                      ? "bg-background text-foreground pointer-events-none"
-                      : "bg-background text-foreground hover:text-foreground hover:bg-destructive/10"
+                      ? "bg-secondary text-foreground pointer-events-none"
+                      : "bg-secondary text-foreground hover:text-foreground hover:bg-destructive/10"
                   }`}
                 >
                   {hasReported ? "Reported" : "Report"}
