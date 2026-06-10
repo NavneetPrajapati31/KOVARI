@@ -77,9 +77,6 @@ export const metadata: Metadata = {
     description: "The social travel platform for people who travel in groups.",
     creator: "@kovariapp",
   },
-  alternates: {
-    canonical: "/",
-  },
   category: "travel",
   manifest: "/manifest.json",
   icons: {
