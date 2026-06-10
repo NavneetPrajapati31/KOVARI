@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       const supabase = createRouteHandlerSupabaseClientWithServiceRole();
       const { data: user } = await supabase
         .from("users")
-        .select("id, email, name, password_hash, banned, ban_reason, ban_expires_at")
+        .select("id, email, password_hash, banned, ban_reason, ban_expires_at, profiles(name)")
         .ilike("email", email)
         .maybeSingle();
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         user: { 
           id: user.id, 
           email: user.email, 
-          name: user.name,
+          name: (Array.isArray((user as any)?.profiles) ? (user as any).profiles[0]?.name : ((user as any)?.profiles as any)?.name) || null,
           banned: user.banned ?? false,
           banReason: user.ban_reason || null,
           banExpiresAt: user.ban_expires_at || null,
@@ -114,7 +114,7 @@ async function handleStandardLogin(
     const supabase = createRouteHandlerSupabaseClientWithServiceRole();
     const { data: user } = await supabase
       .from("users")
-      .select("id, email, name, password_hash, banned, ban_reason, ban_expires_at")
+      .select("id, email, password_hash, banned, ban_reason, ban_expires_at, profiles(name)")
       .ilike("email", email)
       .maybeSingle();
 
@@ -186,7 +186,7 @@ async function handleStandardLogin(
       user: { 
         id: user.id, 
         email: user.email, 
-        name: user.name,
+        name: (Array.isArray((user as any)?.profiles) ? (user as any).profiles[0]?.name : ((user as any)?.profiles as any)?.name) || null,
         banned: isActuallyBanned,
         banReason: user.ban_reason || null,
         banExpiresAt: user.ban_expires_at || null,

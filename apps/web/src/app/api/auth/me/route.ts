@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     const { data: user, error } = await supabase
       .from("users")
-      .select("id, email, name, google_id, clerk_user_id, banned, ban_reason, ban_expires_at")
+      .select("id, email, google_id, clerk_user_id, banned, ban_reason, ban_expires_at, profiles(name)")
       .eq("id", id)
       .maybeSingle();
 
@@ -44,11 +44,15 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Return user data
+    const profileName = Array.isArray((user as any)?.profiles)
+      ? ((user as any).profiles[0]?.name || null)
+      : (((user as any)?.profiles as any)?.name || null);
+
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: profileName,
         banned: isActuallyBanned,
         banReason: user.ban_reason || null,
         banExpiresAt: user.ban_expires_at || null,

@@ -19,8 +19,9 @@ export const profileMapper = {
       throw new Error("Invalid userRow in profileMapper: Core identity missing");
     }
 
-    // Handle null/missing profileRow safely
-    const p = profileRow || {};
+    // Handle null/missing/array profileRow safely
+    const resolvedProfile = Array.isArray(profileRow) ? (profileRow[0] || {}) : (profileRow || {});
+    const p = resolvedProfile;
     const u = userRow;
 
     // 2. Structured Logging for Source Tracking (Debug purposes)

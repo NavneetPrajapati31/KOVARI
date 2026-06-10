@@ -42,6 +42,7 @@ export interface Group {
   created_at: string;
   cover_image?: string;
   status?: "active" | "pending" | "removed";
+  budget?: number;
 }
 
 export interface FiltersState {
@@ -158,7 +159,7 @@ export const fetchPublicGroups = async (
         creator: g.creator || { name: "Unknown", username: "unknown" },
         creatorId: g.creatorId,
         created_at: g.created_at || new Date().toISOString(),
-        cover_image: g.cover_image || g.coverImage,
+        cover_image: g.cover_image || g.coverImage || g.image || g.avatar,
       };
     });
 

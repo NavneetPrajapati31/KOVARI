@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Force a fresh fetch to purge the empty cache caused by previous payload failures
-    const userVersion = "v1-stable-groups-v4";
+    const userVersion = "v1-stable-groups-v7";
 
     const body = await request.json();
     const { userId: reqUserId, ...payloadContext } = body;
@@ -177,7 +177,9 @@ export async function POST(request: NextRequest) {
   }
 
     // 4. Fallback: Return Unscored Candidates
-    const filteredCandidates = await filterInteractedGroups(userId, rawCandidates);
+    const enrichedCandidates = await enrichGroups(rawCandidates, userId, supabase);
+    const transformedCandidates = transformGroups(enrichedCandidates);
+    const filteredCandidates = await filterInteractedGroups(userId, transformedCandidates);
     return formatStandardResponse(
       { groups: filteredCandidates },
       { source: "db", degraded: true, hasMore: false },
@@ -232,13 +234,13 @@ async function enrichGroups(groups: any[], currentUserId: string, supabase: any)
   try {
     // 1. Fetch member counts
     const { data: memberCounts, error: countError } = await supabase
-      .from("group_members")
+      .from("group_memberships")
       .select("group_id")
       .in("group_id", groupIds);
 
     // 2. Fetch current user's status in these groups
     const { data: userMemberships, error: memberError } = await supabase
-      .from("group_members")
+      .from("group_memberships")
       .select("group_id, role, status")
       .eq("user_id", currentUserId)
       .in("group_id", groupIds);

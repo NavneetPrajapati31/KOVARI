@@ -367,7 +367,7 @@ export default function ExplorePage() {
           destination: fullSearchData.destination, // Explicitly override with the searched trip destination
           startDate: group.dateRange?.start || (group as any).startDate,
           endDate: group.dateRange?.end || (group as any).endDate,
-          budget: fullSearchData.budget,
+          budget: group.budget !== undefined && group.budget !== null ? group.budget : fullSearchData.budget,
           memberCount: group.memberCount,
           userStatus: group.userStatus || "Open",
           creator: group.creator,

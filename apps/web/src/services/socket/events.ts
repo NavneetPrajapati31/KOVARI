@@ -92,7 +92,7 @@ export const registerSocketEvents = (
         if (supabaseId) {
           const supabase = createAdminSupabaseClient();
           const { data } = await supabase
-            .from("group_members")
+            .from("group_memberships")
             .select("id")
             .eq("group_id", chatId)
             .eq("user_id", supabaseId)

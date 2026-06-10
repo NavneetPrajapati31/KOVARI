@@ -49,8 +49,8 @@ export class GroupTransformer implements Transformer<any, GroupDTO> {
       destination: (groupData.destination?.name || groupData.destination || g.destination || "").toString(),
       
       // Aesthetics & UI Layer
-      image: (groupData.cover_image || g.cover_image || groupData.image || "").toString(),
-      avatar: (groupData.cover_image || g.cover_image || "").toString(), // Mobile compat
+      image: (groupData.cover_image || g.cover_image || groupData.coverImage || g.coverImage || groupData.image || "").toString(),
+      avatar: (groupData.cover_image || g.cover_image || groupData.coverImage || g.coverImage || "").toString(), // Mobile compat
       
       // Metadata (Pure Normalization)
       memberCount: Number(groupData.size || groupData.membersCount || g.membersCount || g.size || 0),

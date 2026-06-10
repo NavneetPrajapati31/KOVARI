@@ -301,9 +301,13 @@ export function GroupMatchCard({
   };
 
   // Derived display values for Bumble-like sections
+  const creatorDisplayName = group.creator?.name && group.creator.name !== "Unknown" 
+    ? group.creator.name 
+    : (group.creator?.username && group.creator.username !== "unknown" ? `@${group.creator.username}` : null);
+
   const aboutText = (() => {
     const parts: string[] = [];
-    if (group.creator?.name) parts.push(`Created by ${group.creator.name}`);
+    if (creatorDisplayName) parts.push(`Created by ${creatorDisplayName}`);
     if (group.memberCount) parts.push(`${group.memberCount} members`);
     if (group.destination) parts.push(`Traveling to ${group.destination}`);
     return parts.length > 0
@@ -460,10 +464,10 @@ export function GroupMatchCard({
             About
           </h2>
           <div className="flex flex-wrap gap-2">
-            {group.creator?.name && (
+            {creatorDisplayName && (
               <Pill
                 icon={<UserCircle2 />}
-                text={`Created by ${group.creator.name}`}
+                text={`Created by ${creatorDisplayName}`}
               />
             )}
             {group.memberCount != null && (
@@ -527,7 +531,7 @@ export function GroupMatchCard({
         )}
 
         {/* Travel Style Section */}
-        <div className="space-y-4">
+        {/* <div className="space-y-4">
           <h2 className="text-sm font-semibold text-foreground">
             Travel Style
           </h2>
@@ -543,10 +547,10 @@ export function GroupMatchCard({
               <Pill text="Explorer" />
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* Group Tags Section */}
-        {group.tags && group.tags.length > 0 && (
+        {/* {group.tags && group.tags.length > 0 && (
           <div className="space-y-4 pb-6 border-b border-border">
             <h2 className="text-sm font-semibold text-foreground">
               Group Tags
@@ -560,7 +564,7 @@ export function GroupMatchCard({
               ))}
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Action Buttons */}
         <div className="flex flex-row gap-2 pt-4 pb-2">

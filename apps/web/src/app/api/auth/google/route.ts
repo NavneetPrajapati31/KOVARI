@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // 3.5 Fetch full user data including ban status
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("id, email, name, banned, ban_reason, ban_expires_at")
+      .select("id, email, banned, ban_reason, ban_expires_at, profiles(name)")
       .eq("id", userId)
       .maybeSingle();
 
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: (Array.isArray((user as any)?.profiles) ? (user as any).profiles[0]?.name : ((user as any)?.profiles as any)?.name) || null,
           banned: isActuallyBanned,
           banReason: user.ban_reason || null,
           banExpiresAt: user.ban_expires_at || null,

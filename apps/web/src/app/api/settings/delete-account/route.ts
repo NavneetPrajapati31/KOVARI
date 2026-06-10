@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       { table: 'notifications', col: 'user_id' },
       { table: 'direct_messages', or: `sender_id.eq.${user.id},receiver_id.eq.${user.id}` },
       { table: 'group_messages', col: 'sender_id' },
-      { table: 'group_members', col: 'user_id' },
+      { table: 'group_memberships', col: 'user_id' },
       { table: 'matches', or: `user_a_id.eq.${user.id},user_b_id.eq.${user.id}` },
       { table: 'match_interests', or: `from_user_id.eq.${user.id},to_user_id.eq.${user.id}` },
       { table: 'reports', col: 'reported_by_user_id' }, // Only where user is the reporter, if they are reported we keep it for admin history or set null
