@@ -39,14 +39,7 @@ export default function ProtectedRoute({
   const profileConfirmedRef = useRef(false);
   const checkDoneThisCycleRef = useRef(false);
 
-  // 1. Redirect unauthenticated users
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      // if (debug) console.warn("[ProtectedRoute] Not signed in -> /sign-in");
-      router.push("/sign-in");
-    }
-  }, [isLoaded, isSignedIn, router]);
+  // 1. Unauthenticated state is strictly handled by middleware.ts
 
   // 2. One-time sync user to Supabase
   useEffect(() => {

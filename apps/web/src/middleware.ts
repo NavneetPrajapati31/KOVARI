@@ -151,14 +151,8 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
-  let authData: any = {};
-  try {
-    authData = await auth();
-  } catch (e) {
-    console.warn("Clerk auth() failed in middleware (possibly tampered session):", e);
-  }
-
-  const { userId, sessionId } = authData;
+  const authObj = await auth();
+  const { userId, sessionId } = authObj;
 
   // 3. Absolute Priority: Ban & Deletion Checks
   // We must do this before ANY bypass logic (like waitlist admin bypass)
@@ -282,9 +276,7 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
     }
 
     if (!userId) {
-      const urlObj = req.nextUrl.clone();
-      urlObj.pathname = "/sign-in";
-      return NextResponse.redirect(urlObj);
+      return authObj.redirectToSignIn({ returnBackUrl: req.url });
     }
 
     if (isApiRoute) {
@@ -306,9 +298,7 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
       if (pathname.startsWith("/api/") || pathname.startsWith("/trpc/")) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const urlObj = req.nextUrl.clone();
-      urlObj.pathname = "/sign-in";
-      return NextResponse.redirect(urlObj);
+      return authObj.redirectToSignIn({ returnBackUrl: req.url });
     }
   }
 
