@@ -13,6 +13,7 @@ import {
   Settings,
   FileText,
   BarChart3,
+  Mail,
   PanelLeft,
   MoreVertical,
   Loader2,
@@ -78,6 +79,11 @@ const menuItems = [
     title: "Waitlist",
     url: "/waitlist",
     icon: BarChart3,
+  },
+  {
+    title: "Emails",
+    url: "/emails",
+    icon: Mail,
   },
   {
     title: "Audit Logs",

@@ -114,6 +114,11 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE 10+ */
+  }
+  *::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Opera */
   }
   body {
     @apply bg-background text-foreground antialiased;
