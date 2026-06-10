@@ -1,7 +1,7 @@
 import 'server-only';
 import * as Sentry from '@sentry/nextjs';
 import * as Brevo from '@getbrevo/brevo';
-import { getEmailConfig } from './email-config';
+import { getEmailConfig, EmailType } from './email-config';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
@@ -41,6 +41,8 @@ interface SendEmailParams {
   subject: string;
   html: string;
   category?: string;
+  senderType?: EmailType;
+  replyToEmail?: string;
 }
 
 export const sendEmail = async ({
@@ -48,6 +50,8 @@ export const sendEmail = async ({
   subject,
   html,
   category = 'admin_notification',
+  senderType = 'system',
+  replyToEmail,
 }: SendEmailParams): Promise<{
   success: boolean;
   messageId?: string;
@@ -68,7 +72,7 @@ export const sendEmail = async ({
       }
 
       // Get sender email from environment or use default
-      const systemEmailConfig = getEmailConfig("system");
+      const systemEmailConfig = getEmailConfig(senderType);
       const senderEmail = systemEmailConfig.email;
       const senderName = systemEmailConfig.name;
 
@@ -84,7 +88,7 @@ export const sendEmail = async ({
       
       // Use any to bypass outdated definitions when replyTo property is missing
       (sendSmtpEmail as any).replyTo = {
-        email: systemEmailConfig.replyTo,
+        email: replyToEmail || systemEmailConfig.replyTo,
         name: senderName,
       };
 

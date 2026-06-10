@@ -28,12 +28,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { subject, title, subtitle, emailBody, recipients } = body as {
+    const { subject, title, subtitle, emailBody, recipients, senderType, replyToEmail } = body as {
       subject: string;
       title?: string;
       subtitle?: string;
       emailBody: string;
       recipients: string[];
+      senderType?: "system" | "product" | "support";
+      replyToEmail?: string;
     };
 
     // Validation
@@ -45,6 +47,12 @@ export async function POST(req: NextRequest) {
     }
     if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json({ error: "At least one recipient is required" }, { status: 400 });
+    }
+    if (senderType && !["system", "product", "support"].includes(senderType)) {
+      return NextResponse.json({ error: "Invalid sender type" }, { status: 400 });
+    }
+    if (replyToEmail && !["support@kovari.in", "hello@kovari.in"].includes(replyToEmail)) {
+      return NextResponse.json({ error: "Invalid reply-to email" }, { status: 400 });
     }
 
     // Generate HTML using custom email template
@@ -75,6 +83,8 @@ export async function POST(req: NextRequest) {
               subject: subject.trim(),
               html,
               category: "custom_campaign",
+              senderType,
+              replyToEmail,
             });
             if (res.success) {
               results.sent++;
@@ -99,6 +109,8 @@ export async function POST(req: NextRequest) {
         subject: subject.trim(),
         title: title?.trim() || null,
         subtitle: subtitle?.trim() || null,
+        senderType: senderType || "system",
+        replyToEmail: replyToEmail || null,
         recipientCount: cleanRecipients.length,
         sentCount: results.sent,
         failedCount: results.failed.length,
