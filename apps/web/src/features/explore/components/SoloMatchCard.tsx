@@ -45,6 +45,8 @@ import {
   BookMarked,
   IndianRupee,
   Globe,
+  Plus,
+  SkipForward,
 } from "lucide-react";
 import { Spinner } from "@heroui/react";
 import { Button } from "@/shared/components/ui/button";
@@ -126,6 +128,7 @@ export function SoloMatchCard({
   const [reportReason, setReportReason] = useState<string>("");
   const [isReporting, setIsReporting] = useState(false);
   const [isViewingProfile, setIsViewingProfile] = useState(false);
+  const [activeTab, setActiveTab] = useState<"left" | "right">("left");
 
   const { hasReported, setHasReported } = useReportStatus(user?.userId, "user");
 
@@ -391,7 +394,7 @@ export function SoloMatchCard({
   const profession = user.profession || (match as any).profession || user.Profession || (match as any).Profession;
 
   return (
-    <div className="w-full h-full flex flex-col overflow-y-auto relative">
+    <div className="w-full flex flex-col overflow-y-auto relative">
       {/* Loading overlay for View Profile */}
       {isViewingProfile && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-card">
@@ -399,7 +402,269 @@ export function SoloMatchCard({
         </div>
       )}
 
-      <div key={match.id} className="flex flex-col gap-5">
+      {/* ============================================================== */}
+      {/* MOBILE VIEW (Screens smaller than md) */}
+      {/* ============================================================== */}
+      <div className="md:hidden flex flex-col w-full">
+        {/* Story Indicators */}
+        <div className="flex gap-2 px-0 pt-0 w-full shrink-0">
+          <div
+            className={`h-1 flex-1 rounded-full transition-colors cursor-pointer ${
+              activeTab === "left" ? "bg-muted" : "bg-secondary"
+            }`}
+            onClick={() => setActiveTab("left")}
+          />
+          <div
+            className={`h-1 flex-1 rounded-full transition-colors cursor-pointer ${
+              activeTab === "right" ? "bg-muted" : "bg-secondary"
+            }`}
+            onClick={() => setActiveTab("right")}
+          />
+        </div>
+
+        <div className="overflow-y-auto overflow-x-hidden flex flex-col px-0">
+          {activeTab === "left" ? (
+            <div className="flex flex-col pt-3">
+              {/* Name, Age, Location */}
+              <div className="flex-none">
+                <h1 className="text-md font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                  {user.full_name || user.name || "Traveler"}
+                </h1>
+                <p className="text-sm text-muted-foreground font-medium flex flex-wrap gap-1">
+                  {user.age && `${user.age}, `} {typeof locationDisplay === 'string' ? locationDisplay.split(',')[0].trim() : "Unknown"}
+                </p>
+              </div>
+
+              {/* Avatar (Centered and correctly sized) */}
+                <div className="w-full max-w-[400px] aspect-[4/3] rounded-2xl overflow-hidden bg-secondary shadow-none border border-border my-4">
+                  {user.avatar ? (
+                    <img
+                      src={getFeedImageUrl(user.avatar)}
+                      alt={user.full_name || user.name || "Traveler"}
+                      className="w-full h-full object-cover cursor-pointer"
+                    />
+                  ) : (
+                    <Avatar className="w-full h-full text-lg rounded-2xl text-primary-foreground bg-secondary">
+                      <AvatarImage src="" />
+                      <UserAvatarFallback iconClassName="h-24 w-24" />
+                    </Avatar>
+                  )}
+              </div>
+
+              {/* Match Percentage */}
+              <div className="flex-none">
+                <div className="flex items-baseline gap-1.5 mb-4">
+                  <h2 className="text-lg font-bold text-foreground tracking-tighter leading-none">
+                    {match.compatibility_score}%
+                  </h2>
+                  <p className="text-sm font-semibold text-foreground tracking-tight leading-none">
+                    similar
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  {user.interests?.slice(0, 4).map((interest: string, i: number) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center px-4 py-1 rounded-full text-xs font-semibold bg-secondary border border-border text-foreground"
+                    >
+                      {interest.charAt(0).toUpperCase() + interest.slice(1)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6 pt-6">
+              {/* Trip Details Section */}
+              <div className="space-y-4">
+                <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Trip Details
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  <Pill
+                    icon={<MapPin />}
+                    text={
+                      match.destination?.split(",")[0]?.trim() ??
+                      match.destination
+                    }
+                  />
+                  <Pill icon={<Calendar />} text={formatDateRange()} />
+                  {getTripLengthDays() && (
+                    <Pill
+                      icon={<Calendar />}
+                      text={`${getTripLengthDays()} days`}
+                    />
+                  )}
+                  <Pill
+                    icon={<IndianRupee />}
+                    text={Number(match.budget).toLocaleString("en-IN")}
+                    variant="highlight"
+                  />
+                </div>
+              </div>
+
+              {/* About Section */}
+              <div className="space-y-4">
+                <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  About me
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {gender && (
+                    <Pill
+                      icon={<UserCircle2 />}
+                      text={gender.charAt(0).toUpperCase() + gender.slice(1)}
+                    />
+                  )}
+                  {nationality && <Pill icon={<Globe />} text={nationality} />}
+                  {locationDisplay && (
+                    <Pill icon={<Home />} text={locationDisplay} />
+                  )}
+                  {profession && (
+                    <Pill
+                      icon={getProfessionIcon(profession)}
+                      text={
+                        profession.charAt(0).toUpperCase() + profession.slice(1)
+                      }
+                    />
+                  )}
+                  {personality && (
+                    <Pill
+                      icon={getPersonalityIcon(personality)}
+                      text={
+                        personality.charAt(0).toUpperCase() +
+                        personality.slice(1)
+                      }
+                    />
+                  )}
+                  {religion && (
+                    <Pill
+                      icon={<BookMarked />}
+                      text={religion.charAt(0).toUpperCase() + religion.slice(1)}
+                    />
+                  )}
+                  {languagesList.length > 0 &&
+                    languagesList.map((lang: string, i: number) => (
+                      <Pill key={i} icon={<MessageCircle />} text={lang} />
+                    ))}
+                </div>
+              </div>
+
+              {/* Interests Section */}
+              {user.interests && user.interests.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    My interests
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {user.interests.map((interest: string, i: number) => (
+                      <Pill
+                        key={i}
+                        text={interest.charAt(0).toUpperCase() + interest.slice(1)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Lifestyle Section */}
+              {(user.foodPreference || user.smoking || user.drinking) && (
+                <div className="space-y-4 pb-0">
+                  <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Lifestyle
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    {user.foodPreference && (
+                      <Pill
+                        icon={<Salad />}
+                        text={
+                          String(user.foodPreference)
+                            .replace(/_/g, " ")
+                            .charAt(0)
+                            .toUpperCase() +
+                          String(user.foodPreference)
+                            .replace(/_/g, " ")
+                            .slice(1)
+                        }
+                      />
+                    )}
+                    {user.smoking && (
+                      <Pill
+                        icon={getSmokingIcon(user.smoking)}
+                        text={
+                          user.smoking === "no"
+                            ? "No"
+                            : user.smoking === "yes"
+                            ? "Yes"
+                            : String(user.smoking)
+                                .replace(/_/g, " ")
+                                .charAt(0)
+                                .toUpperCase() +
+                              String(user.smoking).replace(/_/g, " ").slice(1)
+                        }
+                      />
+                    )}
+                    {user.drinking && (
+                      <Pill
+                        icon={getDrinkingIcon(user.drinking)}
+                        text={
+                          user.drinking === "no"
+                            ? "No"
+                            : user.drinking === "yes"
+                            ? "Yes"
+                            : String(user.drinking)
+                                .replace(/_/g, " ")
+                                .charAt(0)
+                                .toUpperCase() +
+                              String(user.drinking).replace(/_/g, " ").slice(1)
+                        }
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Action Buttons */}
+        <div className="flex pt-5 gap-3 shrink-0">
+          <Button
+            variant="default"
+            className="flex-1 h-12 rounded-2xl text-sm font-bold bg-primary text-primary-foreground shadow-sm flex flex-row items-center justify-center gap-1 border-0"
+            onClick={handleInterested}
+            disabled={isInteresting || interestSent}
+          >
+            {isInteresting ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : interestSent ? (
+              "Sent"
+            ) : (
+              <>
+                <span>Connect</span>
+              </>
+            )}
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1 h-12 rounded-2xl text-sm font-bold bg-secondary text-foreground shadow-sm flex flex-row items-center justify-center gap-1 border border-border"
+            onClick={handleSkip}
+            disabled={isSkipping}
+          >
+            {isSkipping ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                <span>Skip</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* DESKTOP VIEW (Original untouched layout) */}
+      {/* ============================================================== */}
+      <div key={match.id} className="hidden md:flex flex-col gap-5">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row items-start gap-4 pb-5 border-b border-border/60">
           <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative shadow-none border border-border">
@@ -425,25 +690,12 @@ export function SoloMatchCard({
                 {user.full_name || user.name || "Traveler"}
                 {user.age ? `, ${user.age}` : ""}
               </h1>
-              {/* <Badge
-                variant="default"
-                className={`text-xs ${
-                  match.compatibility_score >= 80
-                    ? "bg-green-100 text-green-800 border-green-200"
-                    : match.compatibility_score >= 60
-                      ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                      : "bg-blue-100 text-blue-800 border-blue-200"
-                }`}
-              >
-                {match.compatibility_score}% trip overlap
-              </Badge> */}
             </div>
-            {user.bio && (
+            {user.bio ? (
               <p className="text-sm text-muted-foreground leading-relaxed mt-2">
                 {user.bio}
               </p>
-            )}
-            {!user.bio && (
+            ) : (
               <p className="text-sm text-muted-foreground italic">
                 No bio provided.
               </p>
@@ -484,41 +736,29 @@ export function SoloMatchCard({
             {gender && (
               <Pill
                 icon={<UserCircle2 />}
-                text={
-                  gender.charAt(0).toUpperCase() + gender.slice(1)
-                }
+                text={gender.charAt(0).toUpperCase() + gender.slice(1)}
               />
             )}
-            {nationality && (
-              <Pill icon={<Globe />} text={nationality} />
-            )}
-            {locationDisplay && (
-              <Pill icon={<Home />} text={locationDisplay} />
-            )}
+            {nationality && <Pill icon={<Globe />} text={nationality} />}
+            {locationDisplay && <Pill icon={<Home />} text={locationDisplay} />}
             {profession && (
               <Pill
                 icon={getProfessionIcon(profession)}
-                text={
-                  profession.charAt(0).toUpperCase() +
-                  profession.slice(1)
-                }
+                text={profession.charAt(0).toUpperCase() + profession.slice(1)}
               />
             )}
             {personality && (
               <Pill
                 icon={getPersonalityIcon(personality)}
                 text={
-                  personality.charAt(0).toUpperCase() +
-                  personality.slice(1)
+                  personality.charAt(0).toUpperCase() + personality.slice(1)
                 }
               />
             )}
             {religion && (
               <Pill
                 icon={<BookMarked />}
-                text={
-                  religion.charAt(0).toUpperCase() + religion.slice(1)
-                }
+                text={religion.charAt(0).toUpperCase() + religion.slice(1)}
               />
             )}
             {languagesList.length > 0 &&
@@ -568,9 +808,9 @@ export function SoloMatchCard({
                     user.smoking === "no"
                       ? "No"
                       : user.smoking === "yes"
-                        ? "Yes"
-                        : String(user.smoking).replace(/_/g, " ").charAt(0).toUpperCase() +
-                          String(user.smoking).replace(/_/g, " ").slice(1)
+                      ? "Yes"
+                      : String(user.smoking).replace(/_/g, " ").charAt(0).toUpperCase() +
+                        String(user.smoking).replace(/_/g, " ").slice(1)
                   }
                 />
               )}
@@ -581,48 +821,15 @@ export function SoloMatchCard({
                     user.drinking === "no"
                       ? "No"
                       : user.drinking === "yes"
-                        ? "Yes"
-                        : String(user.drinking).replace(/_/g, " ").charAt(0).toUpperCase() +
-                          String(user.drinking).replace(/_/g, " ").slice(1)
+                      ? "Yes"
+                      : String(user.drinking).replace(/_/g, " ").charAt(0).toUpperCase() +
+                        String(user.drinking).replace(/_/g, " ").slice(1)
                   }
                 />
               )}
             </div>
           </div>
         )}
-
-        {/* Travel Style Section */}
-        {/* <div className="space-y-4">
-          <h2 className="text-base font-semibold text-foreground">
-            Travel Style
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {travelStyleTags.length > 0 ? (
-              travelStyleTags.map((t, i) => (
-                <Pill key={i} text={t.charAt(0).toUpperCase() + t.slice(1)} />
-              ))
-            ) : (
-              <Pill text="Explorer" />
-            )}
-          </div>
-        </div> */}
-
-        {/* Shared Interests Section */}
-        {/* {user.interests && user.interests.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-base font-semibold text-foreground">
-              Shared Interests
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {user.interests.slice(0, 8).map((interest, i) => (
-                <Pill
-                  key={i}
-                  text={interest.charAt(0).toUpperCase() + interest.slice(1)}
-                />
-              ))}
-            </div>
-          </div>
-        )} */}
 
         {/* Action Buttons */}
         <div className="flex flex-row gap-2 pt-4 pb-2">
@@ -639,7 +846,9 @@ export function SoloMatchCard({
             ) : (
               <>
                 <X className="w-5 h-5 md:hidden shrink-0" aria-hidden />
-                <span className="hidden md:inline text-md font-semibold">Skip</span>
+                <span className="hidden md:inline text-md font-semibold">
+                  Skip
+                </span>
               </>
             )}
           </Button>
@@ -657,8 +866,8 @@ export function SoloMatchCard({
             }}
             disabled={hasReported}
             className={`flex-1 h-11 rounded-full border border-border ${
-              hasReported 
-                ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed pointer-events-none" 
+              hasReported
+                ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed pointer-events-none"
                 : "text-foreground bg-secondary"
             }`}
           >

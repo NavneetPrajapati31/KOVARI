@@ -513,7 +513,7 @@ export default function ExplorePage() {
         </header>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex gap-3 h-[calc(100vh-8rem)] md:h-[calc(100vh-9rem)] lg:h-[calc(100vh-10rem)]">
+        <div className="flex-1 flex flex-col min-[930px]:flex-row gap-3 min-[930px]:h-[calc(100vh-9rem)] lg:h-[calc(100vh-10rem)]">
           {/* Left Sidebar - Rounded Container */}
           <div className="hidden min-[930px]:flex w-full min-[930px]:w-1/3 flex-shrink-0 rounded-3xl bg-card border-1 border-border overflow-hidden flex-col">
             <ExploreSidebar

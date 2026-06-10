@@ -163,7 +163,7 @@ export const ResultsDisplay = ({
   }
 
   return (
-    <div className="w-full h-full min-h-[90vh] flex flex-col overflow-hidden">
+    <div className="w-full h-full min-[930px]:min-h-[90vh] flex flex-col overflow-hidden">
       {/* Error Display */}
       {searchError && (
         <div className="px-6 pt-6 pb-0 flex-shrink-0">
