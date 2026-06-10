@@ -22,9 +22,17 @@ dotenv.config();
 const PORT = process.env.PORT || 3005;
 
 const httpServer = createServer((req, res) => {
-  if (req.method === 'GET' && req.url === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Socket server running');
+  if (req.method === 'GET') {
+    if (req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: "ok" }));
+      return;
+    }
+    if (req.url === '/') {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('Socket server running');
+      return;
+    }
   }
 });
 
