@@ -121,6 +121,12 @@ export function SoloMatchCard({
     ...((match as any) || {}),
     ...(match.user || {})
   };
+
+  const isPreferNotToSay = (val?: string) => {
+    if (!val) return false;
+    const clean = val.toLowerCase().replace(/_/g, " ");
+    return clean === "prefer not to say";
+  };
   const [isInteresting, setIsInteresting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const [interestSent, setInterestSent] = useState(false);
@@ -410,31 +416,31 @@ export function SoloMatchCard({
         <div className="flex gap-2 px-0 pt-0 w-full shrink-0">
           <div
             className={`h-1 flex-1 rounded-full transition-colors cursor-pointer ${
-              activeTab === "left" ? "bg-muted" : "bg-secondary"
+              activeTab === "left" ? "bg-muted dark:bg-muted-foreground" : "bg-secondary"
             }`}
             onClick={() => setActiveTab("left")}
           />
           <div
             className={`h-1 flex-1 rounded-full transition-colors cursor-pointer ${
-              activeTab === "right" ? "bg-muted" : "bg-secondary"
+              activeTab === "right" ? "bg-muted dark:bg-muted-foreground" : "bg-secondary"
             }`}
             onClick={() => setActiveTab("right")}
           />
         </div>
 
         <div className="overflow-y-auto overflow-x-hidden flex flex-col px-0">
-          {activeTab === "left" ? (
-            <div className="flex flex-col pt-3">
-              {/* Name, Age, Location */}
-              <div className="flex-none">
-                <h1 className="text-md font-extrabold text-foreground tracking-tight flex items-center gap-2">
-                  {user.full_name || user.name || "Traveler"}
-                </h1>
-                <p className="text-sm text-muted-foreground font-medium flex flex-wrap gap-1">
-                  {user.age && `${user.age}, `} {typeof locationDisplay === 'string' ? locationDisplay.split(',')[0].trim() : "Unknown"}
-                </p>
-              </div>
+          {/* Name, Age, Location */}
+          <div className="flex-none pt-3">
+            <h1 className="text-md font-extrabold text-foreground tracking-tight flex items-center gap-2">
+              {user.full_name || user.name || "Traveler"}
+            </h1>
+            <p className="text-sm text-muted-foreground font-medium flex flex-wrap gap-1">
+              {user.age && `${user.age}, `} {typeof locationDisplay === 'string' ? locationDisplay.split(',')[0].trim() : "Unknown"}
+            </p>
+          </div>
 
+          {activeTab === "left" ? (
+            <div className="flex flex-col">
               {/* Avatar (Centered and correctly sized) */}
                 <div className="w-full max-w-[400px] aspect-[4/3] rounded-2xl overflow-hidden bg-secondary shadow-none border border-border my-4">
                   {user.avatar ? (
@@ -453,14 +459,21 @@ export function SoloMatchCard({
 
               {/* Match Percentage */}
               <div className="flex-none">
-                <div className="flex items-baseline gap-1.5 mb-4">
-                  <h2 className="text-lg font-bold text-foreground tracking-tighter leading-none">
-                    {match.compatibility_score}%
-                  </h2>
-                  <p className="text-sm font-semibold text-foreground tracking-tight leading-none">
-                    similar
-                  </p>
-                </div>
+                {match.compatibility_score !== null &&
+                  match.compatibility_score !== undefined && (
+                    <div className="flex items-baseline gap-1.5 mb-4">
+                      <h2 className="text-lg font-bold text-foreground tracking-tighter leading-none">
+                        {Math.round(
+                          match.compatibility_score <= 1
+                            ? match.compatibility_score * 100
+                            : match.compatibility_score
+                        )}%
+                      </h2>
+                      <p className="text-sm font-semibold text-foreground tracking-tight leading-none">
+                        similar
+                      </p>
+                    </div>
+                  )}
                 <div className="flex flex-wrap gap-2.5">
                   {user.interests?.slice(0, 4).map((interest: string, i: number) => (
                     <span
@@ -474,152 +487,115 @@ export function SoloMatchCard({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-6 pt-6">
+            <div className="flex flex-col gap-4 pt-4">
               {/* Trip Details Section */}
-              <div className="space-y-4">
-                <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Trip Details
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  <Pill
-                    icon={<MapPin />}
-                    text={
-                      match.destination?.split(",")[0]?.trim() ??
-                      match.destination
-                    }
-                  />
-                  <Pill icon={<Calendar />} text={formatDateRange()} />
-                  {getTripLengthDays() && (
-                    <Pill
-                      icon={<Calendar />}
-                      text={`${getTripLengthDays()} days`}
-                    />
-                  )}
-                  <Pill
-                    icon={<IndianRupee />}
-                    text={Number(match.budget).toLocaleString("en-IN")}
-                    variant="highlight"
-                  />
-                </div>
+              <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
+                <p className="text-sm font-semibold text-foreground">
+                  {match.destination?.split(",")[0]?.trim() ?? match.destination}
+                  <span className="mx-2 text-muted-foreground">•</span>
+                  ₹{Number(match.budget).toLocaleString("en-IN")}
+                </p>
+                <p className="text-sm font-semibold text-foreground">
+                  {formatDateRange()}
+                </p>
               </div>
 
               {/* About Section */}
-              <div className="space-y-4">
-                <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  About me
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {gender && (
-                    <Pill
-                      icon={<UserCircle2 />}
-                      text={gender.charAt(0).toUpperCase() + gender.slice(1)}
-                    />
-                  )}
-                  {nationality && <Pill icon={<Globe />} text={nationality} />}
-                  {locationDisplay && (
-                    <Pill icon={<Home />} text={locationDisplay} />
-                  )}
-                  {profession && (
-                    <Pill
-                      icon={getProfessionIcon(profession)}
-                      text={
-                        profession.charAt(0).toUpperCase() + profession.slice(1)
-                      }
-                    />
-                  )}
-                  {personality && (
-                    <Pill
-                      icon={getPersonalityIcon(personality)}
-                      text={
-                        personality.charAt(0).toUpperCase() +
-                        personality.slice(1)
-                      }
-                    />
-                  )}
-                  {religion && (
-                    <Pill
-                      icon={<BookMarked />}
-                      text={religion.charAt(0).toUpperCase() + religion.slice(1)}
-                    />
-                  )}
-                  {languagesList.length > 0 &&
-                    languagesList.map((lang: string, i: number) => (
-                      <Pill key={i} icon={<MessageCircle />} text={lang} />
-                    ))}
-                </div>
+              <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
+                {gender && !isPreferNotToSay(gender) && (
+                  <p className="text-sm font-semibold text-foreground">
+                    {gender.charAt(0).toUpperCase() + gender.slice(1)}
+                  </p>
+                )}
+
+                {(() => {
+                  const items = [
+                    profession && !isPreferNotToSay(profession) && (profession.charAt(0).toUpperCase() + profession.slice(1)),
+                    religion && !isPreferNotToSay(religion) && (religion.charAt(0).toUpperCase() + religion.slice(1)),
+                    personality && !isPreferNotToSay(personality) && (personality.charAt(0).toUpperCase() + personality.slice(1))
+                  ].filter(Boolean) as string[];
+                  
+                  if (items.length === 0) return null;
+                  
+                  return (
+                    <p className="text-sm font-semibold text-foreground flex flex-wrap items-center">
+                      {items.map((item, idx) => (
+                        <React.Fragment key={idx}>
+                          {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                          <span>{item}</span>
+                        </React.Fragment>
+                      ))}
+                    </p>
+                  );
+                })()}
+                {languagesList.length > 0 && (
+                  <p className="text-sm font-semibold text-foreground">
+                    {languagesList.join(", ")}
+                  </p>
+                )}
               </div>
 
               {/* Interests Section */}
               {user.interests && user.interests.length > 0 && (
-                <div className="space-y-4">
-                  <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    My interests
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {user.interests.map((interest: string, i: number) => (
-                      <Pill
-                        key={i}
-                        text={interest.charAt(0).toUpperCase() + interest.slice(1)}
-                      />
-                    ))}
-                  </div>
+                <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
+                  {user.interests.map((interest: string, idx: number) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                      <span className="text-sm font-semibold text-foreground">
+                        {interest.charAt(0).toUpperCase() + interest.slice(1)}
+                      </span>
+                    </React.Fragment>
+                  ))}
                 </div>
               )}
 
               {/* Lifestyle Section */}
-              {(user.foodPreference || user.smoking || user.drinking) && (
-                <div className="space-y-4 pb-0">
-                  <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Lifestyle
-                  </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {user.foodPreference && (
-                      <Pill
-                        icon={<Salad />}
-                        text={
-                          String(user.foodPreference)
-                            .replace(/_/g, " ")
-                            .charAt(0)
-                            .toUpperCase() +
-                          String(user.foodPreference)
-                            .replace(/_/g, " ")
-                            .slice(1)
-                        }
-                      />
-                    )}
-                    {user.smoking && (
-                      <Pill
-                        icon={getSmokingIcon(user.smoking)}
-                        text={
-                          user.smoking === "no"
-                            ? "No"
-                            : user.smoking === "yes"
-                            ? "Yes"
-                            : String(user.smoking)
-                                .replace(/_/g, " ")
-                                .charAt(0)
-                                .toUpperCase() +
-                              String(user.smoking).replace(/_/g, " ").slice(1)
-                        }
-                      />
-                    )}
-                    {user.drinking && (
-                      <Pill
-                        icon={getDrinkingIcon(user.drinking)}
-                        text={
-                          user.drinking === "no"
-                            ? "No"
-                            : user.drinking === "yes"
-                            ? "Yes"
-                            : String(user.drinking)
-                                .replace(/_/g, " ")
-                                .charAt(0)
-                                .toUpperCase() +
-                              String(user.drinking).replace(/_/g, " ").slice(1)
-                        }
-                      />
-                    )}
-                  </div>
+              {(
+                (user.foodPreference && !isPreferNotToSay(user.foodPreference)) ||
+                (user.smoking && !isPreferNotToSay(user.smoking)) ||
+                (user.drinking && !isPreferNotToSay(user.drinking))
+              ) && (
+                <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
+                  {(() => {
+                    const foodText = user.foodPreference && !isPreferNotToSay(user.foodPreference)
+                      ? String(user.foodPreference)
+                          .replace(/_/g, " ")
+                          .charAt(0)
+                          .toUpperCase() +
+                        String(user.foodPreference)
+                          .replace(/_/g, " ")
+                          .slice(1)
+                      : null;
+
+                    const smokingVal = user.smoking && !isPreferNotToSay(user.smoking)
+                      ? (user.smoking === "no"
+                          ? "No"
+                          : user.smoking === "yes"
+                          ? "Yes"
+                          : String(user.smoking).replace(/_/g, " "))
+                      : null;
+                    const smokingText = smokingVal ? `Smoking: ${smokingVal.charAt(0).toUpperCase() + smokingVal.slice(1)}` : null;
+
+                    const drinkingVal = user.drinking && !isPreferNotToSay(user.drinking)
+                      ? (user.drinking === "no"
+                          ? "No"
+                          : user.drinking === "yes"
+                          ? "Yes"
+                          : String(user.drinking).replace(/_/g, " "))
+                      : null;
+                    const drinkingText = drinkingVal ? `Drinking: ${drinkingVal.charAt(0).toUpperCase() + drinkingVal.slice(1)}` : null;
+
+                    const items = [foodText, smokingText, drinkingText].filter(Boolean) as string[];
+
+                    return items.map((item, idx) => (
+                      <React.Fragment key={idx}>
+                        {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                        <span className="text-sm font-semibold text-foreground">
+                          {item}
+                        </span>
+                      </React.Fragment>
+                    ));
+                  })()}
                 </div>
               )}
             </div>

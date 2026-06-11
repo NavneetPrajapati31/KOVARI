@@ -320,7 +320,7 @@ export default function ExplorePage() {
             budget: fullSearchData.budget,
             start_date: fullSearchData.startDate,
             end_date: fullSearchData.endDate,
-            compatibility_score: (traveler as any).compatibility_score || 85,
+            compatibility_score: (traveler as any).compatibility_score ?? (traveler as any).compatibilityScore ?? null,
             user: {
               ...((traveler as any).user || {}), // Preserve the deeply hydrated user object
               id: traveler.id,

@@ -2,6 +2,69 @@ import { createAdminSupabaseClient } from "@kovari/api";
 import { logger } from "@/lib/api/logger";
 import { profileMapper } from "@/lib/mappers/profileMapper";
 
+function calculateCompatibility(p1: any, p2: any): number {
+  let score = 0;
+  let totalWeight = 0;
+
+  // 1. Interests (Weight: 50%)
+  const interests1 = Array.isArray(p1.interests) ? p1.interests : [];
+  const interests2 = Array.isArray(p2.interests) ? p2.interests : [];
+  if (interests1.length > 0 && interests2.length > 0) {
+    const intersection = interests1.filter((i: string) => interests2.includes(i)).length;
+    const union = new Set([...interests1, ...interests2]).size;
+    const jaccard = union > 0 ? intersection / union : 0;
+    score += jaccard * 0.50;
+    totalWeight += 0.50;
+  } else {
+    score += 0.3 * 0.50;
+    totalWeight += 0.50;
+  }
+
+  // 2. Languages (Weight: 20%)
+  const langs1 = Array.isArray(p1.languages) ? p1.languages : [];
+  const langs2 = Array.isArray(p2.languages) ? p2.languages : [];
+  if (langs1.length > 0 && langs2.length > 0) {
+    const intersection = langs1.filter((l: string) => langs2.includes(l)).length;
+    const union = new Set([...langs1, ...langs2]).size;
+    const jaccard = union > 0 ? intersection / union : 0;
+    score += jaccard * 0.20;
+    totalWeight += 0.20;
+  } else {
+    score += 0.5 * 0.20;
+    totalWeight += 0.20;
+  }
+
+  // 3. Personality Type (Weight: 15%)
+  if (p1.personality && p2.personality) {
+    const isMatch = p1.personality.toLowerCase() === p2.personality.toLowerCase() ? 1.0 : 0.2;
+    score += isMatch * 0.15;
+    totalWeight += 0.15;
+  } else {
+    score += 0.5 * 0.15;
+    totalWeight += 0.15;
+  }
+
+  // 4. Lifestyle - Smoking & Drinking (Weight: 15%)
+  let lifestyleScore = 0;
+  if (p1.smoking && p2.smoking) {
+    lifestyleScore += p1.smoking.toLowerCase() === p2.smoking.toLowerCase() ? 0.5 : 0.1;
+  } else {
+    lifestyleScore += 0.25;
+  }
+  if (p1.drinking && p2.drinking) {
+    lifestyleScore += p1.drinking.toLowerCase() === p2.drinking.toLowerCase() ? 0.5 : 0.1;
+  } else {
+    lifestyleScore += 0.25;
+  }
+  score += lifestyleScore * 0.15;
+  totalWeight += 0.15;
+
+  const rawScore = totalWeight > 0 ? score / totalWeight : 0.5;
+  // Normalize to 40% - 98% range
+  const normalized = 0.4 + rawScore * 0.55;
+  return Math.min(0.98, Math.max(0.40, normalized));
+}
+
 /**
  * Perform legacy Supabase-based matching as a fallback for solo travelers.
  */
@@ -12,6 +75,23 @@ export async function performSoloDbMatchingFallback(
 ) {
   const supabase = createAdminSupabaseClient();
   
+  // Fetch current user details to calculate real similarity
+  const { data: currentUserProfile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", currentUserId)
+    .single();
+
+  const { data: currentUserRow } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", currentUserId)
+    .single();
+
+  const currentUserDto = (currentUserRow && currentUserProfile)
+    ? profileMapper.fromDb(currentUserRow, currentUserProfile)
+    : null;
+
   // 1. Fetch profiles (excluding self) with full user JOIN
   let query = supabase
     .from("profiles")
@@ -49,6 +129,7 @@ export async function performSoloDbMatchingFallback(
   // 3. Transform via profileMapper to standardized MatchDTO
   return (dbRows as any[]).map(p => {
     const userDto = profileMapper.fromDb(p.users, p);
+    const score = currentUserDto ? calculateCompatibility(currentUserDto, userDto) : 0.75;
 
     return {
       userId: userDto.id,
@@ -56,7 +137,8 @@ export async function performSoloDbMatchingFallback(
       age: userDto.age,
       location: userDto.location || "Unknown",
       profilePhoto: userDto.avatar,
-      compatibilityScore: 0.5, // Constant score for fallback
+      compatibilityScore: score,
+      compatibility_score: score,
       breakdown: { source: "db_fallback" },
       budgetDifference: 0,
       startDate: filters.startDate || new Date().toISOString(),

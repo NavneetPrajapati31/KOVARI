@@ -246,9 +246,8 @@ export const ResultsDisplay = ({
           )} */}
         </div>
       ) : (
-        /* No Results or Initial State */
         <div className="flex-1 flex items-center justify-center p-6 md:p-8 lg:p-12">
-          <div className="text-center max-w-lg">
+          <div className="text-center max-w-lg w-full border-none shadow-none min-h-[70vh] min-[930px]:min-h-0 flex flex-col justify-center items-center">
             {lastSearchData ? (
               <>
                 <h3 className="sm:text-md text-sm font-medium text-foreground mb-2">
