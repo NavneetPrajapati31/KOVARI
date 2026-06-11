@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { subject, title, subtitle, emailBody, recipients, senderType, replyToEmail } = body as {
+    const { fromName, subject, title, subtitle, emailBody, recipients, senderType, replyToEmail } = body as {
+      fromName?: string;
       subject: string;
       title?: string;
       subtitle?: string;
@@ -39,6 +40,9 @@ export async function POST(req: NextRequest) {
     };
 
     // Validation
+    if (!fromName || !fromName.trim()) {
+      return NextResponse.json({ error: "From Name is required" }, { status: 400 });
+    }
     if (!subject || !subject.trim()) {
       return NextResponse.json({ error: "Subject is required" }, { status: 400 });
     }
@@ -85,6 +89,7 @@ export async function POST(req: NextRequest) {
               category: "custom_campaign",
               senderType,
               replyToEmail,
+              senderName: fromName.trim(),
             });
             if (res.success) {
               results.sent++;
@@ -106,6 +111,7 @@ export async function POST(req: NextRequest) {
       action: "SEND_BULK_EMAIL",
       reason: `Sent "${subject}" to ${cleanRecipients.length} recipients`,
       metadata: {
+        fromName: fromName.trim(),
         subject: subject.trim(),
         title: title?.trim() || null,
         subtitle: subtitle?.trim() || null,

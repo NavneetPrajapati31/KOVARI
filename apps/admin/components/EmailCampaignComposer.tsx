@@ -24,6 +24,7 @@ import { ListRow } from "./ui/ios/ListRow";
 import { SectionHeader } from "./ui/ios/SectionHeader";
 import { SearchInput } from "./ui/ios/SearchInput";
 import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
 import {
   Dialog,
   DialogContent,
@@ -57,13 +58,24 @@ interface EmailCampaignComposerProps {
 type TargetMethod = "registered" | "waitlist_all" | "waitlist_new" | "waitlist_beta" | "manual";
 
 export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCampaignComposerProps) {
+  const { user } = useUser();
+
   // Composer states
+  const [fromName, setFromName] = React.useState("KOVARI");
   const [subject, setSubject] = React.useState("");
   const [title, setTitle] = React.useState("");
   const [subtitle, setSubtitle] = React.useState("");
   const [emailBody, setEmailBody] = React.useState("");
   const [senderType, setSenderType] = React.useState<"system" | "product">("product");
   const [replyToEmail, setReplyToEmail] = React.useState<"support@kovari.in" | "hello@kovari.in">("support@kovari.in");
+
+  React.useEffect(() => {
+    if (user?.firstName) {
+      setFromName(`${user.firstName} from KOVARI`);
+    } else {
+      setFromName("KOVARI");
+    }
+  }, [user]);
   
   // Targeting states
   const [targetMethod, setTargetMethod] = React.useState<TargetMethod>("registered");
@@ -187,7 +199,7 @@ export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCam
   }, [targetMethod, selectedEmails, selectablePool, parsedManualEmails]);
 
   // Form validations
-  const isFormValid = subject.trim() && emailBody.trim() && finalRecipients.length > 0;
+  const isFormValid = fromName.trim() && subject.trim() && emailBody.trim() && finalRecipients.length > 0;
 
   // Real-time body text layout converter
   const parsedPreviewBodyHtml = React.useMemo(() => {
@@ -229,6 +241,7 @@ export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCam
     setSendingResults(null);
 
     const payload = {
+      fromName: fromName.trim(),
       subject: subject.trim(),
       title: title.trim(),
       subtitle: subtitle.trim() || undefined,
@@ -270,6 +283,11 @@ export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCam
         setManualEmails("");
         setSenderType("product");
         setReplyToEmail("support@kovari.in");
+        if (user?.firstName) {
+          setFromName(`${user.firstName} from KOVARI`);
+        } else {
+          setFromName("KOVARI");
+        }
       }
     } catch (error: any) {
       console.error(error);
@@ -352,16 +370,30 @@ export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCam
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
-                  Subject Line <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  placeholder="e.g., Exciting updates about KOVARI closed beta!"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="rounded-xl h-10 border-border bg-background focus-visible:ring-1 focus-visible:ring-primary shadow-none"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
+                    From Name <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    placeholder="e.g., Navneet from KOVARI"
+                    value={fromName}
+                    onChange={(e) => setFromName(e.target.value)}
+                    className="rounded-xl h-10 border-border bg-background focus-visible:ring-1 focus-visible:ring-primary shadow-none"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
+                    Subject Line <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    placeholder="e.g., Exciting updates about KOVARI closed beta!"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="rounded-xl h-10 border-border bg-background focus-visible:ring-1 focus-visible:ring-primary shadow-none"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -659,6 +691,7 @@ export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCam
 
           {/* Quick Summary Block */}
           <div className="my-1 rounded-xl bg-secondary/40 border border-border/40 p-4 space-y-2.5 text-xs text-muted-foreground">
+            <p><strong className="text-foreground">From Name:</strong> {fromName}</p>
             <p><strong className="text-foreground">Sender Email:</strong> {senderType === "product" ? "hello@kovari.in" : "noreply@kovari.in"}</p>
             <p><strong className="text-foreground">Reply-To Email:</strong> {replyToEmail}</p>
             <p><strong className="text-foreground">Subject Line:</strong> {subject}</p>

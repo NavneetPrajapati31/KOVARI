@@ -43,6 +43,7 @@ interface SendEmailParams {
   category?: string;
   senderType?: EmailType;
   replyToEmail?: string;
+  senderName?: string;
 }
 
 export const sendEmail = async ({
@@ -52,6 +53,7 @@ export const sendEmail = async ({
   category = 'admin_notification',
   senderType = 'system',
   replyToEmail,
+  senderName: customSenderName,
 }: SendEmailParams): Promise<{
   success: boolean;
   messageId?: string;
@@ -74,7 +76,7 @@ export const sendEmail = async ({
       // Get sender email from environment or use default
       const systemEmailConfig = getEmailConfig(senderType);
       const senderEmail = systemEmailConfig.email;
-      const senderName = systemEmailConfig.name;
+      const senderName = customSenderName || systemEmailConfig.name;
 
       span.setAttribute('recipient', to);
       span.setAttribute('sender', senderEmail);
