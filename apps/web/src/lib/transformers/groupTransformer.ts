@@ -39,6 +39,19 @@ export class GroupTransformer implements Transformer<any, GroupDTO> {
         name: creatorDto.displayName,
         username: creatorDto.username,
         avatar: creatorDto.avatar,
+        age: creatorDto.age,
+        gender: creatorDto.gender,
+        location: creatorDto.location,
+        bio: creatorDto.bio,
+        interests: creatorDto.interests,
+        languages: creatorDto.languages,
+        nationality: creatorDto.nationality,
+        religion: creatorDto.religion,
+        profession: creatorDto.profession,
+        smoking: creatorDto.smoking,
+        drinking: creatorDto.drinking,
+        personality: creatorDto.personality,
+        foodPreference: creatorDto.foodPreference,
       };
     }
 

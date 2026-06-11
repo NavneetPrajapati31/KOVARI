@@ -82,6 +82,13 @@ export function GroupMatchCard({
   const [isViewingGroup, setIsViewingGroup] = useState(false);
 
   const { hasReported, setHasReported } = useReportStatus(group?.id, "group");
+  const [activeTab, setActiveTab] = useState<"left" | "right">("left");
+
+  const isPreferNotToSay = (val?: string) => {
+    if (!val) return false;
+    const clean = val.toLowerCase().replace(/_/g, " ");
+    return clean === "prefer not to say";
+  };
 
   // Add error boundary for missing group data
   if (!group) {
@@ -285,7 +292,7 @@ export function GroupMatchCard({
   };
 
   const formatSmokingPolicy = (p?: string) => {
-    if (!p) return null;
+    if (!p || isPreferNotToSay(p)) return null;
     const s = p.toLowerCase();
     if (s === "non-smoking") return "No smoking";
     if (s === "smokers welcome") return "Smoking allowed";
@@ -293,7 +300,7 @@ export function GroupMatchCard({
   };
 
   const formatDrinkingPolicy = (p?: string) => {
-    if (!p) return null;
+    if (!p || isPreferNotToSay(p)) return null;
     const s = p.toLowerCase();
     if (s === "non-drinking") return "No alcohol";
     if (s === "drinkers welcome") return "Alcohol allowed";
@@ -358,7 +365,366 @@ export function GroupMatchCard({
 
   return (
     <div className="w-full h-full flex flex-col overflow-y-auto relative">
-      <div key={group.id} className="flex flex-col gap-5">
+      {/* Loading overlay for View Group */}
+      {isViewingGroup && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-card">
+          <Spinner variant="spinner" size="md" color="primary" />
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MOBILE VIEW (Screens smaller than md) */}
+      {/* ============================================================== */}
+      <div className="md:hidden flex flex-col w-full">
+        {/* Story Indicators */}
+        <div className="flex gap-2 px-0 pt-0 w-full shrink-0">
+          <div
+            className={`h-1 flex-1 rounded-full transition-colors cursor-pointer ${
+              activeTab === "left" ? "bg-muted dark:bg-muted-foreground" : "bg-secondary"
+            }`}
+            onClick={() => setActiveTab("left")}
+          />
+          <div
+            className={`h-1 flex-1 rounded-full transition-colors cursor-pointer ${
+              activeTab === "right" ? "bg-muted dark:bg-muted-foreground" : "bg-secondary"
+            }`}
+            onClick={() => setActiveTab("right")}
+          />
+        </div>
+
+        <div className="overflow-y-auto overflow-x-hidden flex flex-col px-0">
+          {/* Header Section */}
+          {activeTab === "left" ? (
+            /* Left Header: Group Name and Description */
+            <div className="flex-none pt-3">
+              <h1 className="text-md font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                {group.name || "Travel Group"}
+              </h1>
+              <p className="text-sm text-muted-foreground font-medium flex flex-wrap gap-1 leading-normal mt-0">
+                {group.description || "No description provided."}
+              </p>
+            </div>
+          ) : (
+            /* Right Header: Creator's Name, Age, City */
+            <div className="flex-none pt-3">
+              <h1 className="text-md font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                Created by {group.creator?.name || "Traveler"}
+              </h1>
+              <p className="text-sm text-muted-foreground font-medium flex flex-wrap gap-1 mt-0">
+                {group.creator?.age ? `${group.creator.age}, ` : ""} {typeof group.creator?.location === 'string' ? group.creator.location.split(',')[0].trim() : "Unknown"}
+              </p>
+            </div>
+          )}
+
+          {activeTab === "left" ? (
+            /* LEFT TAB CONTENT */
+            <div className="flex flex-col">
+              {/* Group Cover Image */}
+              <div className="w-full max-w-[400px] aspect-[4/3] rounded-2xl overflow-hidden bg-secondary shadow-none border border-border my-4">
+                {group.cover_image || group.image ? (
+                  <img
+                    src={getFeedImageUrl(group.cover_image || group.image)}
+                    alt={group.name || "Travel Group"}
+                    className="w-full h-full object-cover cursor-pointer"
+                  />
+                ) : (
+                  <Avatar className="w-full h-full text-lg rounded-2xl text-primary-foreground bg-secondary">
+                    <AvatarImage src="" />
+                    <UserAvatarFallback iconClassName="h-24 w-24" />
+                  </Avatar>
+                )}
+              </div>
+
+              {/* Trip Details Section */}
+              <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col mb-4">
+                <p className="text-sm font-semibold text-foreground">
+                  {typeof group.destination === "string" ? group.destination.split(",")[0]?.trim() : group.destination}
+                  {(group.averageBudget != null || group.budget != null) && (
+                    <>
+                      <span className="mx-2 text-muted-foreground">•</span>
+                      ₹{Number(group.averageBudget || group.budget).toLocaleString("en-IN")}
+                    </>
+                  )}
+                </p>
+                <p className="text-sm font-semibold text-foreground">
+                  {formatDateRange()}
+                </p>
+              </div>
+
+              {/* Match Score Section */}
+              {/* {group.score !== undefined && (
+                <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col mb-4">
+                  <p className="text-sm font-semibold text-foreground font-bold">
+                    {Math.round(group.score * 100)}% compatibility
+                  </p>
+                  {group.breakdown && (
+                    <p className="text-sm font-semibold text-foreground flex flex-wrap items-center">
+                      {(() => {
+                        const items = [
+                          group.breakdown.budget != null && `Budget: ${Math.round(group.breakdown.budget * 100)}%`,
+                          group.breakdown.dates != null && `Dates: ${Math.round(group.breakdown.dates * 100)}%`,
+                          group.breakdown.interests != null && `Interests: ${Math.round(group.breakdown.interests * 100)}%`,
+                          group.breakdown.age != null && `Age: ${Math.round(group.breakdown.age * 100)}%`
+                        ].filter(Boolean);
+                        
+                        return items.map((item, idx) => (
+                          <React.Fragment key={idx}>
+                            {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                            <span>{item}</span>
+                          </React.Fragment>
+                        ));
+                      })()}
+                    </p>
+                  )}
+                </div>
+              )} */}
+
+              {/* Group Members Section */}
+              {(() => {
+                const items = [
+                  creatorDisplayName && `Created by ${creatorDisplayName}`,
+                  group.memberCount != null && `${group.memberCount} members`
+                ].filter(Boolean);
+                if (items.length === 0) return null;
+                return (
+                  <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col mb-4">
+                    <p className="text-sm font-semibold text-foreground flex flex-wrap items-center">
+                      {items.map((item, idx) => (
+                        <React.Fragment key={idx}>
+                          {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                          <span>{item}</span>
+                        </React.Fragment>
+                      ))}
+                    </p>
+                  </div>
+                );
+              })()}
+
+              {/* Group Interests Section */}
+              {group.tags && group.tags.length > 0 && (
+                <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1 mb-4">
+                  {group.tags.slice(0, 6).map((tag: string, idx: number) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                      <span className="text-sm font-semibold text-foreground">
+                        {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
+              {/* Languages Section */}
+              {group.languages && group.languages.length > 0 && (
+                <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1 mb-4">
+                  {group.languages.map((lang: string, idx: number) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                      <span className="text-sm font-semibold text-foreground">
+                        {lang}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
+              {/* Lifestyle Section */}
+              {(
+                (group.smokingPolicy && !isPreferNotToSay(group.smokingPolicy)) ||
+                (group.drinkingPolicy && !isPreferNotToSay(group.drinkingPolicy))
+              ) && (
+                <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
+                  {(() => {
+                    const smokingVal = formatSmokingPolicy(group.smokingPolicy);
+                    const drinkingVal = formatDrinkingPolicy(group.drinkingPolicy);
+                    
+                    const items = [
+                      smokingVal && !isPreferNotToSay(smokingVal) && `Smoking: ${smokingVal}`,
+                      drinkingVal && !isPreferNotToSay(drinkingVal) && `Drinking: ${drinkingVal}`
+                    ].filter(Boolean) as string[];
+                    
+                    return items.map((item, idx) => (
+                      <React.Fragment key={idx}>
+                        {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                        <span className="text-sm font-semibold text-foreground">
+                          {item}
+                        </span>
+                      </React.Fragment>
+                    ));
+                  })()}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* RIGHT TAB CONTENT */
+            <div className="flex flex-col">
+              {/* Creator's Avatar */}
+              <div className="w-full max-w-[400px] aspect-[4/3] rounded-2xl overflow-hidden bg-secondary shadow-none border border-border my-4">
+                {group.creator?.avatar ? (
+                  <img
+                    src={getFeedImageUrl(group.creator.avatar)}
+                    alt={group.creator?.name || "Group Creator"}
+                    className="w-full h-full object-cover cursor-pointer"
+                  />
+                ) : (
+                  <Avatar className="w-full h-full text-lg rounded-2xl text-primary-foreground bg-secondary">
+                    <AvatarImage src="" />
+                    <UserAvatarFallback iconClassName="h-24 w-24" />
+                  </Avatar>
+                )}
+              </div>
+
+              {/* Creator About Section */}
+              {(() => {
+                const hasGender = group.creator?.gender && !isPreferNotToSay(group.creator.gender);
+                const creatorProf = group.creator?.profession;
+                const creatorRel = group.creator?.religion;
+                const creatorPers = group.creator?.personality;
+                const detailItems = [
+                  creatorProf && !isPreferNotToSay(creatorProf) && (creatorProf.charAt(0).toUpperCase() + creatorProf.slice(1)),
+                  creatorRel && !isPreferNotToSay(creatorRel) && (creatorRel.charAt(0).toUpperCase() + creatorRel.slice(1)),
+                  creatorPers && !isPreferNotToSay(creatorPers) && (creatorPers.charAt(0).toUpperCase() + creatorPers.slice(1))
+                ].filter(Boolean) as string[];
+                const hasLanguages = group.creator?.languages && Array.isArray(group.creator.languages) && group.creator.languages.length > 0;
+
+                if (!hasGender && detailItems.length === 0 && !hasLanguages) return null;
+
+                return (
+                  <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col mb-4">
+                    {hasGender && (
+                      <p className="text-sm font-semibold text-foreground">
+                        {group.creator.gender.charAt(0).toUpperCase() + group.creator.gender.slice(1)}
+                      </p>
+                    )}
+                    {detailItems.length > 0 && (
+                      <p className="text-sm font-semibold text-foreground flex flex-wrap items-center">
+                        {detailItems.map((item, idx) => (
+                          <React.Fragment key={idx}>
+                            {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                            <span>{item}</span>
+                          </React.Fragment>
+                        ))}
+                      </p>
+                    )}
+                    {hasLanguages && (
+                      <p className="text-sm font-semibold text-foreground">
+                        {group.creator.languages.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Creator Interests Section */}
+              {group.creator?.interests && group.creator.interests.length > 0 && (
+                <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1 mb-4">
+                  {group.creator.interests.map((interest: string, idx: number) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                      <span className="text-sm font-semibold text-foreground">
+                        {interest.charAt(0).toUpperCase() + interest.slice(1)}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+
+              {/* Creator Lifestyle Section */}
+              {(
+                (group.creator?.foodPreference && !isPreferNotToSay(group.creator.foodPreference)) ||
+                (group.creator?.smoking && !isPreferNotToSay(group.creator.smoking)) ||
+                (group.creator?.drinking && !isPreferNotToSay(group.creator.drinking))
+              ) && (
+                <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1 mb-4">
+                  {(() => {
+                    const creatorFood = group.creator.foodPreference;
+                    const creatorSmoking = group.creator.smoking;
+                    const creatorDrinking = group.creator.drinking;
+
+                    const foodText = creatorFood && !isPreferNotToSay(creatorFood)
+                      ? String(creatorFood)
+                          .replace(/_/g, " ")
+                          .charAt(0)
+                          .toUpperCase() +
+                        String(creatorFood)
+                          .replace(/_/g, " ")
+                          .slice(1)
+                      : null;
+
+                    const smokingVal = creatorSmoking && !isPreferNotToSay(creatorSmoking)
+                      ? (creatorSmoking === "no"
+                          ? "No"
+                          : creatorSmoking === "yes"
+                          ? "Yes"
+                          : String(creatorSmoking).replace(/_/g, " "))
+                      : null;
+                    const smokingText = smokingVal ? `Smoking: ${smokingVal.charAt(0).toUpperCase() + smokingVal.slice(1)}` : null;
+
+                    const drinkingVal = creatorDrinking && !isPreferNotToSay(creatorDrinking)
+                      ? (creatorDrinking === "no"
+                          ? "No"
+                          : creatorDrinking === "yes"
+                          ? "Yes"
+                          : String(creatorDrinking).replace(/_/g, " "))
+                      : null;
+                    const drinkingText = drinkingVal ? `Drinking: ${drinkingVal.charAt(0).toUpperCase() + drinkingVal.slice(1)}` : null;
+
+                    const items = [foodText, smokingText, drinkingText].filter(Boolean) as string[];
+
+                    return items.map((item, idx) => (
+                      <React.Fragment key={idx}>
+                        {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                        <span className="text-sm font-semibold text-foreground">
+                          {item}
+                        </span>
+                      </React.Fragment>
+                    ));
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Action Buttons */}
+        <div className="flex pt-0 gap-3 shrink-0">
+          <Button
+            variant="default"
+            className="flex-1 h-12 rounded-2xl text-sm font-bold bg-primary text-primary-foreground shadow-sm flex flex-row items-center justify-center gap-1 border-0"
+            onClick={handleJoinGroup}
+            disabled={isInteresting || interestSent}
+          >
+            {isInteresting ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : interestSent ? (
+              "Sent"
+            ) : (
+              <>
+                <span>Interested</span>
+              </>
+            )}
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1 h-12 rounded-2xl text-sm font-bold bg-secondary text-foreground shadow-sm flex flex-row items-center justify-center gap-1 border border-border"
+            onClick={handleSkip}
+            disabled={isSkipping}
+          >
+            {isSkipping ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <>
+                <span>Skip</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* DESKTOP VIEW (Original untouched layout) */}
+      {/* ============================================================== */}
+      <div key={group.id} className="hidden md:flex flex-col gap-5">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row items-start gap-4 pb-5 border-b border-border/60">
           <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-muted/60 flex items-center justify-center flex-shrink-0 relative shadow-none border border-border">
@@ -381,11 +747,6 @@ export function GroupMatchCard({
                 {group.name || "Travel Group"}
               </h1>
             </div>
-            {/* <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              {group.creator?.name && (
-                <span className="capitalize">{group.creator.name}</span>
-              )}
-            </div> */}
             {group.description && (
               <p className="text-sm text-muted-foreground leading-relaxed mt-2">
                 {group.description}
@@ -400,171 +761,122 @@ export function GroupMatchCard({
         </div>
 
         {/* Trip Details Section */}
-        <div className="space-y-4">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Trip Details
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            <Pill
-              icon={<MapPin />}
-              text={
-                typeof group.destination === "string"
-                  ? group.destination.split(",")[0]?.trim() || group.destination
-                  : "Destination"
-              }
-            />
-            <Pill icon={<Calendar />} text={formatDateRange()} />
-            {getTripLengthDays() && (
-              <Pill icon={<Calendar />} text={`${getTripLengthDays()} days`} />
-            )}
+        <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
+          <p className="text-sm font-semibold text-foreground">
+            {typeof group.destination === "string" ? group.destination.split(",")[0]?.trim() : group.destination}
             {group.budget != null && (
-              <Pill
-                icon={<IndianRupee />}
-                text={`${Number(group.budget).toLocaleString("en-IN")} per person`}
-                variant="highlight"
-              />
+              <>
+                <span className="mx-2 text-muted-foreground">•</span>
+                ₹{Number(group.budget).toLocaleString("en-IN")}
+              </>
             )}
-          </div>
+          </p>
+          <p className="text-sm font-semibold text-foreground">
+            {formatDateRange()}
+          </p>
         </div>
 
         {/* Match Score Section */}
         {group.score !== undefined && (
-          <div className="space-y-4">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Match Score
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              <Pill
-                icon={<Star />}
-                text={`${Math.round(group.score * 100)}% compatibility`}
-              />
-            </div>
+          <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
+            <p className="text-sm font-semibold text-foreground">
+              {Math.round(group.score * 100)}% compatibility
+            </p>
             {group.breakdown && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Pill
-                  text={`Budget: ${Math.round(group.breakdown.budget * 100)}%`}
-                />
-                <Pill
-                  text={`Dates: ${Math.round(group.breakdown.dates * 100)}%`}
-                />
-                <Pill
-                  text={`Interests: ${Math.round(group.breakdown.interests * 100)}%`}
-                />
-                <Pill text={`Age: ${Math.round(group.breakdown.age * 100)}%`} />
-              </div>
+              <p className="text-sm font-semibold text-foreground flex flex-wrap items-center">
+                {(() => {
+                  const items = [
+                    group.breakdown.budget != null && `Budget: ${Math.round(group.breakdown.budget * 100)}%`,
+                    group.breakdown.dates != null && `Dates: ${Math.round(group.breakdown.dates * 100)}%`,
+                    group.breakdown.interests != null && `Interests: ${Math.round(group.breakdown.interests * 100)}%`,
+                    group.breakdown.age != null && `Age: ${Math.round(group.breakdown.age * 100)}%`
+                  ].filter(Boolean);
+                  
+                  return items.map((item, idx) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                      <span>{item}</span>
+                    </React.Fragment>
+                  ));
+                })()}
+              </p>
             )}
           </div>
         )}
 
         {/* About Section */}
-        <div
-          className={`space-y-4 ${!(group.smokingPolicy || group.drinkingPolicy) ? "pb-6 border-b border-border/60" : ""}`}
-        >
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            About
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {creatorDisplayName && (
-              <Pill
-                icon={<UserCircle2 />}
-                text={`Created by ${creatorDisplayName}`}
-              />
-            )}
-            {group.memberCount != null && (
-              <Pill icon={<Users />} text={`${group.memberCount} members`} />
-            )}
-          </div>
+        <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
+          <p className="text-sm font-semibold text-foreground flex flex-wrap items-center">
+            {(() => {
+              const items = [
+                creatorDisplayName && `Created by ${creatorDisplayName}`,
+                group.memberCount != null && `${group.memberCount} members`
+              ].filter(Boolean);
+              
+              return items.map((item, idx) => (
+                <React.Fragment key={idx}>
+                  {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                  <span>{item}</span>
+                </React.Fragment>
+              ));
+            })()}
+          </p>
         </div>
 
-        {/* Group Interests / Tags Section */}
+        {/* Group Interests Section */}
         {group.tags && group.tags.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Group interests
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {group.tags.slice(0, 6).map((tag: string, i: number) => (
-                <Pill
-                  key={i}
-                  text={tag.charAt(0).toUpperCase() + tag.slice(1)}
-                />
-              ))}
-            </div>
+          <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
+            {group.tags.slice(0, 6).map((tag: string, idx: number) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                <span className="text-sm font-semibold text-foreground">
+                  {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                </span>
+              </React.Fragment>
+            ))}
           </div>
         )}
 
         {/* Languages Section */}
         {group.languages && group.languages.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Languages
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {group.languages.map((lang: string, i: number) => (
-                <Pill key={i} icon={<MessageCircle />} text={lang} />
-              ))}
-            </div>
+          <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
+            {group.languages.map((lang: string, idx: number) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                <span className="text-sm font-semibold text-foreground">
+                  {lang}
+                </span>
+              </React.Fragment>
+            ))}
           </div>
         )}
 
         {/* Lifestyle Section */}
-        {(group.smokingPolicy || group.drinkingPolicy) && (
-          <div className="space-y-4 pb-6 border-b border-border/60">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Group lifestyle
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {formatSmokingPolicy(group.smokingPolicy) && (
-                <Pill
-                  icon={<Cigarette strokeWidth={2} />}
-                  text={formatSmokingPolicy(group.smokingPolicy)!}
-                />
-              )}
-              {formatDrinkingPolicy(group.drinkingPolicy) && (
-                <Pill
-                  icon={<Glass strokeWidth={2} />}
-                  text={formatDrinkingPolicy(group.drinkingPolicy)!}
-                />
-              )}
-            </div>
+        {(
+          (group.smokingPolicy && !isPreferNotToSay(group.smokingPolicy)) ||
+          (group.drinkingPolicy && !isPreferNotToSay(group.drinkingPolicy))
+        ) && (
+          <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
+            {(() => {
+              const smokingVal = formatSmokingPolicy(group.smokingPolicy);
+              const drinkingVal = formatDrinkingPolicy(group.drinkingPolicy);
+              
+              const items = [
+                smokingVal && !isPreferNotToSay(smokingVal) && `Smoking: ${smokingVal}`,
+                drinkingVal && !isPreferNotToSay(drinkingVal) && `Drinking: ${drinkingVal}`
+              ].filter(Boolean) as string[];
+              
+              return items.map((item, idx) => (
+                <React.Fragment key={idx}>
+                  {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                  <span className="text-sm font-semibold text-foreground">
+                    {item}
+                  </span>
+                </React.Fragment>
+              ));
+            })()}
           </div>
         )}
-
-        {/* Travel Style Section */}
-        {/* <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-foreground">
-            Travel Style
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {travelStyleTags.length > 0 ? (
-              travelStyleTags.map((tag: string, i: number) => (
-                <Pill
-                  key={i}
-                  text={tag.charAt(0).toUpperCase() + tag.slice(1)}
-                />
-              ))
-            ) : (
-              <Pill text="Explorer" />
-            )}
-          </div>
-        </div> */}
-
-        {/* Group Tags Section */}
-        {/* {group.tags && group.tags.length > 0 && (
-          <div className="space-y-4 pb-6 border-b border-border">
-            <h2 className="text-sm font-semibold text-foreground">
-              Group Tags
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {group.tags.slice(0, 8).map((tag: string, i: number) => (
-                <Pill
-                  key={i}
-                  text={tag.charAt(0).toUpperCase() + tag.slice(1)}
-                />
-              ))}
-            </div>
-          </div>
-        )} */}
 
         {/* Action Buttons */}
         <div className="flex flex-row gap-2 pt-4 pb-2">
@@ -584,7 +896,6 @@ export function GroupMatchCard({
               </>
             )}
           </Button>
-          {/* 3. Report Button */}
           <Button
             variant="secondary"
             size="sm"

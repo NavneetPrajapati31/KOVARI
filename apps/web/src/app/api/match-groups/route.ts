@@ -282,7 +282,20 @@ async function enrichGroups(groups: any[], currentUserId: string, supabase: any)
           userId: creatorDto.id,
           name: creatorDto.displayName,
           username: creatorDto.username,
-          avatar: creatorDto.avatar
+          avatar: creatorDto.avatar,
+          age: creatorDto.age,
+          gender: creatorDto.gender,
+          location: creatorDto.location,
+          bio: creatorDto.bio,
+          interests: creatorDto.interests,
+          languages: creatorDto.languages,
+          nationality: creatorDto.nationality,
+          religion: creatorDto.religion,
+          profession: creatorDto.profession,
+          smoking: creatorDto.smoking,
+          drinking: creatorDto.drinking,
+          personality: creatorDto.personality,
+          foodPreference: creatorDto.foodPreference
         } : (g.creator || { name: "Traveler" })
       };
     });
