@@ -1,4 +1,4 @@
-export type EmailType = "system" | "product" | "support";
+export type EmailType = "system" | "product" | "support" | "personal";
 
 export interface EmailConfig {
   email: string;
@@ -26,6 +26,12 @@ export function getEmailConfig(type: EmailType): EmailConfig {
       return {
         email: supportEmail,
         name: "Kovari Support",
+        replyTo: supportEmail,
+      };
+    case "personal":
+      return {
+        email: process.env.EMAIL_PERSONAL_FROM || "navneet@kovari.in",
+        name: "Navneet",
         replyTo: supportEmail,
       };
     default:

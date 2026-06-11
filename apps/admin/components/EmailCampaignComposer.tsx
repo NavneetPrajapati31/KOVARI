@@ -66,8 +66,8 @@ export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCam
   const [title, setTitle] = React.useState("");
   const [subtitle, setSubtitle] = React.useState("");
   const [emailBody, setEmailBody] = React.useState("");
-  const [senderType, setSenderType] = React.useState<"system" | "product">("product");
-  const [replyToEmail, setReplyToEmail] = React.useState<"support@kovari.in" | "hello@kovari.in">("support@kovari.in");
+  const [senderType, setSenderType] = React.useState<"system" | "product" | "personal">("product");
+  const [replyToEmail, setReplyToEmail] = React.useState<"support@kovari.in" | "hello@kovari.in" | "navneet@kovari.in">("support@kovari.in");
 
   React.useEffect(() => {
     if (user?.firstName) {
@@ -323,50 +323,30 @@ export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCam
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
                     Sender Address
                   </label>
-                  <div className="flex gap-2">
-                    {[
-                      { id: "product", email: "hello@kovari.in" },
-                      { id: "system", email: "noreply@kovari.in" },
-                    ].map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => setSenderType(s.id as "system" | "product")}
-                        className={`flex-1 px-2.5 py-2 text-[10px] sm:text-[11px] font-semibold rounded-xl border transition-all cursor-pointer truncate ${
-                          senderType === s.id
-                            ? "bg-background text-primary border-primary shadow-none"
-                            : "bg-background text-foreground border-border"
-                        }`}
-                      >
-                        {s.email}
-                      </button>
-                    ))}
-                  </div>
+                  <select
+                    value={senderType}
+                    onChange={(e) => setSenderType(e.target.value as any)}
+                    className="w-full rounded-xl h-10 border border-border bg-background px-3 text-xs font-medium focus-visible:ring-1 focus-visible:ring-primary focus:outline-none shadow-none cursor-pointer"
+                  >
+                    <option value="product">hello@kovari.in (Product)</option>
+                    <option value="personal">navneet@kovari.in (Personal)</option>
+                    <option value="system">noreply@kovari.in (System)</option>
+                  </select>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">
                     Reply-To Address
                   </label>
-                  <div className="flex gap-2">
-                    {[
-                      { id: "support@kovari.in", email: "support@kovari.in" },
-                      { id: "hello@kovari.in", email: "hello@kovari.in" },
-                    ].map((r) => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => setReplyToEmail(r.id as "support@kovari.in" | "hello@kovari.in")}
-                        className={`flex-1 px-2.5 py-2 text-[10px] sm:text-[11px] font-semibold rounded-xl border transition-all cursor-pointer truncate ${
-                          replyToEmail === r.id
-                            ? "bg-background text-primary border-primary shadow-none"
-                            : "bg-background text-foreground border-border"
-                        }`}
-                      >
-                        {r.email}
-                      </button>
-                    ))}
-                  </div>
+                  <select
+                    value={replyToEmail}
+                    onChange={(e) => setReplyToEmail(e.target.value as any)}
+                    className="w-full rounded-xl h-10 border border-border bg-background px-3 text-xs font-medium focus-visible:ring-1 focus-visible:ring-primary focus:outline-none shadow-none cursor-pointer"
+                  >
+                    <option value="support@kovari.in">support@kovari.in (Support)</option>
+                    <option value="hello@kovari.in">hello@kovari.in (Hello)</option>
+                    <option value="navneet@kovari.in">navneet@kovari.in (Personal)</option>
+                  </select>
                 </div>
               </div>
 
@@ -692,7 +672,7 @@ export function EmailCampaignComposer({ profiles = [], waitlist = [] }: EmailCam
           {/* Quick Summary Block */}
           <div className="my-1 rounded-xl bg-secondary/40 border border-border/40 p-4 space-y-2.5 text-xs text-muted-foreground">
             <p><strong className="text-foreground">From Name:</strong> {fromName}</p>
-            <p><strong className="text-foreground">Sender Email:</strong> {senderType === "product" ? "hello@kovari.in" : "noreply@kovari.in"}</p>
+            <p><strong className="text-foreground">Sender Email:</strong> {senderType === "product" ? "hello@kovari.in" : senderType === "personal" ? "navneet@kovari.in" : "noreply@kovari.in"}</p>
             <p><strong className="text-foreground">Reply-To Email:</strong> {replyToEmail}</p>
             <p><strong className="text-foreground">Subject Line:</strong> {subject}</p>
             <p><strong className="text-foreground">Card Title:</strong> {title}</p>

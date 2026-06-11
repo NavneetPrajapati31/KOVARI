@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       subtitle?: string;
       emailBody: string;
       recipients: string[];
-      senderType?: "system" | "product" | "support";
+      senderType?: "system" | "product" | "support" | "personal";
       replyToEmail?: string;
     };
 
@@ -52,10 +52,10 @@ export async function POST(req: NextRequest) {
     if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json({ error: "At least one recipient is required" }, { status: 400 });
     }
-    if (senderType && !["system", "product", "support"].includes(senderType)) {
+    if (senderType && !["system", "product", "support", "personal"].includes(senderType)) {
       return NextResponse.json({ error: "Invalid sender type" }, { status: 400 });
     }
-    if (replyToEmail && !["support@kovari.in", "hello@kovari.in"].includes(replyToEmail)) {
+    if (replyToEmail && !["support@kovari.in", "hello@kovari.in", "navneet@kovari.in"].includes(replyToEmail)) {
       return NextResponse.json({ error: "Invalid reply-to email" }, { status: 400 });
     }
 
