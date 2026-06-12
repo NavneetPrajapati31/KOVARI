@@ -2,6 +2,16 @@ if (typeof window !== "undefined") {
   throw new Error("Waitlist confirmation should only be used server-side.");
 }
 import * as Sentry from "@sentry/nextjs";
+
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const [local, domain] = parts;
+  if (local.length <= 2) return `${local[0] || ""}*@${domain}`;
+  return `${local.substring(0, 2)}${"*".repeat(local.length - 2)}@${domain}`;
+}
+
 import { waitlistConfirmationEmail } from "./email-templates/waitlist-confirmation";
 import { createAdminSupabaseClient } from "./supabase-admin";
 import { getEmailConfig } from "./email-config";
@@ -85,7 +95,7 @@ export async function sendWaitlistConfirmation({
             span.setAttribute("success", true);
             span.setAttribute("message_id", emailData.messageId || "unknown");
             console.log("Waitlist confirmation email sent successfully:", {
-              to,
+              to: maskEmail(to),
               messageId: emailData.messageId,
               attempt: attempt + 1,
             });
@@ -118,7 +128,7 @@ export async function sendWaitlistConfirmation({
           (lastError as { message?: string })?.message ||
           "Unknown error sending email";
         console.error("Error sending waitlist confirmation email:", {
-          to,
+          to: maskEmail(to),
           error: errorMessage,
           attempts: MAX_RETRIES,
         });
@@ -136,7 +146,7 @@ export async function sendWaitlistConfirmation({
           (error as { message?: string })?.message ||
           "Unknown error sending email";
         console.error("Error sending waitlist confirmation email:", {
-          to,
+          to: maskEmail(to),
           error: errorMessage,
         });
         Sentry.captureException(error, {

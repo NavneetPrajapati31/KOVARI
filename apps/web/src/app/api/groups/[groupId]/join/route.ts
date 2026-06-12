@@ -59,8 +59,10 @@ export async function POST(
         ? body.userId
         : userId;
         
-    console.log(`[GROUP_JOIN] Request Body: ${JSON.stringify(body)}`);
-    console.log(`[GROUP_JOIN] actingUserId: ${userId}, targetClerkUserId: ${targetClerkUserId}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[GROUP_JOIN] Request Body: ${JSON.stringify(body)}`);
+      console.log(`[GROUP_JOIN] actingUserId: ${userId}, targetClerkUserId: ${targetClerkUserId}`);
+    }
     const viaInvite = body?.viaInvite === true;
     const approvingOther = targetClerkUserId !== userId;
 

@@ -3,6 +3,15 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const [local, domain] = parts;
+  if (local.length <= 2) return `${local[0] || ""}*@${domain}`;
+  return `${local.substring(0, 2)}${"*".repeat(local.length - 2)}@${domain}`;
+}
+
 export async function POST() {
   const { userId } = await auth();
   if (!userId) {
@@ -34,14 +43,14 @@ export async function POST() {
       return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
-    console.log(`[SYNC-USER] Starting identity resolution for: ${userId} (${email})`);
+    console.log(`[SYNC-USER] Starting identity resolution for: ${userId} (${maskEmail(email)})`);
 
     // ─── BETA GATE: Auto-provision access if email is approved ───────────────
     if (process.env.LAUNCH_WAITLIST_MODE === "true") {
       const isProvisioned = await provisionBetaAccessIfApproved(supabase, email, userId);
       if (!isProvisioned) {
         // Not a beta user. Reject sync.
-        console.log(`[BETA-GATE] Rejecting sync for non-beta user: ${email}`);
+        console.log(`[BETA-GATE] Rejecting sync for non-beta user: ${maskEmail(email)}`);
         return NextResponse.json({ error: "Access restricted. Beta not yet available." }, { status: 403 });
       }
     }
@@ -121,7 +130,7 @@ async function provisionBetaAccessIfApproved(
       .maybeSingle();
 
     if (!waitlistEntry || (waitlistEntry.status !== "beta_invited" && waitlistEntry.status !== "beta_active")) {
-      console.log(`[BETA-GATE] Email not approved for beta: ${email}`);
+      console.log(`[BETA-GATE] Email not approved for beta: ${maskEmail(email)}`);
       return false;
     }
 
@@ -150,7 +159,7 @@ async function provisionBetaAccessIfApproved(
       .update({ status: "beta_active" })
       .eq("id", waitlistEntry.id);
 
-    console.log(`[BETA-GATE] ✅ Beta access provisioned for: ${email} (${clerkUserId})`);
+    console.log(`[BETA-GATE] ✅ Beta access provisioned for: ${maskEmail(email)} (${clerkUserId})`);
     return true;
   } catch (err) {
     // Non-fatal — log but don't block user sync

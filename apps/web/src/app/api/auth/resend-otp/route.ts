@@ -3,6 +3,15 @@ import { createRouteHandlerSupabaseClientWithServiceRole, sendRegistrationVerifi
 import crypto from "crypto";
 import { checkRateLimit } from "@/lib/auth/rateLimit";
 
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const [local, domain] = parts;
+  if (local.length <= 2) return `${local[0] || ""}*@${domain}`;
+  return `${local.substring(0, 2)}${"*".repeat(local.length - 2)}@${domain}`;
+}
+
 /**
  * Handle OTP resending
  * POST /api/auth/resend-otp
@@ -35,7 +44,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (fetchError || !verification) {
-      console.warn(`[AUTH] Failed resend request for ${email} (No pending session)`);
+      console.warn(`[AUTH] Failed resend request for ${maskEmail(email)} (No pending session)`);
       return NextResponse.json({ error: "No active verification session found. Please register again." }, { status: 400 });
     }
 

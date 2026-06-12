@@ -131,7 +131,7 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
   if (pathname.startsWith("/api/direct-chat")) {
     const { userId } = await auth();
     const authHeader = req.headers.get("authorization") || "";
-    console.log(`🛡️ [Middleware] DirectChat Auth Check | Path: ${pathname} | UserId: ${userId} | Token: ${authHeader.substring(0, 30)}...`);
+    console.log(`🛡️ [Middleware] DirectChat Auth Check | Path: ${pathname} | UserId: ${userId} | Token: ${authHeader ? "present" : "missing"}`);
   }
 
   const url = req.nextUrl.clone();

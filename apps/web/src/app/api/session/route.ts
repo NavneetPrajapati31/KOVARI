@@ -398,7 +398,9 @@ export async function POST(request: NextRequest) {
     const profileLocation = (userProfile as any)?.location;
     if (profileLocation) {
       if (typeof profileLocation === 'string' && profileLocation.trim() !== '') {
-        console.log(`Pre-resolving home location for matching: ${profileLocation}`);
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`Pre-resolving home location for matching: ${profileLocation}`);
+        }
         userHomeCoords = await getCoordinatesForLocation(profileLocation);
       } else if (profileLocation.lat && profileLocation.lon) {
         userHomeCoords = { lat: profileLocation.lat, lon: profileLocation.lon };

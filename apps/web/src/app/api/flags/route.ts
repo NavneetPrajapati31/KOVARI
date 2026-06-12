@@ -18,13 +18,17 @@ import { sendSecurityAlert } from "@/lib/alerts/security";
  * }
  */
 export async function POST(req: NextRequest) {
-  console.log("=== FLAG API CALLED ===");
-  console.log("Timestamp:", new Date().toISOString());
+  if (process.env.NODE_ENV !== "production") {
+    console.log("=== FLAG API CALLED ===");
+    console.log("Timestamp:", new Date().toISOString());
+  }
 
   try {
     // Validate authentication
     const { userId: clerkUserId } = await auth();
-    console.log("Clerk User ID:", clerkUserId);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Clerk User ID:", clerkUserId);
+    }
 
     if (!clerkUserId) {
       console.error("❌ Unauthorized - no Clerk user ID");
@@ -33,7 +37,9 @@ export async function POST(req: NextRequest) {
 
     // Parse request body
     const body = await req.json();
-    console.log("Request body:", JSON.stringify(body, null, 2));
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Request body:", JSON.stringify(body, null, 2));
+    }
     const { targetType, targetId, reason, evidenceUrl, evidencePublicId } =
       body;
 
@@ -43,13 +49,15 @@ export async function POST(req: NextRequest) {
         ? evidenceUrl.trim()
         : null;
 
-    console.log("Parsed values:");
-    console.log("- targetType:", targetType);
-    console.log("- targetId:", targetId);
-    console.log("- reason:", reason);
-    console.log("- evidenceUrl (raw):", evidenceUrl);
-    console.log("- evidenceUrl (normalized):", normalizedEvidenceUrl);
-    console.log("- evidencePublicId:", evidencePublicId);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Parsed values:");
+      console.log("- targetType:", targetType);
+      console.log("- targetId:", targetId);
+      console.log("- reason:", reason);
+      console.log("- evidenceUrl (raw):", evidenceUrl);
+      console.log("- evidenceUrl (normalized):", normalizedEvidenceUrl);
+      console.log("- evidencePublicId:", evidencePublicId);
+    }
 
     // Validate required fields
     if (!targetType || !targetId || !reason) {

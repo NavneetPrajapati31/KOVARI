@@ -55,7 +55,9 @@ export async function POST(req: Request) {
   const eventType = evt.type;
 
   console.log(`Webhook with an ID of ${id} and type of ${eventType}`);
-  console.log('Webhook body:', body);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Webhook body:', body);
+  }
 
   return NextResponse.json({ success: true }, { status: 200 });
 }

@@ -2,6 +2,16 @@ if (typeof window !== "undefined") {
   throw new Error("Brevo service should only be used server-side.");
 }
 import * as Sentry from "@sentry/nextjs";
+
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const [local, domain] = parts;
+  if (local.length <= 2) return `${local[0] || ""}*@${domain}`;
+  return `${local.substring(0, 2)}${"*".repeat(local.length - 2)}@${domain}`;
+}
+
 import { passwordResetEmail } from "./email-templates/password-reset";
 import { groupInviteEmail } from "./email-templates/group-invite";
 import { registrationVerificationEmail } from "./email-templates/registration-verification";
@@ -120,7 +130,7 @@ export const sendPasswordResetEmail = async ({
         const messageId = result.messageId || "unknown";
         span.setAttribute("success", true);
         span.setAttribute("message_id", messageId);
-        console.log("Password reset email sent successfully:", { to, messageId });
+        console.log("Password reset email sent successfully:", { to: maskEmail(to), messageId });
         return { success: true, messageId };
       }
 
@@ -131,7 +141,7 @@ export const sendPasswordResetEmail = async ({
       });
       span.setAttribute("error", true);
       span.setAttribute("error_message", errorMsg);
-      console.error("Error sending password reset email:", { to, error: errorMsg });
+      console.error("Error sending password reset email:", { to: maskEmail(to), error: errorMsg });
       return { success: false, error: errorMsg };
     }
   );
@@ -193,7 +203,7 @@ export const sendGroupInviteEmail = async ({
         span.setAttribute("success", true);
         span.setAttribute("message_id", messageId);
         console.log("Group invite email sent successfully:", {
-          to,
+          to: maskEmail(to),
           groupName,
           messageId,
         });
@@ -207,7 +217,7 @@ export const sendGroupInviteEmail = async ({
       });
       span.setAttribute("error", true);
       span.setAttribute("error_message", errorMsg);
-      console.error("Error sending group invite email:", { to, error: errorMsg });
+      console.error("Error sending group invite email:", { to: maskEmail(to), error: errorMsg });
       return { success: false, error: errorMsg };
     }
   );
@@ -261,7 +271,7 @@ export const sendRegistrationVerificationEmail = async ({
         const messageId = result.messageId || "unknown";
         span.setAttribute("success", true);
         span.setAttribute("message_id", messageId);
-        console.log("Registration verification email sent successfully:", { to, messageId });
+        console.log("Registration verification email sent successfully:", { to: maskEmail(to), messageId });
         return { success: true, messageId };
       }
 
@@ -272,7 +282,7 @@ export const sendRegistrationVerificationEmail = async ({
       });
       span.setAttribute("error", true);
       span.setAttribute("error_message", errorMsg);
-      console.error("Error sending registration verification email:", { to, error: errorMsg });
+      console.error("Error sending registration verification email:", { to: maskEmail(to), error: errorMsg });
       return { success: false, error: errorMsg };
     }
   );
@@ -325,7 +335,7 @@ export const sendPasswordChangedAlert = async ({
         const messageId = result.messageId || "unknown";
         span.setAttribute("success", true);
         span.setAttribute("message_id", messageId);
-        console.log("Password changed alert email sent successfully:", { to, messageId });
+        console.log("Password changed alert email sent successfully:", { to: maskEmail(to), messageId });
         return { success: true, messageId };
       }
 
@@ -336,7 +346,7 @@ export const sendPasswordChangedAlert = async ({
       });
       span.setAttribute("error", true);
       span.setAttribute("error_message", errorMsg);
-      console.error("Error sending password changed alert email:", { to, error: errorMsg });
+      console.error("Error sending password changed alert email:", { to: maskEmail(to), error: errorMsg });
       return { success: false, error: errorMsg };
     }
   );
@@ -391,7 +401,7 @@ export const sendBetaInviteEmail = async ({
         const messageId = result.messageId || "unknown";
         span.setAttribute("success", true);
         span.setAttribute("message_id", messageId);
-        console.log("Beta invite email sent successfully:", { to, messageId });
+        console.log("Beta invite email sent successfully:", { to: maskEmail(to), messageId });
         return { success: true, messageId };
       }
 
@@ -402,7 +412,7 @@ export const sendBetaInviteEmail = async ({
       });
       span.setAttribute("error", true);
       span.setAttribute("error_message", errorMsg);
-      console.error("Error sending beta invite email:", { to, error: errorMsg });
+      console.error("Error sending beta invite email:", { to: maskEmail(to), error: errorMsg });
       return { success: false, error: errorMsg };
     }
   );

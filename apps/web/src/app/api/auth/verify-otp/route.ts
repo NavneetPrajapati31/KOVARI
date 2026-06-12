@@ -6,6 +6,15 @@ import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseH
 import { ApiErrorCode } from "@/types/api";
 import { checkRateLimit } from "@/lib/auth/rateLimit";
 
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const [local, domain] = parts;
+  if (local.length <= 2) return `${local[0] || ""}*@${domain}`;
+  return `${local.substring(0, 2)}${"*".repeat(local.length - 2)}@${domain}`;
+}
+
 /**
  * Handle OTP verification and final registration
  * POST /api/auth/verify-otp
@@ -41,7 +50,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (fetchError || !verification) {
-      console.warn(`[AUTH] Failed verification attempt for ${email} (No code found)`);
+      console.warn(`[AUTH] Failed verification attempt for ${maskEmail(email)} (No code found)`);
       return formatErrorResponse("Invalid or expired verification session", ApiErrorCode.BAD_REQUEST, requestId, 400);
     }
 

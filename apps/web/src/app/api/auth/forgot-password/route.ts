@@ -9,6 +9,15 @@ import {
 import * as Sentry from "@sentry/nextjs";
 import { checkRateLimit } from "@/lib/auth/rateLimit";
 
+function maskEmail(email: string): string {
+  if (!email) return "";
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const [local, domain] = parts;
+  if (local.length <= 2) return `${local[0] || ""}*@${domain}`;
+  return `${local.substring(0, 2)}${"*".repeat(local.length - 2)}@${domain}`;
+}
+
 const RESET_TOKEN_TTL_SECONDS = 3600; // 1 hour
 const REDIS_KEY_PREFIX = "password_reset:";
 
@@ -54,7 +63,7 @@ export async function POST(req: NextRequest) {
       `idempotency:forgot_password:${email}:${platform}`;
     const cachedResult = await redis.get(idempotencyKey);
     if (cachedResult) {
-      console.log(`[AUTH] Idempotent request recognized for ${email}. Returning cached result.`);
+      console.log(`[AUTH] Idempotent request recognized for ${maskEmail(email)}. Returning cached result.`);
       return NextResponse.json(JSON.parse(cachedResult), { status: 200 });
     }
 
