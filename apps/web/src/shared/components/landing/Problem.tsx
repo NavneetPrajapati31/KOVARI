@@ -84,7 +84,7 @@ export default function Problem() {
                 <motion.div
                   key={index}
                   variants={itemVariants}
-                  className="flex flex-col p-4 md:p-6 pt-8 md:pt-8 text-left border border-border bg-card rounded-xl hover:border-primary/20 transition-colors duration-300"
+                  className="flex flex-col p-5 md:p-6 text-left border border-border bg-card rounded-xl hover:border-primary/20 transition-colors duration-300"
                 >
                   <p className="text-[11px] text-muted-foreground/80 uppercase tracking-widest mb-3 font-mono">
                     {stageItem.stage}

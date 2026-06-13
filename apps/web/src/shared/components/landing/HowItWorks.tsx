@@ -88,10 +88,10 @@ export default function HowItWorks() {
                 <motion.div
                   key={step.number}
                   variants={itemVariants}
-                  className="group relative rounded-xl bg-card p-4 md:p-6 border border-border hover:border-primary/20 transition-colors duration-300 text-left md:text-center flex flex-col h-full z-10"
+                  className="group relative rounded-xl bg-card p-5 md:p-6 border border-border hover:border-primary/20 transition-colors duration-300 text-left md:text-center flex flex-col h-full z-10"
                 >
                   {/* Step number - circular container at top center/left */}
-                  <div className="mr-auto md:mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-secondary border border-border text-sm sm:text-base font-semibold text-muted-foreground group-hover:border-primary/20 transition-colors z-20">
+                  <div className="mr-auto md:mx-auto mb-6 flex h-8 w-8 items-center justify-center rounded-full bg-secondary border border-border text-sm sm:text-base font-semibold text-muted-foreground group-hover:border-primary/20 transition-colors z-20">
                     {step.number}
                   </div>
 
