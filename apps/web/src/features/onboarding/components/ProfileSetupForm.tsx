@@ -748,8 +748,7 @@ export default function ProfileSetupForm() {
         throw new Error("Please complete all required fields in step 1");
       }
       if (
-        !completeData.location ||
-        !completeData.nationality
+        !completeData.location
       ) {
         throw new Error("Please complete all required fields in step 4");
       }
