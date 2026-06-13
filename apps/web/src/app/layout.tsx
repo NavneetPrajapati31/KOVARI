@@ -151,6 +151,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
             storageKey="kovari-theme"
+            nonce={nonce}
           >
             <HeroUIProvider>
               <AuthProvider>{children}</AuthProvider>
@@ -158,7 +159,8 @@ export default async function RootLayout({
                 position="bottom-right"
                 duration={3000}
               />
-              <Analytics />
+              {/* @ts-ignore */}
+              <Analytics nonce={nonce} />
             </HeroUIProvider>
           </ThemeProvider>
         </body>

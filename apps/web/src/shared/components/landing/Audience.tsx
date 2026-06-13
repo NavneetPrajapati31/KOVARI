@@ -1,120 +1,106 @@
 "use client";
 
 import React from "react";
-import { User, Users, Compass } from "lucide-react";
-import { Button } from "@heroui/react";
 import { motion } from "framer-motion";
 
-export default function Audience() {
-  const audienceCards = [
-    {
-      icon: User,
-      title: "Solo Travelers",
-      description:
-        "Find people heading to the same destination and build trusted travel circles — without awkward DMs.",
-    },
-    // {
-    //   icon: Users,
-    //   title: "Friends & Groups",
-    //   description:
-    //     "Plan trips together, stay aligned, and avoid the chaos of scattered messages and plans.",
-    // },
-    {
-      icon: Compass,
-      title: "Small Travel Groups",
-      description:
-        "Create or join curated groups of 2–10 people that match your travel style and pace.",
-    },
-  ];
+const audienceCards = [
+  {
+    title: "The Solo Traveler",
+    description:
+      "Heading to Spiti solo and need someone to split the cab and the costs? Done a Goa trip where nobody else showed up? You belong here.",
+  },
+  {
+    title: "The Small Circle",
+    description:
+      "Your group is 2-3 people. You need 1-2 more who won't bail last minute and match your travel style. Not randoms from an Instagram post.",
+  },
+];
 
-  const containerVariants = {
-    hidden: { opacity: 1 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2,
-      },
-    },
-  };
+const containerVariants = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.2 },
+  },
+};
 
-  const itemVariants = {
-    hidden: { opacity: 1, scale: 1 },
-    visible: { 
-      opacity: 1, 
-      scale: 1,
-      transition: { duration: 0.5, ease: "easeOut" as const }
-    },
-  };
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" as const },
+  },
+};
 
+// Gemini-style 4-pointed star
+function GeminiStar({ className }: { className?: string }) {
   return (
-    <section className="relative py-16 sm:py-20 md:py-24">
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M12 2C12 6.5 6.5 12 2 12C6.5 12 12 17.5 12 22C12 17.5 17.5 12 22 12C17.5 12 12 6.5 12 2Z" />
+    </svg>
+  );
+}
+
+
+export default function Audience() {
+  return (
+    <section className="relative py-14 md:py-24 lg:py-32 overflow-hidden">
       <div className="container mx-auto px-6 md:px-8">
-        <motion.div 
-          initial={{ opacity: 1, y: 0 }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12 sm:mb-14 md:mb-16"
+          className="text-center mb-12"
         >
-          {/* Eyebrow label */}
-          <Button
-            className="h-7 bg-transparent overflow-hidden border border-border px-[18px] py-2 text-xs font-normal leading-5 text-default-500 text-foreground mb-3"
-            radius="full"
-            variant="bordered"
-            aria-label="Social Travel, Done Right"
-          >
+          <span className="text-[10px] tracking-[0.25em] text-muted-foreground/80 uppercase mb-3 font-mono inline-block">
             WHO IT&apos;S FOR
-          </Button>
-
-          {/* Main heading */}
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-medium tracking-tight mb-3 sm:mb-4">
-            Travel Your Way — Together
+          </span>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground tracking-tight mb-4">
+            For travelers who move with intention.
           </h2>
-
-          {/* Subheading */}
-          <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto px-4">
-            Designed for different ways people travel — alone or together.
+          <p className="text-sm md:text-base text-muted-foreground font-light max-w-lg mx-auto leading-relaxed mb-12 text-center">
+            Whether you&apos;re doing a solo Manali trip or building a circle for Southeast Asia — find people who move at your pace.
           </p>
         </motion.div>
 
         <div className="max-w-4xl mx-auto">
-          <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6"
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 gap-6"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
-            {audienceCards.map((card, index) => {
-              const IconComponent = card.icon;
-              return (
-                <motion.div
-                  key={index}
-                  variants={itemVariants}
-                  className="group relative rounded-3xl bg-card p-6 sm:p-8 border border-border"
-                >
-                  {/* Icon container */}
-                  <div className="mb-4 sm:mb-6 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 text-primary transition-transform duration-300">
-                    <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </div>
-
-                  {/* Title and Description */}
-                  <div className="space-y-2 sm:space-y-3">
-                    <h3 className="text-base sm:text-lg font-medium">
-                      {card.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
-                      {card.description}
-                    </p>
-                  </div>
-                </motion.div>
-              );
-            })}
+            {audienceCards.map((card, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                className="group relative p-5 md:p-6 border border-border bg-card hover:border-primary/20 rounded-xl transition-colors duration-300"
+              >
+                {/* Gemini star */}
+                <div className="mb-5">
+                  <GeminiStar className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-[15px] sm:text-base font-semibold text-foreground">
+                    {card.title}
+                  </h3>
+                  <p className="text-[15px] sm:text-base leading-relaxed text-muted-foreground font-light">
+                    {card.description}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
           </motion.div>
         </div>
       </div>
     </section>
   );
 }
-

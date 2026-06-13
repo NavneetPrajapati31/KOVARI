@@ -298,7 +298,7 @@ export default function App({
               alt="Kovari"
               width={400}
               height={160}
-              className="h-5 sm:h-6 w-auto object-contain block dark:hidden sm:-translate-y-1"
+              className="h-5 sm:h-6 w-auto object-contain block dark:hidden sm:-translate-y-1 filter brightness-100 contrast-125"
               priority
             />
             <Image
@@ -306,7 +306,7 @@ export default function App({
               alt="Kovari"
               width={400}
               height={160}
-              className="h-5 sm:h-6 w-auto object-contain hidden dark:block sm:-translate-y-1"
+              className="h-5 sm:h-6 w-auto object-contain hidden dark:block sm:-translate-y-1 filter brightness-100 contrast-125"
               priority
             />
           </Link>

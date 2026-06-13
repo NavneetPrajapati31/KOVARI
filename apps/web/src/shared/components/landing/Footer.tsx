@@ -9,7 +9,7 @@ import XIcon from "@mui/icons-material/X";
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-background font-sans">
+    <footer className="w-full font-sans">
       <div className="container mx-auto px-6 sm:px-8 md:px-8 py-8 sm:py-12">
         <div className="flex justify-between items-center gap-4 sm:gap-0">
           {/* Left: Brand */}
@@ -17,18 +17,18 @@ export default function Footer() {
             <Link href="/" className="flex items-center">
               <Image
                 src="/logo.webp"
-                alt="Kovari Logo — Social travel platform for group trip planning"
+                alt="Kovari"
                 width={400}
                 height={160}
-                className="h-5 w-auto object-contain block dark:hidden"
+                className="h-5 sm:h-6 w-auto object-contain block dark:hidden sm:-translate-y-1 filter brightness-100 contrast-125"
                 priority
               />
               <Image
                 src="/logo_dark.webp"
-                alt="Kovari Logo — Social travel platform for group trip planning"
+                alt="Kovari"
                 width={400}
                 height={160}
-                className="h-5 w-auto object-contain hidden dark:block"
+                className="h-5 sm:h-6 w-auto object-contain hidden dark:block sm:-translate-y-1 filter brightness-100 contrast-125"
                 priority
               />
             </Link>
@@ -40,7 +40,7 @@ export default function Footer() {
               href="https://instagram.com/kovari.app"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <InstagramIcon className="!w-5 !h-5 sm:!w-6 sm:!h-6" strokeWidth={1.5} />
             </Link>
@@ -48,7 +48,7 @@ export default function Footer() {
               href="https://x.com/kovariapp"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <XIcon className="!w-5 !h-5 sm:!w-5 sm:!h-5" />
             </Link>
@@ -56,7 +56,7 @@ export default function Footer() {
               href="https://linkedin.com/company/kovariapp"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <LinkedInIcon className="!w-5 !h-5 sm:!w-6 sm:!h-6" strokeWidth={1.5} />
             </Link>
@@ -68,7 +68,7 @@ export default function Footer() {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-0 text-xs sm:text-sm text-muted-foreground">
           {/* Bottom Left: Links */}
-          <nav className="flex flex-wrap justify-start gap-4 sm:gap-4">
+          <nav className="flex flex-wrap justify-start gap-4 sm:gap-6">
             <Link
               href="/about"
               className="hover:text-foreground transition-colors"
@@ -90,7 +90,7 @@ export default function Footer() {
           </nav>
 
           {/* Bottom Right: Copyright */}
-          <div className="text-left md:text-right mt-2 md:mt-0">
+          <div className="text-left md:text-right mt-2 md:mt-0 select-none">
             © {new Date().getFullYear()} Kovari. All rights reserved.
           </div>
         </div>
