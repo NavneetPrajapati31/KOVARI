@@ -19,6 +19,8 @@ import { HeroUIProvider } from "@heroui/react";
 import { AuthProvider } from "@/shared/components/auth-provider";
 import { ThemeProvider } from "@/shared/components/providers/theme-provider";
 
+export const dynamic = "force-dynamic";
+
 const poppins = Poppins({
   subsets: ["latin"],
   variable: "--font-heading",
@@ -96,14 +98,15 @@ export default async function RootLayout({
   const nonce = headersList.get("x-nonce") || "";
 
   return (
-    <ClerkProvider>
+    <ClerkProvider nonce={nonce}>
       <html lang="en" suppressHydrationWarning>
         <head>
           {process.env.NODE_ENV === "production" && (
-            <script src="/scripts/disable-console.js" nonce={nonce} />
+            <script src="/scripts/disable-console.js" nonce={nonce} suppressHydrationWarning />
           )}
           <script
             nonce={nonce}
+            suppressHydrationWarning
             dangerouslySetInnerHTML={{
               __html: `
                 try {

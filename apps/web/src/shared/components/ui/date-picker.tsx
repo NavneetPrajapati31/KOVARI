@@ -37,6 +37,7 @@ interface DatePickerProps {
   date?: Date;
   onDateChange?: (date: Date | undefined) => void;
   disabled?: DateInterval;
+  placeholder?: string;
 }
 
 export function DatePicker({
@@ -45,6 +46,7 @@ export function DatePicker({
   date: controlledDate,
   onDateChange,
   disabled,
+  placeholder = "Pick a date",
 }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(controlledDate);
   const [month, setMonthInCalendar] = React.useState<Date>(
@@ -108,7 +110,7 @@ export function DatePicker({
           {date && !isNaN(date.getTime()) ? (
             format(date, "PPP")
           ) : (
-            <span>Pick a date</span>
+            <span>{placeholder}</span>
           )}
         </Button>
       </PopoverTrigger>

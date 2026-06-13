@@ -121,17 +121,17 @@ const step2Schema = z.object({
     .optional(),
   profilePic: z.any().optional(),
   location: z.string().min(1, { message: "Please select your location" }),
-  nationality: z.string().min(1, { message: "Please select your nationality" }),
-  jobType: z.string().min(1, { message: "Please select your job type" }),
+  nationality: z.string().optional(),
+  jobType: z.string().optional(),
   languages: z
     .array(z.string())
     .min(1, { message: "Please select at least one language" }),
   interests: z
     .array(z.string())
     .min(1, { message: "Please select at least one interest" }),
-  religion: z.string().min(1, { message: "Please select your religion" }),
-  smoking: z.string().min(1, { message: "Please select smoking preference" }),
-  drinking: z.string().min(1, { message: "Please select drinking preference" }),
+  religion: z.string().optional(),
+  smoking: z.string().optional(),
+  drinking: z.string().optional(),
   personality: z
     .string()
     .min(1, { message: "Please select your personality type" }),
@@ -258,6 +258,7 @@ const personalityOptions = [
   "Introvert",
   "Extrovert",
   "Ambivert",
+  "Mixed / Not sure",
   "Prefer not to say",
 ];
 
@@ -277,8 +278,11 @@ export default function ProfileSetupForm() {
   const { user } = useUser();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 7;
   const [policyAccepted, setPolicyAccepted] = useState(false);
+  const [completeClickedOnce, setCompleteClickedOnce] = useState(false);
+  const [showMorePrefs, setShowMorePrefs] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [interestOpen, setInterestOpen] = useState(false);
@@ -316,6 +320,8 @@ export default function ProfileSetupForm() {
   useEffect(() => {
     syncUser();
   }, [syncUser]);
+
+
 
   // Measure trigger widths for popover content matching
   useEffect(() => {
@@ -361,6 +367,32 @@ export default function ProfileSetupForm() {
   });
 
 
+
+  // Pre-fill name and username fields from Clerk when user is loaded
+  useEffect(() => {
+    if (user) {
+      if (user.firstName && !step1Form.getValues("firstName")) {
+        step1Form.setValue("firstName", user.firstName, { shouldValidate: true });
+      }
+      if (user.lastName && !step1Form.getValues("lastName")) {
+        step1Form.setValue("lastName", user.lastName, { shouldValidate: true });
+      }
+      if (!step1Form.getValues("username")) {
+        let suggestedUsername = "";
+        if (user.username && !user.username.startsWith("user_")) {
+          suggestedUsername = user.username;
+        } else if (user.firstName) {
+          suggestedUsername = `${user.firstName.toLowerCase().replace(/[^a-z0-9]/g, "")}${Math.floor(10 + Math.random() * 90)}`;
+        } else if (user.primaryEmailAddress?.emailAddress) {
+          const emailPrefix = user.primaryEmailAddress.emailAddress.split("@")[0];
+          suggestedUsername = `${emailPrefix.toLowerCase().replace(/[^a-z0-9]/g, "")}${Math.floor(10 + Math.random() * 90)}`;
+        }
+        if (suggestedUsername) {
+          step1Form.setValue("username", suggestedUsername, { shouldValidate: true });
+        }
+      }
+    }
+  }, [user, step1Form]);
 
   // Async username uniqueness check
   const checkUsernameUnique = async (username: string) => {
@@ -429,6 +461,7 @@ export default function ProfileSetupForm() {
   }, [usernameValue]);
 
   const handleAvatarUpload = async (file: File) => {
+    setPhotoError(null);
     const acceptedFormats = ["PNG", "JPG", "JPEG", "WEBP"];
     const maxSizeInMB = 10;
 
@@ -506,10 +539,12 @@ export default function ProfileSetupForm() {
 
       setProfileImage(url);
       step2Form.setValue("profilePic", url, { shouldValidate: true });
+      setPhotoError(null);
       toast.success("Profile photo updated successfully!");
       setCropModalOpen(false);
     } catch (error) {
       console.error("Cropped image upload error:", error);
+      setPhotoError("Upload failed, try again");
       toast.error("Failed to upload profile photo");
     } finally {
       setCropLoading(false);
@@ -533,6 +568,16 @@ export default function ProfileSetupForm() {
     } else {
       setCropModalOpen(true);
     }
+  };
+
+  // Skip photo handler: bypass profilePic validation, keep other validations active, and advance step
+  const handleSkipPhoto = async () => {
+    const valid = await step2Form.trigger(["bio"], { shouldFocus: true });
+    if (!valid) return;
+    step2Form.setValue("profilePic", null, { shouldValidate: false });
+    setProfileImage(null);
+    setPhotoError(null);
+    setStep(3);
   };
 
   // Step-scoped next navigation with partial validation
@@ -559,10 +604,15 @@ export default function ProfileSetupForm() {
       return;
     }
     if (step === 2) {
-      const valid = await step2Form.trigger(["profilePic", "bio"], {
-        shouldFocus: true,
-      });
-      if (!valid) return;
+      const isBioValid = await step2Form.trigger(["bio"], { shouldFocus: true });
+      if (!isBioValid) return;
+
+      const profilePicValue = step2Form.getValues("profilePic");
+      if (!profilePicValue) {
+        setPhotoError("Please add a profile photo to continue, or tap 'Skip photo for now'.");
+        return;
+      }
+      setPhotoError(null);
       setStep(3);
       return;
     }
@@ -594,16 +644,19 @@ export default function ProfileSetupForm() {
     }
     if (step === 6) {
       const valid = await step2Form.trigger(
-        ["religion", "smoking", "drinking", "personality", "foodPreference"],
+        ["personality", "foodPreference"],
         { shouldFocus: true }
       );
       if (!valid) return;
-      setStep2Data(step2Form.getValues());
-      // Advance to policy acceptance step instead of submitting directly
       setStep(7);
       return;
     }
     if (step === 7) {
+      const valid = await step2Form.trigger(
+        ["religion", "smoking", "drinking"],
+        { shouldFocus: true }
+      );
+      if (!valid) return;
       if (!policyAccepted) {
         toast.error("Please accept the policies to continue");
         return;
@@ -696,8 +749,7 @@ export default function ProfileSetupForm() {
       }
       if (
         !completeData.location ||
-        !completeData.nationality ||
-        !completeData.jobType
+        !completeData.nationality
       ) {
         throw new Error("Please complete all required fields in step 4");
       }
@@ -756,11 +808,11 @@ export default function ProfileSetupForm() {
           completeData.languages.length > 0
             ? completeData.languages
             : [],
-        nationality: completeData.nationality || "",
+        nationality: completeData.nationality || "Indian",
         job: completeData.jobType || "",
-        religion: completeData.religion || "",
-        smoking: completeData.smoking || "",
-        drinking: completeData.drinking || "",
+        religion: completeData.religion || "Prefer not to say",
+        smoking: completeData.smoking || "Prefer not to say",
+        drinking: completeData.drinking || "Prefer not to say",
         personality: completeData.personality || "",
         food_preference: completeData.foodPreference || "",
         interests: interestsLabels,
@@ -869,15 +921,14 @@ export default function ProfileSetupForm() {
             Step {step} of {totalSteps}
           </span>
         </div>
-        <div className="flex space-x-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {[1, 2, 3, 4, 5, 6, 7].map((stepNum) => (
-            <div key={stepNum} className="flex-1">
-              <div
-                className={`h-1.5 rounded-full ${
-                  stepNum <= step ? "bg-primary" : "bg-gray-300"
-                }`}
-              />
-            </div>
+            <div
+              key={stepNum}
+              className={`h-1.5 rounded-full ${
+                stepNum <= step ? "bg-primary" : "bg-gray-300"
+              }`}
+            />
           ))}
         </div>
       </div>
@@ -897,7 +948,7 @@ export default function ProfileSetupForm() {
           Let&apos;s get started
         </h1>
         <p className="text-sm text-muted-foreground">
-          Tell us about yourself to create your profile
+          Let&apos;s build your traveler profile
         </p>
       </div>
 
@@ -917,7 +968,7 @@ export default function ProfileSetupForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-xs font-medium text-muted-foreground">
-                    First Name
+                    First Name (Required)
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
@@ -939,7 +990,7 @@ export default function ProfileSetupForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Last Name
+                    Last Name (Required)
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
@@ -963,7 +1014,7 @@ export default function ProfileSetupForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Username
+                  Username (Required)
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
@@ -988,6 +1039,9 @@ export default function ProfileSetupForm() {
                     </div>
                   </div>
                 </FormControl>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  You can change this anytime in settings
+                </p>
                 <FormMessage className="text-xs">
                   {usernameCheckError}
                 </FormMessage>
@@ -995,13 +1049,15 @@ export default function ProfileSetupForm() {
             )}
           />
 
-          <Button
-            type="submit"
-            className="!mt-5 w-full h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
-          >
-            Continue
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Button>
+          <div className="pt-3">
+            <Button
+              type="submit"
+              className="w-full h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200"
+            >
+              Continue
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </form>
       </Form>
     </motion.div>
@@ -1021,7 +1077,7 @@ export default function ProfileSetupForm() {
           Profile picture
         </h1>
         <p className="text-sm text-muted-foreground">
-          Add a photo and short bio
+          Add a profile photo — it helps others trust you
         </p>
       </div>
 
@@ -1040,7 +1096,7 @@ export default function ProfileSetupForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Profile Picture
+                  Profile Picture (Required)
                 </FormLabel>
                 <FormControl>
                   <div className="flex flex-col items-center gap-0 md:gap-4 rounded-xl border border-input px-4 py-4 md:flex-row md:items-center">
@@ -1095,21 +1151,36 @@ export default function ProfileSetupForm() {
                             </span>
                           )}
                         </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="mt-4 md:mt-0 px-3 py-1 bg-transparent border border-border shadow-none rounded-lg text-destructive hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
-                          aria-label="Remove profile photo"
-                          onClick={() => {
-                            if (!profileImage || cropLoading) return;
-                            setProfileImage(null);
-                            field.onChange(null);
-                          }}
-                          disabled={!profileImage || cropLoading}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        {profileImage && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="mt-4 md:mt-0 px-3 py-1 bg-transparent border border-border shadow-none rounded-lg text-destructive hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
+                            aria-label="Remove profile photo"
+                            onClick={() => {
+                              if (cropLoading) return;
+                              setProfileImage(null);
+                              field.onChange(null);
+                              setPhotoError(null);
+                            }}
+                            disabled={cropLoading}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
+                      <button
+                        type="button"
+                        onClick={handleSkipPhoto}
+                        className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors self-center md:self-start mt-2"
+                      >
+                        Skip photo for now
+                      </button>
+                      {photoError && (
+                        <p className="text-xs text-destructive mt-1.5 font-medium text-center md:text-left animate-in fade-in slide-in-from-top-1 duration-200">
+                          {photoError}
+                        </p>
+                      )}
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -1118,7 +1189,7 @@ export default function ProfileSetupForm() {
                         className="hidden"
                         aria-label="Upload profile photo"
                       />
-                      <p className="text-[11px] text-muted-foreground text-center md:text-left hidden md:block">
+                      <p className="text-[11px] text-muted-foreground text-center md:text-left hidden md:block mt-1">
                         Recommended at least 400×400px. JPG, PNG or WEBP, up to
                         10MB.
                       </p>
@@ -1206,7 +1277,7 @@ export default function ProfileSetupForm() {
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Date of Birth
+                  Date of Birth (Required)
                 </FormLabel>
                 <FormControl>
                   <DatePicker
@@ -1218,6 +1289,7 @@ export default function ProfileSetupForm() {
                       before: new Date(1900, 0, 1),
                       after: new Date(),
                     }}
+                    placeholder="Select your date of birth"
                   />
                 </FormControl>
                 <FormMessage className="text-xs" />
@@ -1231,7 +1303,7 @@ export default function ProfileSetupForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Gender
+                  Gender (Required)
                 </FormLabel>
                 <Select
                   onValueChange={field.onChange}
@@ -1295,7 +1367,7 @@ export default function ProfileSetupForm() {
           Where are you based?
         </h1>
         <p className="text-sm text-muted-foreground">
-          Location, nationality and job type
+          Home city and job type
         </p>
       </div>
       <Form {...step2Form}>
@@ -1312,7 +1384,7 @@ export default function ProfileSetupForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Location
+                  Home City (Required)
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
@@ -1320,16 +1392,12 @@ export default function ProfileSetupForm() {
                       value={field.value}
                       onChange={(val) => {
                           field.onChange(val);
-                          // Clear details if user types manually without selecting? 
-                          // Or we keep the last selected details? 
-                          // Ideally if they type something new that isn't selected, details might be invalid.
-                          // But typically we rely on onSelect.
                       }}
                       onSelect={(data) => {
                         field.onChange(data.formatted);
                         setLocationDetails(data);
                       }}
-                      placeholder="Search your location"
+                      placeholder="Search your city..."
                       className="bg-white"
                     />
                   </div>
@@ -1338,111 +1406,27 @@ export default function ProfileSetupForm() {
               </FormItem>
             )}
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <FormField
-              control={step2Form.control}
-              name="nationality"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Nationality
-                  </FormLabel>
-                  <Popover open={nationalityOpen} onOpenChange={setNationalityOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "bg-white w-full h-9 text-sm font-normal justify-between border-input focus:border-primary focus:ring-primary rounded-lg",
-                            !field.value &&
-                              "text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                          )}
-                        >
-                          <div className="flex items-center text-foreground font-medium">
-                            {field.value ? (
-                              nationalityOptions.find((n) => n === field.value)
-                            ) : (
-                              <span className="text-muted-foreground font-normal">
-                                Select nationality
-                              </span>
-                            )}
-                          </div>
-                          <ChevronRight className="ml-2 h-3.5 w-3.5 shrink-0" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[280px] sm:w-[320px] p-0 border border-border shadow-xl rounded-xl overflow-hidden bg-white" align="start">
-                      <Command className="w-full">
-                        <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
-                          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                          <input
-                            placeholder="Search nationality..."
-                            className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                            value={nationalityQuery}
-                            onChange={(e) => setNationalityQuery(e.target.value)}
-                          />
-                        </div>
-                        <CommandList>
-                          {nationalityOptions.filter((opt) => opt.toLowerCase().includes(nationalityQuery.toLowerCase())).length === 0 && (
-                            <div className="py-6 text-center text-sm text-muted-foreground">No nationality found.</div>
-                          )}
-                          <CommandGroup className="max-h-64 overflow-auto hide-scrollbar">
-                            {nationalityOptions
-                              .filter((opt) => opt.toLowerCase().includes(nationalityQuery.toLowerCase()))
-                              .map((nationality) => (
-                              <div
-                                key={nationality}
-                                className="px-2 py-1.5 text-sm text-muted-foreground rounded-sm cursor-pointer hover:bg-gray-100 flex items-center"
-                                onClick={() => {
-                                  field.onChange(nationality);
-                                  setNationalityOpen(false);
-                                  setNationalityQuery("");
-                                }}
-                              >
-                                {nationality === field.value && (
-                                  <CheckIcon
-                                    fontSize="inherit"
-                                    className="mr-2 text-muted-foreground flex-shrink-0"
-                                  />
-                                )}
-                                {nationality !== field.value && (
-                                  <div className="mr-2 h-3.5 w-3.5 flex-shrink-0" />
-                                )}
-                                {nationality}
-                              </div>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={step2Form.control}
-              name="jobType"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Job Type
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        placeholder="Enter your job type"
-                        className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={step2Form.control}
+            name="jobType"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Job Type (Optional)
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      placeholder="Enter your job type"
+                      className="h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg placeholder:text-muted-foreground"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
           <div className="flex space-x-2 pt-3">
             <Button
               type="button"
@@ -1500,7 +1484,7 @@ export default function ProfileSetupForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs font-medium text-muted-foreground">
-                      Languages
+                      Languages (Required)
                     </FormLabel>
                     <Popover open={languageOpen} onOpenChange={setLanguageOpen}>
                       <div ref={languageTriggerRef}>
@@ -1652,7 +1636,7 @@ export default function ProfileSetupForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs font-medium text-muted-foreground">
-                      Interests
+                      Interests (Required)
                     </FormLabel>
                     <Popover open={interestOpen} onOpenChange={setInterestOpen}>
                       <div ref={interestTriggerRef}>
@@ -1828,7 +1812,7 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Step 6 - Lifestyle
+  // Step 6 - Lifestyle (Personality & Food Preference)
   const renderLifestyle = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -1840,7 +1824,7 @@ export default function ProfileSetupForm() {
       <div className="text-center mb-6">
         <h1 className="text-lg font-semibold text-foreground mb-1">Lifestyle</h1>
         <p className="text-sm text-muted-foreground">
-          Religion, preferences and personality
+          Personality and food preference
         </p>
       </div>
       <Form {...step2Form}>
@@ -1851,145 +1835,42 @@ export default function ProfileSetupForm() {
           }}
           className="space-y-4"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <FormField
-              control={step2Form.control}
-              name="religion"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Religion
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-input rounded-lg">
-                        <SelectValue placeholder="Select religion" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {religionOptions.map((religion) => (
-                        <SelectItem
-                          key={religion}
-                          value={religion}
-                          className="text-sm"
-                        >
-                          {religion}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={step2Form.control}
-              name="personality"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Personality
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
-                        <SelectValue placeholder="Select personality" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {personalityOptions.map((p) => (
-                        <SelectItem key={p} value={p} className="text-sm">
-                          {p}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <FormField
-              control={step2Form.control}
-              name="smoking"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Smoking
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
-                        <SelectValue placeholder="Select preference" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {smokingOptions.map((option) => (
-                        <SelectItem
-                          key={option}
-                          value={option}
-                          className="text-sm"
-                        >
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={step2Form.control}
-              name="drinking"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs font-medium text-muted-foreground">
-                    Drinking
-                  </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
-                        <SelectValue placeholder="Select preference" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {drinkingOptions.map((option) => (
-                        <SelectItem
-                          key={option}
-                          value={option}
-                          className="text-sm"
-                        >
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage className="text-xs" />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={step2Form.control}
+            name="personality"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-xs font-medium text-muted-foreground">
+                  Personality (Required)
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full h-9 text-sm border-input focus:border-primary focus:ring-primary rounded-lg">
+                      <SelectValue placeholder="Select personality" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {personalityOptions.map((p) => (
+                      <SelectItem key={p} value={p} className="text-sm">
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
           <FormField
             control={step2Form.control}
             name="foodPreference"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Food Preference
+                  Food Preference (Required)
                 </FormLabel>
                 <Select
                   onValueChange={field.onChange}
@@ -2039,81 +1920,222 @@ export default function ProfileSetupForm() {
     </motion.div>
   );
 
-  // Render step 7 - Policy Acceptance
-  const renderStep7 = () => (
+  // Step 7 - Smoking, Drinking, Religion & Policies
+  const renderSmokingDrinkingReligion = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6"
+      className="space-y-4"
     >
-      <div className="text-center mb-2">
+      <div className="text-center mb-4">
         <h1 className="text-lg font-semibold text-foreground mb-1">
-          Almost there!
+          Almost there
         </h1>
         <p className="text-sm text-muted-foreground">
-          Please read and accept our policies to complete your profile.
+          A few optional preferences, then you&apos;re in.
         </p>
       </div>
 
-      <div className="rounded-xl border border-border overflow-hidden">
-        {[
-          { label: "Terms of Service", href: "/terms" },
-          { label: "Privacy Policy", href: "/privacy" },
-          { label: "Community Guidelines", href: "/community-guidelines" },
-        ].map(({ label, href }) => (
-          <a
-            key={href}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors border-b border-border last:border-b-0"
-          >
-            {label}
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </a>
-        ))}
-      </div>
-
-      <label className="flex items-start gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          id="onboarding-policy-checkbox"
-          checked={policyAccepted}
-          onChange={(e) => setPolicyAccepted(e.target.checked)}
-          className="mt-0.5 flex-shrink-0 accent-primary w-4 h-4 rounded"
-        />
-        <span className="text-sm text-muted-foreground leading-snug">
-          I agree to the{" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Terms of Service</a>
-          {" "}and{" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Privacy Policy</a>
-          {" "}and acknowledge the{" "}
-          <a href="/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Community Guidelines</a>.
-        </span>
-      </label>
-
-      <div className="flex space-x-2 pt-1">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={goBack}
-          className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
+      <Form {...step2Form}>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await handleNext();
+          }}
+          className="space-y-4"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
-          Back
-        </Button>
-        <Button
-          type="button"
-          disabled={!policyAccepted || isSubmitting}
-          onClick={handleNext}
-          className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200 disabled:opacity-50"
-        >
-          {isSubmitting ? "Creating profile…" : "Complete"}
-          {!isSubmitting && <ChevronRight className="h-3.5 w-3.5" />}
-        </Button>
-      </div>
+          {/* Collapsible optional preferences */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowMorePrefs(!showMorePrefs)}
+              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-full text-center"
+            >
+              {showMorePrefs
+                ? "Hide optional preferences"
+                : "Add preferences — religion, smoking, drinking"}
+            </button>
+
+            {showMorePrefs && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3 pt-3"
+              >
+                <FormField
+                  control={step2Form.control}
+                  name="religion"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs font-medium text-muted-foreground">
+                        Religion (Optional)
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-full h-9 text-sm border-input rounded-lg bg-white">
+                            <SelectValue placeholder="Select religion" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {religionOptions.map((religion) => (
+                            <SelectItem key={religion} value={religion} className="text-sm">
+                              {religion}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={step2Form.control}
+                    name="smoking"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium text-muted-foreground">
+                          Smoking (Optional)
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full h-9 text-sm border-input rounded-lg bg-white">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {smokingOptions.map((option) => (
+                              <SelectItem key={option} value={option} className="text-sm">
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={step2Form.control}
+                    name="drinking"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-medium text-muted-foreground">
+                          Drinking (Optional)
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="w-full h-9 text-sm border-input rounded-lg bg-white">
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {drinkingOptions.map((option) => (
+                              <SelectItem key={option} value={option} className="text-sm">
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-border" />
+
+          {/* Policy acceptance — single clean block */}
+          <div className="space-y-2">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={policyAccepted}
+                onChange={(e) => {
+                  setPolicyAccepted(e.target.checked);
+                  if (e.target.checked) setCompleteClickedOnce(false);
+                }}
+                className="mt-0.5 flex-shrink-0 accent-primary w-4 h-4"
+              />
+              <span className="text-[12px] text-muted-foreground leading-relaxed group-hover:text-foreground transition-colors">
+                I agree to the{" "}
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Terms of Service
+                </a>
+                {" "}and{" "}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Privacy Policy
+                </a>
+                {" "}and acknowledge the{" "}
+                <a
+                  href="/community-guidelines"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Community Guidelines
+                </a>
+                .
+              </span>
+            </label>
+
+            {completeClickedOnce && !policyAccepted && (
+              <p className="text-[11px] text-destructive font-medium ml-7 animate-in fade-in slide-in-from-top-1 duration-200">
+                Please accept to continue
+              </p>
+            )}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex space-x-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              className="flex-1 h-9 text-sm border-input text-muted-foreground hover:bg-muted rounded-lg transition-all"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !policyAccepted}
+              onClick={() => {
+                if (!policyAccepted) setCompleteClickedOnce(true);
+              }}
+              className="flex-1 h-9 text-sm bg-primary hover:bg-primary-hover text-primary-foreground font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Creating profile…
+                </>
+              ) : (
+                <>
+                  Complete
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </motion.div>
   );
 
@@ -2178,14 +2200,14 @@ export default function ProfileSetupForm() {
               </Button>
             </div>
           )}
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             {step === 1 && <div key="step1">{renderStep1()}</div>}
             {step === 2 && <div key="step2">{renderStep2()}</div>}
             {step === 3 && <div key="step3">{renderDemographics()}</div>}
             {step === 4 && <div key="step4">{renderLocation()}</div>}
             {step === 5 && <div key="step5">{renderLanguages()}</div>}
             {step === 6 && <div key="step6">{renderLifestyle()}</div>}
-            {step === 7 && <div key="step7">{renderStep7()}</div>}
+            {step === 7 && <div key="step7">{renderSmokingDrinkingReligion()}</div>}
             {step === 8 && <div key="step8">{renderStep4()}</div>}
           </AnimatePresence>
         </CardContent>
