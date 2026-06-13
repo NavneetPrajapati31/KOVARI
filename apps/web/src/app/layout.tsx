@@ -1,4 +1,5 @@
 import { type Metadata } from "next";
+import { headers } from "next/headers";
 import { WebAppJsonLd, OrganizationJsonLd } from "@/shared/components/seo/JsonLd";
 import {
   ClerkProvider,
@@ -86,19 +87,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const nonce = headersList.get("x-nonce") || "";
+
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <head>
           {process.env.NODE_ENV === "production" && (
-            <script src="/scripts/disable-console.js" />
+            <script src="/scripts/disable-console.js" nonce={nonce} />
           )}
           <script
+            nonce={nonce}
             dangerouslySetInnerHTML={{
               __html: `
                 try {

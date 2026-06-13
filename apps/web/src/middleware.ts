@@ -126,6 +126,15 @@ async function isLaunchBypassUser(clerkUserId: string): Promise<boolean> {
   }
 }
 
+function nextResponseWithHeaders(req: NextRequest) {
+  const requestHeaders = new Headers(req.headers);
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+}
+
 const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
   const pathname = req.nextUrl.pathname;
   if (pathname.startsWith("/api/direct-chat")) {
@@ -148,7 +157,7 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
 
   // Allow access to the banned page to prevent redirect loops
   if (isBannedPage(req)) {
-    return NextResponse.next();
+    return nextResponseWithHeaders(req);
   }
 
   const authObj = await auth();
@@ -260,12 +269,12 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
       pathname.startsWith("/api") || pathname.startsWith("/trpc");
 
     if (isWaitlistPublicPath(req)) {
-      return NextResponse.next();
+      return nextResponseWithHeaders(req);
     }
 
     if (userId) {
       if (await isLaunchBypassUser(userId)) {
-        return NextResponse.next();
+        return nextResponseWithHeaders(req);
       }
 
       if (!req.nextUrl.pathname.startsWith("/onboarding") && !req.nextUrl.pathname.startsWith("/api/supabase/sync-user")) {
@@ -302,7 +311,7 @@ const clerk = clerkMiddleware(async (auth, req: NextRequest) => {
     }
   }
 
-  return NextResponse.next();
+  return nextResponseWithHeaders(req);
 });
 
 const ALLOWED_ORIGINS = [
@@ -313,6 +322,27 @@ const ALLOWED_ORIGINS = [
 ].filter(Boolean) as string[];
 
 export default async function middleware(req: NextRequest, evt: any) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://clerk.kovari.in https://*.clerk.accounts.dev https://va.vercel-scripts.com https://challenges.cloudflare.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
+    img-src 'self' data: blob: https://res.cloudinary.com https://utfs.io https://img.clerk.com https://*.clerk.com https://images.clerk.dev https://*.googleusercontent.com https://*.supabase.co https://*.onrender.com;
+    media-src 'self' data: blob: https://res.cloudinary.com https://*.onrender.com;
+    font-src 'self' https://fonts.gstatic.com https://api.fontshare.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.clerk.dev wss://kovari.in https://socket.kovari.in wss://socket.kovari.in http://localhost:3005 ws://localhost:3005 https://vitals.vercel-insights.com https://api.cloudinary.com https://*.onrender.com wss://*.onrender.com https://*.clerk.accounts.dev https://clerk.kovari.in https://*.uploadthing.com;
+    frame-src 'self' https://challenges.cloudflare.com;
+    worker-src 'self' blob:;
+    frame-ancestors 'none';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+  `.replace(/\s{2,}/g, " ").trim();
+
+  // Inject nonce and CSP to request headers
+  req.headers.set("x-nonce", nonce);
+  req.headers.set("Content-Security-Policy", cspHeader);
+
   const pathname = req.nextUrl.pathname;
   const isApiRoute = pathname.startsWith("/api/") || pathname.startsWith("/apiauth/");
   const origin = req.headers.get("origin") || "";
@@ -353,11 +383,11 @@ export default async function middleware(req: NextRequest, evt: any) {
 
   // 1. Bypass Clerk for Mobile Auth Routes (Prevents SyntaxError: Unexpected end of JSON input)
   if (isAuthRoute) {
-    res = NextResponse.next();
+    res = nextResponseWithHeaders(req);
   }
   // 2. Intercept Other Mobile JWTs (Avoid Clerk middleware crash on non-Clerk tokens)
   else if (isMobileToken && !pathname.startsWith("/api/direct-chat")) {
-    res = NextResponse.next();
+    res = nextResponseWithHeaders(req);
   }
   else {
     res = await (clerk as any)(req, evt);
@@ -375,22 +405,6 @@ export default async function middleware(req: NextRequest, evt: any) {
 
   // Apply Security Headers to all responses
   if (res) {
-    const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-    const cspHeader = `
-      default-src 'self';
-      script-src 'self' 'nonce-${nonce}' 'unsafe-inline' 'unsafe-eval' https://clerk.kovari.in https://*.clerk.accounts.dev https://va.vercel-scripts.com https://challenges.cloudflare.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
-      img-src 'self' data: blob: https://res.cloudinary.com https://utfs.io https://img.clerk.com https://*.clerk.com https://images.clerk.dev https://*.googleusercontent.com https://*.supabase.co https://*.onrender.com;
-      media-src 'self' data: blob: https://res.cloudinary.com https://*.onrender.com;
-      font-src 'self' https://fonts.gstatic.com https://api.fontshare.com;
-      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.clerk.dev wss://kovari.in https://socket.kovari.in wss://socket.kovari.in http://localhost:3005 ws://localhost:3005 https://vitals.vercel-insights.com https://api.cloudinary.com https://*.onrender.com wss://*.onrender.com https://*.clerk.accounts.dev https://clerk.kovari.in https://*.uploadthing.com;
-      frame-src 'self' https://challenges.cloudflare.com;
-      frame-ancestors 'none';
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self';
-    `.replace(/\s{2,}/g, " ").trim();
-
     res.headers.set("Content-Security-Policy", cspHeader);
     res.headers.set("X-Frame-Options", "DENY");
     res.headers.set("X-Content-Type-Options", "nosniff");
