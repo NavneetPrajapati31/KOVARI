@@ -234,6 +234,16 @@ export async function PATCH(req: Request) {
       }
     }
 
+    // Sync username to Bloom Filter on update
+    if (field === "username" && typeof value === "string") {
+      try {
+        const { addToFilter } = await import("@/lib/bloomFilter");
+        await addToFilter(value);
+      } catch (bloomError) {
+        console.error("[BloomFilter] Failed to add username on profile update:", bloomError);
+      }
+    }
+
 
     // 🔥 Hardening: Invalidate matching cache on profile update
     try {

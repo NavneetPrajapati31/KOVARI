@@ -110,6 +110,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Sync username to Bloom Filter
+    try {
+      const { addToFilter } = await import("@/lib/bloomFilter");
+      await addToFilter(result.data.username);
+    } catch (bloomError) {
+      console.error("[BloomFilter] Failed to add username on profile creation:", bloomError);
+    }
+
     // 🏆 Finalize Onboarding Status
     const { error: flagError } = await supabase
       .from("users")
