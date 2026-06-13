@@ -1367,7 +1367,7 @@ export default function ProfileSetupForm() {
           Where are you based?
         </h1>
         <p className="text-sm text-muted-foreground">
-          Home city and job type
+          Your city and job type
         </p>
       </div>
       <Form {...step2Form}>
@@ -1384,7 +1384,7 @@ export default function ProfileSetupForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-xs font-medium text-muted-foreground">
-                  Home City (Required)
+                  Your City (Required)
                 </FormLabel>
                 <FormControl>
                   <div className="relative">
