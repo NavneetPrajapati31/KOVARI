@@ -91,7 +91,7 @@ export default function Hero({ onJoinWaitlist }: HeroProps) {
           viewport={{ once: true }}
         >
           <motion.div variants={itemVariants} className="flex flex-col items-center">
-            <span className="text-[10px] tracking-[0.25em] text-muted-foreground/80 uppercase mb-3 font-mono font-semibold">
+            <span className="text-[10px] tracking-[0.12em] sm:tracking-[0.25em] text-muted-foreground/80 uppercase mb-3 font-mono text-center">
               Plan Trips. Find People. Travel Together.
             </span>
           </motion.div>
