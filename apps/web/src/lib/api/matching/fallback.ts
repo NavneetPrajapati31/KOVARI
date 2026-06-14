@@ -1,4 +1,4 @@
-import { createAdminSupabaseClient } from "@kovari/api";
+import { createAdminSupabaseClient, redis, ensureRedisConnection } from "@kovari/api";
 import { logger } from "@/lib/api/logger";
 import { profileMapper } from "@/lib/mappers/profileMapper";
 
@@ -101,6 +101,7 @@ export async function performSoloDbMatchingFallback(
         id,
         email,
         name,
+        clerk_user_id,
         isDeleted
       )
     ` as any)
@@ -126,45 +127,76 @@ export async function performSoloDbMatchingFallback(
   const { data: dbRows, error } = await query;
   if (error || !dbRows) return [];
 
+  const rows = dbRows as any;
+
+  // Fetch Redis travel sessions for these matched users to get their actual budgets/dates
+  const sessionsMap = new Map<string, any>();
+  try {
+    const redisClient = await ensureRedisConnection();
+    if (redisClient && rows.length > 0) {
+      const sessionKeys = rows.map((p: any) => `session:${p.users?.clerk_user_id || p.user_id}`);
+      const sessionStrings = await redisClient.mGet(sessionKeys);
+      rows.forEach((p: any, idx: number) => {
+        const sStr = sessionStrings[idx];
+        if (sStr) {
+          try {
+            sessionsMap.set(p.user_id, JSON.parse(sStr));
+          } catch (e) {
+            logger.error("FALLBACK-REDIS", `Error parsing session from Redis for ${p.user_id}`, e);
+          }
+        }
+      });
+    }
+  } catch (redisErr) {
+    logger.error("FALLBACK-REDIS-CONN", "Redis connection or mGet failed in solo matching fallback", redisErr);
+  }
+
   // 3. Transform via profileMapper to standardized MatchDTO
-  return (dbRows as any[]).map(p => {
+  return rows.map((p: any) => {
     const userDto = profileMapper.fromDb(p.users, p);
     const score = currentUserDto ? calculateCompatibility(currentUserDto, userDto) : 0.75;
+    const session = sessionsMap.get(userDto.id);
 
     return {
-      userId: userDto.id,
+      id: userDto.id,
       name: userDto.displayName,
-      age: userDto.age,
-      location: userDto.location || "Unknown",
-      profilePhoto: userDto.avatar,
-      compatibilityScore: score,
+      destination: session?.destination?.name || filters.destination || userDto.location || 'India',
+      budget: session?.budget !== undefined && session?.budget !== null ? session.budget.toString() : (filters.budget || 0).toString(),
+      start_date: session?.startDate || filters.startDate || new Date().toISOString(),
+      end_date: session?.endDate || filters.endDate || new Date().toISOString(),
       compatibility_score: score,
-      breakdown: { source: "db_fallback" },
-      budgetDifference: 0,
-      startDate: filters.startDate || new Date().toISOString(),
-      endDate: filters.endDate || new Date().toISOString(),
-      budget: filters.budget || 0,
-      destination: filters.destination || userDto.location || 'India',
+      budget_difference: 0,
+      is_solo_match: true,
+
+      // 🛡️ TOTAL FLATTENING for backward compatibility
+      userId: userDto.id,
+      age: userDto.age,
+      gender: userDto.gender,
+      personality: userDto.personality,
+      nationality: userDto.nationality,
+      profession: userDto.profession,
+      interests: userDto.interests,
+      languages: userDto.languages,
+      locationDisplay: userDto.location || filters.destination || 'India',
+      bio: userDto.bio,
 
       user: {
         userId: userDto.id,
         name: userDto.displayName,
-        username: userDto.username,
+        age: userDto.age,
+        gender: userDto.gender,
+        personality: userDto.personality,
         bio: userDto.bio,
         avatar: userDto.avatar,
-        gender: userDto.gender,
-        age: userDto.age,
-        location: userDto.location,
-        locationDisplay: userDto.location,
+        locationDisplay: userDto.location || filters.destination || 'India',
+        interests: userDto.interests,
+        languages: userDto.languages,
         nationality: userDto.nationality,
-        profession: userDto.profession,
         religion: userDto.religion,
+        profession: userDto.profession,
         smoking: userDto.smoking,
         drinking: userDto.drinking,
-        personality: userDto.personality,
         foodPreference: userDto.foodPreference,
-        interests: userDto.interests,
-        languages: userDto.languages
       }
     };
   });

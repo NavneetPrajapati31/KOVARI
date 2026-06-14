@@ -316,10 +316,10 @@ export default function ExplorePage() {
           // Convert lib structure to what ResultsDisplay expects
           const soloMatchesAsGroups = travelers.map((traveler) => ({
             ...traveler, // Preserve everything including flat profile properties
-            destination: fullSearchData.destination, // Explicitly override with the searched trip destination
-            budget: fullSearchData.budget,
-            start_date: fullSearchData.startDate,
-            end_date: fullSearchData.endDate,
+            destination: (traveler as any).destination || fullSearchData.destination, // Keep traveler's destination if available, otherwise search filter
+            budget: (traveler as any).budget || (traveler as any).Budget || fullSearchData.budget,
+            start_date: (traveler as any).start_date ? new Date((traveler as any).start_date) : ((traveler as any).startDate ? new Date((traveler as any).startDate) : fullSearchData.startDate),
+            end_date: (traveler as any).end_date ? new Date((traveler as any).end_date) : ((traveler as any).endDate ? new Date((traveler as any).endDate) : fullSearchData.endDate),
             compatibility_score: (traveler as any).compatibility_score ?? (traveler as any).compatibilityScore ?? null,
             user: {
               ...((traveler as any).user || {}), // Preserve the deeply hydrated user object
@@ -327,7 +327,7 @@ export default function ExplorePage() {
               userId: traveler.userId,
               name: traveler.name,
               age: traveler.age,
-              bio: traveler.bio,
+              bio: traveler.bio || (traveler as any).user?.bio || "",
             },
             is_solo_match: true,
           }));

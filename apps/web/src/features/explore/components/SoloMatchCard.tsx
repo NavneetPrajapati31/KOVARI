@@ -400,7 +400,7 @@ export function SoloMatchCard({
   const profession = user.profession || (match as any).profession || user.Profession || (match as any).Profession;
 
   return (
-    <div className="w-full flex flex-col overflow-y-auto relative">
+    <div className="w-full h-full flex flex-col overflow-y-auto relative">
       {/* Loading overlay for View Profile */}
       {isViewingProfile && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-card">
@@ -490,12 +490,12 @@ export function SoloMatchCard({
             <div className="flex flex-col gap-4 pt-4">
               {/* Trip Details Section */}
               <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
-                <p className="text-sm font-semibold text-foreground">
+                <p className="text-sm font-semibold text-foreground capitalize">
                   {match.destination?.split(",")[0]?.trim() ?? match.destination}
                   <span className="mx-2 text-muted-foreground">•</span>
                   ₹{Number(match.budget).toLocaleString("en-IN")}
                 </p>
-                <p className="text-sm font-semibold text-foreground">
+                <p className="text-sm font-semibold text-foreground capitalize">
                   {formatDateRange()}
                 </p>
               </div>
@@ -640,182 +640,234 @@ export function SoloMatchCard({
       {/* ============================================================== */}
       {/* DESKTOP VIEW (Original untouched layout) */}
       {/* ============================================================== */}
-      <div key={match.id} className="hidden md:flex flex-col gap-5">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row items-start gap-4 pb-5 border-b border-border/60">
-          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative shadow-none border border-border">
-            {user.avatar ? (
-              <img
-                src={getFeedImageUrl(user.avatar)}
-                alt={user.full_name || user.name || "Traveler"}
-                className="w-full h-full object-cover cursor-pointer"
-              />
-            ) : (
-              <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground bg-secondary">
-                <AvatarImage
-                  src=""
-                  alt={user.full_name || user.name || "Traveler"}
-                />
-                <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
-              </Avatar>
-            )}
+      <div key={match.id} className="hidden md:flex flex-col flex-grow h-full justify-between gap-5">
+        <div className="flex flex-col gap-4 flex-grow">
+          {/* Name, Age, Location at the very top of Desktop View */}
+          <div className="flex flex-col">
+            <h1 className="text-lg font-bold text-foreground">
+              {user.full_name || user.name || "Traveler"}
+            </h1>
+            <p className="text-sm text-muted-foreground font-medium">
+              {user.age && `${user.age}, `}
+              {typeof locationDisplay === "string"
+                ? locationDisplay.split(",")[0].trim()
+                : "Unknown"}
+            </p>
           </div>
-          <div className="flex-1 min-w-0 w-full">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h1 className="text-md font-semibold text-foreground mt-1">
-                {user.full_name || user.name || "Traveler"}
-                {user.age ? `, ${user.age}` : ""}
-              </h1>
+
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row items-stretch gap-5 flex-grow">
+            {/* Left Column: Avatar, Compatibility, Highlight Tags */}
+            <div className="flex flex-col gap-5 w-full md:w-60 shrink-0">
+              <div className="w-full aspect-[4/3] md:w-60 md:h-80 md:aspect-auto rounded-2xl overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative shadow-none border border-border">
+                {user.avatar ? (
+                  <img
+                    src={getFeedImageUrl(user.avatar)}
+                    alt={user.full_name || user.name || "Traveler"}
+                    className="w-full h-full object-cover cursor-pointer"
+                  />
+                ) : (
+                  <Avatar className="w-full h-full text-lg rounded-2xl text-primary-foreground bg-secondary">
+                    <AvatarImage
+                      src=""
+                      alt={user.full_name || user.name || "Traveler"}
+                    />
+                    <UserAvatarFallback iconClassName="h-24 w-24" />
+                  </Avatar>
+                )}
+              </div>
+
+              {/* Bio Card */}
+              {/* {user.bio && (
+                <div className="bg-secondary rounded-2xl p-4 flex flex-col gap-y-1.5 w-full text-left">
+                  <p className="text-sm font-medium text-foreground leading-relaxed whitespace-pre-line">
+                    {user.bio}
+                  </p>
+                </div>
+              )} */}
+
+              {/* Match Percentage & Tags */}
+              <div className="flex flex-col flex-1 w-full">
+                {match.compatibility_score !== null &&
+                  match.compatibility_score !== undefined && (
+                    <div className="flex items-baseline gap-1.5 mb-5 flex-shrink-0">
+                      <h2 className="text-xl font-bold text-foreground tracking-tighter leading-none">
+                        {Math.round(
+                          match.compatibility_score <= 1
+                            ? match.compatibility_score * 100
+                            : match.compatibility_score
+                        )}%
+                      </h2>
+                      <p className="text-md font-semibold text-foreground tracking-tight leading-none">
+                        similar
+                      </p>
+                    </div>
+                  )}
+                <div className="bg-secondary rounded-2xl p-6 flex flex-wrap content-start items-start gap-y-1.5 w-full flex-1">
+                  {user.interests?.slice(0, 4).map((interest: string, idx: number) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="mx-1.5 text-muted-foreground">•</span>}
+                      <span className="text-sm font-semibold text-foreground">
+                        {interest.charAt(0).toUpperCase() + interest.slice(1)}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
             </div>
-            {user.bio ? (
-              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
-                {user.bio}
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                No bio provided.
-              </p>
-            )}
-          </div>
-        </div>
 
-        {/* Trip Details Section */}
-        <div className="space-y-4">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Trip Details
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            <Pill
-              icon={<MapPin />}
-              text={
-                match.destination?.split(",")[0]?.trim() ?? match.destination
-              }
-            />
-            <Pill icon={<Calendar />} text={formatDateRange()} />
-            {getTripLengthDays() && (
-              <Pill icon={<Calendar />} text={`${getTripLengthDays()} days`} />
-            )}
-            <Pill
-              icon={<IndianRupee />}
-              text={Number(match.budget).toLocaleString("en-IN")}
-              variant="highlight"
-            />
-          </div>
-        </div>
+            {/* Right Column: Travel Details, About, Interests, Lifestyle in flex */}
+            <div className="flex-1 min-w-0 w-full flex flex-col gap-5">
+              {(() => {
+                const cards = [];
 
-        {/* About Section */}
-        <div className="space-y-4">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            About me
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {gender && (
-              <Pill
-                icon={<UserCircle2 />}
-                text={gender.charAt(0).toUpperCase() + gender.slice(1)}
-              />
-            )}
-            {nationality && <Pill icon={<Globe />} text={nationality} />}
-            {locationDisplay && <Pill icon={<Home />} text={locationDisplay} />}
-            {profession && (
-              <Pill
-                icon={getProfessionIcon(profession)}
-                text={profession.charAt(0).toUpperCase() + profession.slice(1)}
-              />
-            )}
-            {personality && (
-              <Pill
-                icon={getPersonalityIcon(personality)}
-                text={
-                  personality.charAt(0).toUpperCase() + personality.slice(1)
+                // 1. Trip Details Container
+                cards.push(
+                  <div key="trip" className="space-y-1.5 bg-secondary rounded-2xl p-6 flex flex-col w-full">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Trip Details</h3>
+                    <p className="text-sm font-semibold text-foreground capitalize">
+                      {match.destination?.split(",")[0]?.trim() ?? match.destination}
+                      <span className="mx-2 text-muted-foreground">•</span>
+                      ₹{Number(match.budget).toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-sm font-semibold text-foreground capitalize">
+                      {formatDateRange()}
+                    </p>
+                  </div>
+                );
+
+                // 2. About Section
+                const hasAbout = (gender && !isPreferNotToSay(gender)) ||
+                  (profession && !isPreferNotToSay(profession)) ||
+                  (religion && !isPreferNotToSay(religion)) ||
+                  (personality && !isPreferNotToSay(personality)) ||
+                  languagesList.length > 0;
+                if (hasAbout) {
+                  const items = [
+                    gender && !isPreferNotToSay(gender) && (gender.charAt(0).toUpperCase() + gender.slice(1)),
+                    profession && !isPreferNotToSay(profession) && (profession.charAt(0).toUpperCase() + profession.slice(1)),
+                    religion && !isPreferNotToSay(religion) && (religion.charAt(0).toUpperCase() + religion.slice(1)),
+                    personality && !isPreferNotToSay(personality) && (personality.charAt(0).toUpperCase() + personality.slice(1))
+                  ].filter(Boolean) as string[];
+
+                  cards.push(
+                    <div key="about" className="space-y-1.5 bg-secondary rounded-2xl p-6 flex flex-col w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">About Me</h3>
+                      {items.length > 0 && (
+                        <div className="text-sm font-semibold text-foreground flex flex-wrap items-center gap-y-1">
+                          {items.map((item, idx) => (
+                            <React.Fragment key={idx}>
+                              {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                              <span>{item}</span>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      )}
+                      {languagesList.length > 0 && (
+                        <div className="text-sm font-semibold text-foreground mt-1 text-left">
+                          {languagesList.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  );
                 }
-              />
-            )}
-            {religion && (
-              <Pill
-                icon={<BookMarked />}
-                text={religion.charAt(0).toUpperCase() + religion.slice(1)}
-              />
-            )}
-            {languagesList.length > 0 &&
-              languagesList.map((lang: string, i: number) => (
-                <Pill key={i} icon={<MessageCircle />} text={lang} />
-              ))}
+
+                // 3. Interests Section
+                if (user.interests && user.interests.length > 0) {
+                  cards.push(
+                    <div key="interests" className="bg-secondary rounded-2xl p-6 flex flex-col gap-y-2 w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">My Interests</h3>
+                      <div className="flex flex-wrap items-center gap-y-1">
+                        {user.interests.map((interest: string, idx: number) => (
+                          <React.Fragment key={idx}>
+                            {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                            <span className="text-sm font-semibold text-foreground">
+                              {interest.charAt(0).toUpperCase() + interest.slice(1)}
+                            </span>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 4. Lifestyle Section
+                const hasLifestyle = (user.foodPreference && !isPreferNotToSay(user.foodPreference)) ||
+                  (user.smoking && !isPreferNotToSay(user.smoking)) ||
+                  (user.drinking && !isPreferNotToSay(user.drinking));
+                if (hasLifestyle) {
+                  cards.push(
+                    <div key="lifestyle" className="bg-secondary rounded-2xl p-6 flex flex-col gap-y-2 w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Lifestyle</h3>
+                      <div className="flex flex-wrap items-center gap-y-1">
+                        {(() => {
+                          const foodText = user.foodPreference && !isPreferNotToSay(user.foodPreference)
+                            ? String(user.foodPreference)
+                                .replace(/_/g, " ")
+                                .charAt(0)
+                                .toUpperCase() +
+                              String(user.foodPreference)
+                                .replace(/_/g, " ")
+                                .slice(1)
+                            : null;
+
+                          const smokingVal = user.smoking && !isPreferNotToSay(user.smoking)
+                            ? (user.smoking === "no"
+                                ? "No"
+                                : user.smoking === "yes"
+                                ? "Yes"
+                                : String(user.smoking).replace(/_/g, " "))
+                            : null;
+                          const smokingText = smokingVal ? `Smoking: ${smokingVal.charAt(0).toUpperCase() + smokingVal.slice(1)}` : null;
+
+                          const drinkingVal = user.drinking && !isPreferNotToSay(user.drinking)
+                            ? (user.drinking === "no"
+                                ? "No"
+                                : user.drinking === "yes"
+                                ? "Yes"
+                                : String(user.drinking).replace(/_/g, " "))
+                            : null;
+                          const drinkingText = drinkingVal ? `Drinking: ${drinkingVal.charAt(0).toUpperCase() + drinkingVal.slice(1)}` : null;
+
+                          const items = [foodText, smokingText, drinkingText].filter(Boolean) as string[];
+
+                          return items.map((item, idx) => (
+                            <React.Fragment key={idx}>
+                              {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                              <span className="text-sm font-semibold text-foreground">
+                                {item}
+                              </span>
+                            </React.Fragment>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return cards.map((card, idx) => {
+                  const isLast = idx === cards.length - 1;
+                  if (isLast) {
+                    return React.cloneElement(card, {
+                      className: `${card.props.className || ""} flex-grow`,
+                    });
+                  }
+                  return card;
+                });
+              })()}
+            </div>
           </div>
         </div>
-
-        {/* Interests Section */}
-        {user.interests && user.interests.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              My interests
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {user.interests.map((interest: string, i: number) => (
-                <Pill
-                  key={i}
-                  text={interest.charAt(0).toUpperCase() + interest.slice(1)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Lifestyle Section */}
-        {(user.foodPreference || user.smoking || user.drinking) && (
-          <div className="space-y-4 pb-6 border-b border-border/60">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Lifestyle
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {user.foodPreference && (
-                <Pill
-                  icon={<Salad />}
-                  text={
-                    String(user.foodPreference).replace(/_/g, " ").charAt(0).toUpperCase() +
-                    String(user.foodPreference).replace(/_/g, " ").slice(1)
-                  }
-                />
-              )}
-              {user.smoking && (
-                <Pill
-                  icon={getSmokingIcon(user.smoking)}
-                  text={
-                    user.smoking === "no"
-                      ? "No"
-                      : user.smoking === "yes"
-                      ? "Yes"
-                      : String(user.smoking).replace(/_/g, " ").charAt(0).toUpperCase() +
-                        String(user.smoking).replace(/_/g, " ").slice(1)
-                  }
-                />
-              )}
-              {user.drinking && (
-                <Pill
-                  icon={getDrinkingIcon(user.drinking)}
-                  text={
-                    user.drinking === "no"
-                      ? "No"
-                      : user.drinking === "yes"
-                      ? "Yes"
-                      : String(user.drinking).replace(/_/g, " ").charAt(0).toUpperCase() +
-                        String(user.drinking).replace(/_/g, " ").slice(1)
-                  }
-                />
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Action Buttons */}
-        <div className="flex flex-row gap-2 pt-4 pb-2">
+        <div className="flex flex-row gap-5 mt-auto">
           {/* 1. Skip Button */}
           <Button
             variant="secondary"
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="flex-1 h-11 rounded-full text-foreground bg-secondary border border-border"
+            className="flex-1 h-12 rounded-2xl text-foreground bg-secondary border border-border"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -829,37 +881,13 @@ export function SoloMatchCard({
             )}
           </Button>
 
-          {/* 3. Report Button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              if (onReportClick) {
-                onReportClick();
-              } else {
-                setShowReportDialog(true);
-              }
-            }}
-            disabled={hasReported}
-            className={`flex-1 h-11 rounded-full border border-border ${
-              hasReported
-                ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed pointer-events-none"
-                : "text-foreground bg-secondary"
-            }`}
-          >
-            <Flag className="w-5 h-5 md:hidden shrink-0" aria-hidden />
-            <span className="hidden md:inline text-md font-semibold">
-              {hasReported ? "Reported" : "Report"}
-            </span>
-          </Button>
-
           {/* 2. Interested Button */}
           <Button
             variant="default"
             size="sm"
             onClick={handleInterested}
             disabled={isInteresting || interestSent}
-            className="order-first md:order-none flex-1 h-11 rounded-full"
+            className="order-first md:order-none flex-1 h-12 rounded-2xl"
           >
             {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -875,7 +903,7 @@ export function SoloMatchCard({
               <>
                 <Check className="w-5 h-5 md:hidden shrink-0" aria-hidden />
                 <span className="hidden md:inline text-md font-semibold">
-                  Interested
+                  Connect
                 </span>
               </>
             )}

@@ -721,171 +721,345 @@ export function GroupMatchCard({
         </div>
       </div>
 
+         {/* ============================================================== */}
+      {/* DESKTOP VIEW */}
       {/* ============================================================== */}
-      {/* DESKTOP VIEW (Original untouched layout) */}
-      {/* ============================================================== */}
-      <div key={group.id} className="hidden md:flex flex-col gap-5">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row items-start gap-4 pb-5 border-b border-border/60">
-          <div className="w-full aspect-[4/3] md:w-16 md:h-16 md:aspect-auto rounded-2xl md:rounded-full overflow-hidden bg-muted/60 flex items-center justify-center flex-shrink-0 relative shadow-none border border-border">
-            {group.cover_image ? (
-              <img
-                src={getFeedImageUrl(group.cover_image)}
-                alt={group.name || "Travel Group"}
-                className="w-full h-full object-cover cursor-pointer"
-              />
-            ) : (
-              <Avatar className="w-full h-full text-lg rounded-none md:rounded-full text-primary-foreground bg-secondary">
-                <AvatarImage src="" alt={group.name || "Travel Group"} />
-                <UserAvatarFallback iconClassName="sm:h-3/5 sm:w-3/5 h-14 w-14" />
-              </Avatar>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h1 className="text-md font-semibold text-foreground mt-1">
-                {group.name || "Travel Group"}
-              </h1>
-            </div>
+      <div key={group.id} className="hidden md:flex flex-col flex-grow h-full justify-between gap-5">
+        <div className="flex flex-col gap-4 flex-grow">
+          {/* Header block with Group Name, Description */}
+          <div className="flex flex-col">
+            <h1 className="text-lg font-bold text-foreground">
+              {group.name || "Travel Group"}
+            </h1>
             {group.description && (
-              <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+              <p className="text-sm text-muted-foreground mt-1 font-medium">
                 {group.description}
               </p>
             )}
             {!group.description && (
-              <p className="text-sm text-muted-foreground italic mt-2">
+              <p className="text-sm text-muted-foreground mt-0 font-medium">
                 No description provided.
               </p>
             )}
           </div>
+
+          {/* Columns Section */}
+          <div className="flex flex-col md:flex-row items-stretch gap-5 flex-grow">
+            {/* Left Column: Cover Image, Creator Details, Compatibility, Highlight Tags */}
+            <div className="flex flex-col gap-5 w-full md:w-56 shrink-0">
+              <div className="w-full aspect-square md:w-56 md:h-56 rounded-2xl overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0 relative shadow-none border border-border">
+                {group.cover_image || group.image ? (
+                  <img
+                    src={getFeedImageUrl(group.cover_image || group.image)}
+                    alt={group.name || "Travel Group"}
+                    className="w-full h-full object-cover cursor-pointer"
+                  />
+                ) : (
+                  <Avatar className="w-full h-full text-lg rounded-2xl text-primary-foreground bg-secondary">
+                    <AvatarImage src="" alt={group.name || "Travel Group"} />
+                    <UserAvatarFallback iconClassName="h-24 w-24" />
+                  </Avatar>
+                )}
+              </div>
+
+              {/* Creator details card just like solo match card */}
+              <div className="flex flex-col gap-3 flex-grow md:flex-1">
+                <div className="flex flex-col px-1">
+                  <h3 className="text-sm font-bold text-foreground">
+                    Created by {group.creator?.name || "Traveler"}
+                  </h3>
+                  {/* <p className="text-sm text-muted-foreground font-medium">
+                    {group.creator?.age ? `${group.creator.age}, ` : ""}
+                    {typeof group.creator?.location === 'string'
+                      ? group.creator.location.split(',')[0].trim()
+                      : "Unknown"}
+                  </p> */}
+                </div>
+                <div className="w-full rounded-2xl overflow-hidden bg-secondary flex items-center justify-center relative shadow-none border border-border flex-grow md:flex-1 min-h-[200px]">
+                  {group.creator?.avatar ? (
+                    <img
+                      src={getFeedImageUrl(group.creator.avatar)}
+                      alt={group.creator?.name || "Group Creator"}
+                      className="w-full h-full object-cover cursor-pointer"
+                    />
+                  ) : (
+                    <Avatar className="w-full h-full text-lg rounded-2xl text-primary-foreground bg-secondary">
+                      <AvatarImage src="" alt={group.creator?.name || "Group Creator"} />
+                      <UserAvatarFallback iconClassName="h-24 w-24" />
+                    </Avatar>
+                  )}
+                </div>
+              </div>
+
+              {/* Match Score & Tags */}
+              {/* <div className="flex flex-col flex-1 w-full">
+                {group.score !== undefined && (
+                  <div className="flex items-baseline gap-1.5 mb-5 flex-shrink-0">
+                    <h2 className="text-xl font-bold text-foreground tracking-tighter leading-none">
+                      {Math.round(group.score * 100)}%
+                    </h2>
+                    <p className="text-md font-semibold text-foreground tracking-tight leading-none">
+                      compatibility
+                    </p>
+                  </div>
+                )}
+                {group.tags && group.tags.length > 0 && (
+                  <div className="bg-secondary rounded-2xl p-6 flex flex-wrap content-start items-start gap-y-1.5 w-full flex-1">
+                    {group.tags.slice(0, 4).map((tag: string, idx: number) => (
+                      <React.Fragment key={idx}>
+                        {idx > 0 && <span className="mx-1.5 text-muted-foreground">•</span>}
+                        <span className="text-sm font-semibold text-foreground">
+                          {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                        </span>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                )}
+              </div> */}
+            </div>
+
+            {/* Right Column: Travel Details, About, Languages, Lifestyle in flex */}
+            <div className="flex-1 min-w-0 w-full flex flex-col gap-5">
+              {(() => {
+                const cards = [];
+
+                // 1. Trip Details Container
+                cards.push(
+                  <div key="trip" className="space-y-1.5 bg-secondary rounded-2xl p-6 flex flex-col w-full">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Trip Details</h3>
+                    <p className="text-sm font-semibold text-foreground capitalize">
+                      {typeof group.destination === "string" ? group.destination.split(",")[0]?.trim() : group.destination}
+                      {group.budget != null && (
+                        <>
+                          <span className="mx-2 text-muted-foreground">•</span>
+                          ₹{Number(group.budget).toLocaleString("en-IN")}
+                        </>
+                      )}
+                    </p>
+                    <p className="text-sm font-semibold text-foreground capitalize">
+                      {formatDateRange()}
+                    </p>
+                  </div>
+                );
+
+                // 2. About Section
+                // cards.push(
+                //   <div key="about" className="space-y-1.5 bg-secondary rounded-2xl p-6 flex flex-col w-full">
+                //     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">About Group</h3>
+                //     <div className="text-sm font-semibold text-foreground flex flex-wrap items-center gap-y-1">
+                //       {(() => {
+                //         const items = [
+                //           creatorDisplayName && `Created by ${creatorDisplayName}`,
+                //           group.memberCount != null && `${group.memberCount} members`,
+                //           group.privacy && (group.privacy.charAt(0).toUpperCase() + group.privacy.slice(1))
+                //         ].filter(Boolean);
+
+                //         return items.map((item, idx) => (
+                //           <React.Fragment key={idx}>
+                //             {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                //             <span>{item}</span>
+                //           </React.Fragment>
+                //         ));
+                //       })()}
+                //     </div>
+                //   </div>
+                // );
+
+                // 2.5 Creator About Details
+                const creatorGender = group.creator?.gender || (group.creator as any)?.Gender;
+                const creatorProfession = group.creator?.profession || (group.creator as any)?.Profession;
+                const creatorReligion = group.creator?.religion || (group.creator as any)?.Religion;
+                const creatorPersonality = group.creator?.personality || (group.creator as any)?.Personality;
+                const creatorLanguages = Array.isArray(group.creator?.languages) ? group.creator.languages : [];
+
+                const hasCreatorAbout = (creatorGender && !isPreferNotToSay(creatorGender)) ||
+                  (creatorProfession && !isPreferNotToSay(creatorProfession)) ||
+                  (creatorReligion && !isPreferNotToSay(creatorReligion)) ||
+                  (creatorPersonality && !isPreferNotToSay(creatorPersonality)) ||
+                  creatorLanguages.length > 0;
+
+                if (hasCreatorAbout) {
+                  const creatorItems = [
+                    creatorGender && !isPreferNotToSay(creatorGender) && (creatorGender.charAt(0).toUpperCase() + creatorGender.slice(1)),
+                    creatorProfession && !isPreferNotToSay(creatorProfession) && (creatorProfession.charAt(0).toUpperCase() + creatorProfession.slice(1)),
+                    creatorReligion && !isPreferNotToSay(creatorReligion) && (creatorReligion.charAt(0).toUpperCase() + creatorReligion.slice(1)),
+                    creatorPersonality && !isPreferNotToSay(creatorPersonality) && (creatorPersonality.charAt(0).toUpperCase() + creatorPersonality.slice(1))
+                  ].filter(Boolean) as string[];
+
+                  cards.push(
+                    <div key="creator-about" className="space-y-1.5 bg-secondary rounded-2xl p-6 flex flex-col w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">About Creator</h3>
+                      {creatorItems.length > 0 && (
+                        <div className="text-sm font-semibold text-foreground flex flex-wrap items-center gap-y-1">
+                          {creatorItems.map((item, idx) => (
+                            <React.Fragment key={idx}>
+                              {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                              <span>{item}</span>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      )}
+                      {creatorLanguages.length > 0 && (
+                        <div className="text-sm font-semibold text-foreground mt-1 text-left">
+                          {creatorLanguages.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // 2.6 Creator Interests
+                const creatorInterests = group.creator?.interests || [];
+                if (creatorInterests.length > 0) {
+                  cards.push(
+                    <div key="creator-interests" className="bg-secondary rounded-2xl p-6 flex flex-col gap-y-2 w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Creator Interests</h3>
+                      <div className="flex flex-wrap items-center gap-y-1">
+                        {creatorInterests.map((interest: string, idx: number) => (
+                          <React.Fragment key={idx}>
+                            {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                            <span className="text-sm font-semibold text-foreground">
+                              {interest.charAt(0).toUpperCase() + interest.slice(1)}
+                            </span>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 2.7 Creator Lifestyle
+                const creatorFood = group.creator?.foodPreference;
+                const creatorSmoking = group.creator?.smoking;
+                const creatorDrinking = group.creator?.drinking;
+
+                const hasCreatorLifestyle = (creatorFood && !isPreferNotToSay(creatorFood)) ||
+                  (creatorSmoking && !isPreferNotToSay(creatorSmoking)) ||
+                  (creatorDrinking && !isPreferNotToSay(creatorDrinking));
+
+                if (hasCreatorLifestyle) {
+                  cards.push(
+                    <div key="creator-lifestyle" className="bg-secondary rounded-2xl p-6 flex flex-col gap-y-2 w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Creator Lifestyle</h3>
+                      <div className="flex flex-wrap items-center gap-y-1">
+                        {(() => {
+                          const foodText = creatorFood && !isPreferNotToSay(creatorFood)
+                            ? String(creatorFood)
+                                .replace(/_/g, " ")
+                                .charAt(0)
+                                .toUpperCase() +
+                              String(creatorFood)
+                                .replace(/_/g, " ")
+                                .slice(1)
+                            : null;
+
+                          const smokingVal = creatorSmoking && !isPreferNotToSay(creatorSmoking)
+                            ? (creatorSmoking === "no"
+                                ? "No"
+                                : creatorSmoking === "yes"
+                                ? "Yes"
+                                : String(creatorSmoking).replace(/_/g, " "))
+                            : null;
+                          const smokingText = smokingVal ? `Smoking: ${smokingVal.charAt(0).toUpperCase() + smokingVal.slice(1)}` : null;
+
+                          const drinkingVal = creatorDrinking && !isPreferNotToSay(creatorDrinking)
+                            ? (creatorDrinking === "no"
+                                ? "No"
+                                : creatorDrinking === "yes"
+                                ? "Yes"
+                                : String(creatorDrinking).replace(/_/g, " "))
+                            : null;
+                          const drinkingText = drinkingVal ? `Drinking: ${drinkingVal.charAt(0).toUpperCase() + drinkingVal.slice(1)}` : null;
+
+                          const items = [foodText, smokingText, drinkingText].filter(Boolean) as string[];
+
+                          return items.map((item, idx) => (
+                            <React.Fragment key={idx}>
+                              {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                              <span className="text-sm font-semibold text-foreground">
+                                {item}
+                              </span>
+                            </React.Fragment>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 3. Languages Section
+                if (group.languages && group.languages.length > 0) {
+                  cards.push(
+                    <div key="languages" className="bg-secondary rounded-2xl p-6 flex flex-col gap-y-2 w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Languages</h3>
+                      <div className="flex flex-wrap items-center gap-y-1">
+                        {group.languages.map((lang: string, idx: number) => (
+                          <React.Fragment key={idx}>
+                            {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                            <span className="text-sm font-semibold text-foreground">
+                              {lang}
+                            </span>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 4. Lifestyle Section
+                const smokingVal = formatSmokingPolicy(group.smokingPolicy);
+                const drinkingVal = formatDrinkingPolicy(group.drinkingPolicy);
+                const hasLifestyle = (smokingVal && !isPreferNotToSay(smokingVal)) ||
+                  (drinkingVal && !isPreferNotToSay(drinkingVal));
+
+                if (hasLifestyle) {
+                  cards.push(
+                    <div key="lifestyle" className="bg-secondary rounded-2xl p-6 flex flex-col gap-y-2 w-full">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Lifestyle</h3>
+                      <div className="flex flex-wrap items-center gap-y-1">
+                        {(() => {
+                          const items = [
+                            smokingVal && `Smoking: ${smokingVal}`,
+                            drinkingVal && `Drinking: ${drinkingVal}`
+                          ].filter(Boolean) as string[];
+
+                          return items.map((item, idx) => (
+                            <React.Fragment key={idx}>
+                              {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
+                              <span className="text-sm font-semibold text-foreground">
+                                {item}
+                              </span>
+                            </React.Fragment>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return cards.map((card, idx) => {
+                  const isLast = idx === cards.length - 1;
+                  if (isLast) {
+                    return React.cloneElement(card, {
+                      className: `${card.props.className || ""} flex-grow`,
+                    });
+                  }
+                  return card;
+                });
+              })()}
+            </div>
+          </div>
         </div>
-
-        {/* Trip Details Section */}
-        <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
-          <p className="text-sm font-semibold text-foreground">
-            {typeof group.destination === "string" ? group.destination.split(",")[0]?.trim() : group.destination}
-            {group.budget != null && (
-              <>
-                <span className="mx-2 text-muted-foreground">•</span>
-                ₹{Number(group.budget).toLocaleString("en-IN")}
-              </>
-            )}
-          </p>
-          <p className="text-sm font-semibold text-foreground">
-            {formatDateRange()}
-          </p>
-        </div>
-
-        {/* Match Score Section */}
-        {group.score !== undefined && (
-          <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
-            <p className="text-sm font-semibold text-foreground">
-              {Math.round(group.score * 100)}% compatibility
-            </p>
-            {group.breakdown && (
-              <p className="text-sm font-semibold text-foreground flex flex-wrap items-center">
-                {(() => {
-                  const items = [
-                    group.breakdown.budget != null && `Budget: ${Math.round(group.breakdown.budget * 100)}%`,
-                    group.breakdown.dates != null && `Dates: ${Math.round(group.breakdown.dates * 100)}%`,
-                    group.breakdown.interests != null && `Interests: ${Math.round(group.breakdown.interests * 100)}%`,
-                    group.breakdown.age != null && `Age: ${Math.round(group.breakdown.age * 100)}%`
-                  ].filter(Boolean);
-                  
-                  return items.map((item, idx) => (
-                    <React.Fragment key={idx}>
-                      {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
-                      <span>{item}</span>
-                    </React.Fragment>
-                  ));
-                })()}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* About Section */}
-        <div className="space-y-1.5 bg-secondary rounded-2xl p-3 flex flex-col">
-          <p className="text-sm font-semibold text-foreground flex flex-wrap items-center">
-            {(() => {
-              const items = [
-                creatorDisplayName && `Created by ${creatorDisplayName}`,
-                group.memberCount != null && `${group.memberCount} members`
-              ].filter(Boolean);
-              
-              return items.map((item, idx) => (
-                <React.Fragment key={idx}>
-                  {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
-                  <span>{item}</span>
-                </React.Fragment>
-              ));
-            })()}
-          </p>
-        </div>
-
-        {/* Group Interests Section */}
-        {group.tags && group.tags.length > 0 && (
-          <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
-            {group.tags.slice(0, 6).map((tag: string, idx: number) => (
-              <React.Fragment key={idx}>
-                {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
-                <span className="text-sm font-semibold text-foreground">
-                  {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-
-        {/* Languages Section */}
-        {group.languages && group.languages.length > 0 && (
-          <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
-            {group.languages.map((lang: string, idx: number) => (
-              <React.Fragment key={idx}>
-                {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
-                <span className="text-sm font-semibold text-foreground">
-                  {lang}
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-
-        {/* Lifestyle Section */}
-        {(
-          (group.smokingPolicy && !isPreferNotToSay(group.smokingPolicy)) ||
-          (group.drinkingPolicy && !isPreferNotToSay(group.drinkingPolicy))
-        ) && (
-          <div className="bg-secondary rounded-2xl p-3 flex flex-wrap items-center gap-y-1">
-            {(() => {
-              const smokingVal = formatSmokingPolicy(group.smokingPolicy);
-              const drinkingVal = formatDrinkingPolicy(group.drinkingPolicy);
-              
-              const items = [
-                smokingVal && !isPreferNotToSay(smokingVal) && `Smoking: ${smokingVal}`,
-                drinkingVal && !isPreferNotToSay(drinkingVal) && `Drinking: ${drinkingVal}`
-              ].filter(Boolean) as string[];
-              
-              return items.map((item, idx) => (
-                <React.Fragment key={idx}>
-                  {idx > 0 && <span className="mx-2 text-muted-foreground">•</span>}
-                  <span className="text-sm font-semibold text-foreground">
-                    {item}
-                  </span>
-                </React.Fragment>
-              ));
-            })()}
-          </div>
-        )}
 
         {/* Action Buttons */}
-        <div className="flex flex-row gap-2 pt-4 pb-2">
+        <div className="flex flex-row gap-5 mt-auto">
+          {/* 1. Skip Button */}
           <Button
             variant="secondary"
             size="sm"
             onClick={handleSkip}
             disabled={isSkipping}
-            className="flex-1 h-11 rounded-full text-foreground bg-secondary border border-border"
+            className="flex-1 h-12 rounded-2xl text-foreground bg-secondary border border-border"
           >
             {isSkipping ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -907,7 +1081,7 @@ export function GroupMatchCard({
               }
             }}
             disabled={hasReported}
-            className={`flex-1 h-11 rounded-full border border-border ${
+            className={`flex-1 h-12 rounded-2xl border border-border ${
               hasReported 
                 ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed pointer-events-none" 
                 : "text-foreground bg-secondary"
@@ -923,7 +1097,7 @@ export function GroupMatchCard({
             size="sm"
             onClick={handleJoinGroup}
             disabled={isInteresting || interestSent}
-            className="order-first md:order-none flex-1 h-11 rounded-full"
+            className="order-first md:order-none flex-1 h-12 rounded-2xl"
           >
             {isInteresting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
