@@ -138,7 +138,9 @@ export const useGroupChat = (groupId: string) => {
         const mergedMessages = decryptedMessages.map((msg: any) => {
           const existing = existingMessages.get(msg.id) || existingTempMessages.get(msg.id);
           
-          let status = msg.status;
+          // The REST API returns `deliveryStatus` (Redis-computed); `status` is the socket/optimistic field.
+          // Prefer deliveryStatus (from REST) → status (from socket/optimistic) → existing in-memory → default.
+          let status = msg.deliveryStatus ?? msg.status;
           if (!status) {
              if (existing?.status) {
                 status = existing.status;
@@ -146,6 +148,11 @@ export const useGroupChat = (groupId: string) => {
                 status = msg.senderId === user?.id ? "sent" : "delivered";
              }
           }
+          // Never downgrade an in-memory "seen" to a lower status from a REST reload.
+          if (existing?.status === "seen" && status !== "seen") {
+            status = "seen";
+          }
+
           
           return { ...msg, status };
         });
