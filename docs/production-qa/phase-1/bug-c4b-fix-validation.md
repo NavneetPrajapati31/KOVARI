@@ -1,6 +1,15 @@
 # BUG-C4b Fix Validation Guide (Human QA Protocol)
 
-This document provides step-by-step verification instructions for Navneet and Tirth to manually validate the mobile-side fixes for **BUG-C4b (Intermittent Realtime Chat Message Delivery Failures)** using the latest APK.
+This document provides step-by-step verification instructions for Navneet and Tirth to manually validate the **complete fix for BUG-C4b** (mobile-side fix + backend idempotency hotfix) using the latest APK.
+
+---
+
+> [!IMPORTANT]
+> **Prerequisite — Apply Database Migration to Production**
+> Before starting human QA, apply the migration to the production Supabase database:
+> 1. Open the Supabase Dashboard → SQL Editor.
+> 2. Run the content of `supabase/migrations/20260708000000_direct_messages_client_id_unique.sql`.
+> 3. Confirm execution with no errors. This creates the partial unique index that prevents duplicate message rows.
 
 ---
 
@@ -49,3 +58,21 @@ This document provides step-by-step verification instructions for Navneet and Ti
 ### Test E — Cross-Platform Verification
 1. Verify that sending direct messages, group messages, and media uploads (images/videos) between Mobile and Web work bidirectionally without regressions.
 2. Verify that typing indicators, presence, and delivery receipts sync seamlessly.
+
+---
+
+### Test F — Backend Idempotency (No Duplicate Server Records)
+**Goal:** Confirm that a lost-ACK replay scenario does NOT create duplicate messages in the database.
+
+> This test requires two physical devices or one device + a web session.
+
+1. **Set up:** Open Account A on mobile, Account B on web. Keep both chat screens open.
+2. **Simulate lost ACK:** On the mobile device, send a message while briefly toggling Airplane Mode on immediately after tapping Send (aim to drop the connection within ~1 second of sending).
+3. **Restore network:** Toggle Airplane Mode off within 3 seconds.
+4. **Observe mobile:** The outbox should replay the message automatically on reconnect. It should deliver successfully.
+5. **Verify no duplicate on Account B (web):** Only **one** instance of the message must appear in the web chat window.
+6. **Verify no duplicate on Account A (mobile):** Only **one** instance of the message must appear in the mobile chat window (the optimistic one that became confirmed — not two identical messages).
+7. **Repeat 3 times** with different network-drop timings to stress-test the window.
+
+**Pass criteria:** In all 3 repetitions, exactly one message appears on both sides. No "double send" is visible to either participant.
+

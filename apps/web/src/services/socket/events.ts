@@ -672,6 +672,26 @@ async function persistMessageToDb(
       mediaType: message.mediaType ?? null,
     });
 
+    // ── BUG-C4b IDEMPOTENCY FIX ─────────────────────────────────────────────
+    // Pre-check: if the mobile client sent a tempId (client_id), look for an
+    // existing row before attempting an INSERT. This is the fast path for
+    // normal retries — it avoids hitting the unique-constraint error entirely.
+    if (message.tempId) {
+      const { data: existingMsg } = await supabase
+        .from("direct_messages")
+        .select("*")
+        .eq("client_id", message.tempId)
+        .maybeSingle();
+
+      if (existingMsg) {
+        console.log(
+          `[Socket DB Persist] Idempotent replay: client_id=${message.tempId} already persisted as id=${existingMsg.id}. Returning existing record.`,
+        );
+        return existingMsg;
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     const { data, error } = await supabase
       .from("direct_messages")
       .insert({
@@ -685,6 +705,31 @@ async function persistMessageToDb(
       .single();
 
     if (error) {
+      // ── BUG-C4b IDEMPOTENCY FIX (race-condition safety net) ───────────────
+      // If two retries raced past the pre-check simultaneously, the second
+      // INSERT will hit the partial unique index (23505 unique_violation).
+      // In that case, fetch and return the already-persisted row rather than
+      // surfacing an error to the mobile client.
+      if (error.code === "23505" && message.tempId) {
+        console.warn(
+          `[Socket DB Persist] Unique constraint violation for client_id=${message.tempId}. Fetching existing record to fulfil idempotent replay.`,
+        );
+        const { data: existingOnConflict, error: fetchError } = await supabase
+          .from("direct_messages")
+          .select("*")
+          .eq("client_id", message.tempId)
+          .maybeSingle();
+
+        if (existingOnConflict) return existingOnConflict;
+
+        // If we cannot fetch the conflicting row, log and re-throw original error
+        console.error(
+          "[Socket DB Persist] Could not retrieve existing record after 23505:",
+          fetchError,
+        );
+        throw error;
+      }
+      // ────────────────────────────────────────────────────────────────────
       console.error("[Socket DB Persist] Direct message error:", error);
       throw error;
     }
