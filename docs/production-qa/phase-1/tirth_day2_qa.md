@@ -424,13 +424,13 @@ Realtime sync events update the local client state instantly without manual user
 
 ### Actual Result
 
-FAIL — After resetting the database state and sending a new match interest / group invitation from Account B (web), the updates did not appear dynamically on Account A's mobile screen. Additionally, no push notification was received on the mobile device.
+FAIL — After resetting the database state and sending a new match interest / group invitation from Account B (web), the updates did not appear dynamically on Account A's mobile screen (regardless of whether the app was active, open, or closed). No push notifications were delivered in either case. Furthermore, on the requests screen, neither the interests nor the invitations update correctly or dynamically, even after triggering a manual refresh/reload.
 
 ### Evidence
 
 - Screenshot: N/A
 - Screen recording: N/A
-- Timestamp: 2026-08-27T22:00:00Z
+- Timestamp: 2026-08-27T22:05:00Z
 - Device: Physical Android (Tirth)
 - APK version/build: Latest production APK (exact build string pending)
 
@@ -439,18 +439,21 @@ FAIL — After resetting the database state and sending a new match interest / g
 **Reproduction Steps**
 
 1. Reset the invite/relationship states in the database.
-2. Keep Account A open in the foreground on the Explore/Dashboard screen.
-3. Send a new match interest or group invitation from Account B (web).
-4. Observe whether the UI updates dynamically to show the new request or invitation.
-5. Observe whether a push notification is delivered.
+2. Observe Account A on the mobile client (across active open, background, and closed states).
+3. Send a new match interest and a group invitation from Account B (web).
+4. Observe whether the mobile client receives push notifications.
+5. Navigate to the Requests screen on Account A.
+6. Verify if the incoming requests update dynamically, or if they appear after manual refresh/reload.
 
 **Expected Behavior**
 
-Real-time sync events should instantly update the UI of the receiving client to reflect new invitations or matching interests without manual refreshes. A corresponding push notification should be delivered.
+Real-time sync events should instantly update the UI of the receiving client to reflect new invitations or matching interests without manual refreshes. Corresponding push notifications should be delivered when the app is active, backgrounded, or closed. The requests screen should update correctly and reflect the new states dynamically or upon manual refresh.
 
 **Actual Behavior**
 
-No dynamic visual updates occurred on the mobile client. No push notifications were delivered for the new actions.
+- Dynamic updates fail completely on the mobile client under all app states (active open, background, closed).
+- Push notifications do not arrive for either match interests or group invitations in any state.
+- The Requests screen fails to display new incoming interests and invitations dynamically, and they do not populate or update correctly even after triggering a manual refresh/reload.
 
 **Affected Platform**
 
@@ -464,7 +467,7 @@ High
 
 - Screenshot: N/A
 - Screen recording: N/A
-- Timestamp: 2026-08-27T22:00:00Z
+- Timestamp: 2026-08-27T22:05:00Z
 - Relevant logs: N/A
 
 **Backend Impact**
