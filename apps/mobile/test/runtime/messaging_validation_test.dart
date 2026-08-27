@@ -1032,5 +1032,136 @@ void main() {
         '[OBSERVED RESULT] PASS: Cache write serialization queue prevents race conditions and data loss.',
       );
     });
+
+    test('10. Delivery Status Transitions and Failed Exemption (Test D)', () async {
+      print('\n==================================================');
+      print('TEST SETUP: Delivery Status Transitions (Test D)');
+      print('==================================================');
+
+      const chatId = 'user1_user2';
+      final store = container.read(messageStoreProvider(chatId).notifier);
+
+      // Seed a pending (optimistic) message
+      const clientMessageId = 'test_d_msg_id';
+      store.addOptimistic(
+        MessageEntity.optimistic(
+          clientMessageId: clientMessageId,
+          chatId: chatId,
+          senderId: 'uuid-user-1',
+          text: 'Test D timeout',
+        ),
+      );
+
+      final msgId = 'pending_$clientMessageId';
+      expect(store.state.messages[msgId]?.deliveryStatus, MessageDeliveryStatus.pending);
+
+      // 1. Verify downgrade to pending is blocked from a higher state (e.g. sent)
+      store.updateDeliveryStatus(msgId, MessageDeliveryStatus.sent);
+      expect(store.state.messages[msgId]?.deliveryStatus, MessageDeliveryStatus.sent);
+      store.updateDeliveryStatus(msgId, MessageDeliveryStatus.pending); // Downgrade attempt
+      expect(store.state.messages[msgId]?.deliveryStatus, MessageDeliveryStatus.sent); // Remains sent
+
+      // 2. Verify transition to failed is EXEMPTED and succeeds
+      store.updateDeliveryStatus(msgId, MessageDeliveryStatus.failed);
+      expect(store.state.messages[msgId]?.deliveryStatus, MessageDeliveryStatus.failed);
+
+      // 3. Verify seen cannot downgrade to delivered or failed
+      store.updateDeliveryStatus(msgId, MessageDeliveryStatus.seen);
+      expect(store.state.messages[msgId]?.deliveryStatus, MessageDeliveryStatus.seen);
+
+      store.updateDeliveryStatus(msgId, MessageDeliveryStatus.delivered); // Attempt downgrade to delivered
+      expect(store.state.messages[msgId]?.deliveryStatus, MessageDeliveryStatus.seen); // Remains seen
+
+      store.updateDeliveryStatus(msgId, MessageDeliveryStatus.failed); // Attempt downgrade to failed from terminal seen
+      expect(store.state.messages[msgId]?.deliveryStatus, MessageDeliveryStatus.seen); // Remains seen
+
+      print('[OBSERVED RESULT] PASS: MessageStore allows transition to failed while blocking invalid downgrades.');
+    });
+
+    test('11. Monotonic Safeguard in Hydration — seen survives lower-priority hydrateFromHistory (Test E)', () async {
+      print('\n==================================================');
+      print('TEST SETUP: Monotonic Safeguard in Hydration (Test E)');
+      print('==================================================');
+
+      const chatId = 'user1_user2';
+      final store = container.read(messageStoreProvider(chatId).notifier);
+
+      // Step 1: Hydrate message as 'seen' via the public hydrateFromHistory.
+      // This simulates the initial load when all members have seen the message
+      // and the backend correctly emits deliveryStatus = seen.
+      final seenAt = DateTime.now().subtract(const Duration(seconds: 5));
+      store.hydrateFromHistory([
+        MessageEntity(
+          id: 'msg_test_e',
+          chatId: chatId,
+          senderId: 'uuid-user-2',
+          createdAt: seenAt,
+          text: 'Test E group message',
+          deliveryStatus: MessageDeliveryStatus.seen,
+          conversationSequence: 42,
+        ),
+      ]);
+
+      expect(
+        store.state.messages['msg_test_e']?.deliveryStatus,
+        MessageDeliveryStatus.seen,
+        reason: 'Initial hydration should set status to seen',
+      );
+
+      // Step 2: Re-hydrate the same message with a degraded status of 'delivered'.
+      // This simulates what happens when the Redis seen-set TTL expires and the
+      // REST API falls back to returning deliveryStatus = delivered on resync.
+      store.hydrateFromHistory([
+        MessageEntity(
+          id: 'msg_test_e',
+          chatId: chatId,
+          senderId: 'uuid-user-2',
+          createdAt: seenAt,
+          text: 'Test E group message',
+          deliveryStatus: MessageDeliveryStatus.delivered, // Degraded REST state
+          conversationSequence: 42,
+        ),
+      ]);
+
+      // Step 3: The monotonic _maxDeliveryStatus merge in hydrateFromHistory
+      // must protect 'seen' from being overwritten by the lower 'delivered'.
+      expect(
+        store.state.messages['msg_test_e']?.deliveryStatus,
+        MessageDeliveryStatus.seen,
+        reason: 'hydrateFromHistory must not downgrade seen → delivered',
+      );
+
+      // Step 4: Confirm that a genuine upgrade (delivered → seen) still works.
+      store.hydrateFromHistory([
+        MessageEntity(
+          id: 'msg_test_e_2',
+          chatId: chatId,
+          senderId: 'uuid-user-2',
+          createdAt: seenAt,
+          text: 'Another message',
+          deliveryStatus: MessageDeliveryStatus.delivered,
+          conversationSequence: 43,
+        ),
+      ]);
+      // Now re-hydrate it as seen (all members have now read it)
+      store.hydrateFromHistory([
+        MessageEntity(
+          id: 'msg_test_e_2',
+          chatId: chatId,
+          senderId: 'uuid-user-2',
+          createdAt: seenAt,
+          text: 'Another message',
+          deliveryStatus: MessageDeliveryStatus.seen,
+          conversationSequence: 43,
+        ),
+      ]);
+      expect(
+        store.state.messages['msg_test_e_2']?.deliveryStatus,
+        MessageDeliveryStatus.seen,
+        reason: 'delivered → seen upgrade via hydrateFromHistory must be allowed',
+      );
+
+      print('[OBSERVED RESULT] PASS: Monotonic safeguard preserves seen against degraded REST state; upgrades still work.');
+    });
   });
 }

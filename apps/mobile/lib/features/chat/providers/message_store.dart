@@ -367,25 +367,32 @@ class MessageStore extends Notifier<ConversationMessageState> {
 
       // Update UI with newly synced cache state
       final freshMsgs = await syncEngine.loadCachedMessages(_chatId);
-      final List<MessageEntity> freshEntities = freshMsgs
-          .where((m) => m.conversationId == _chatId)
-          .map((m) {
-            return MessageEntity(
-              id: m.id,
-              chatId: _chatId,
-              senderId: m.senderId,
-              createdAt: m.createdAt,
-              text: m.text,
-              mediaUrl: m.mediaUrl,
-              mediaType: m.mediaType,
-              deliveryStatus: MessageDeliveryStatus.values.firstWhere(
-                (e) => e.name == m.status,
-                orElse: () => MessageDeliveryStatus.sent,
-              ),
-              conversationSequence: m.sequence,
-            );
-          })
-          .toList();
+      final List<MessageEntity>
+      freshEntities = freshMsgs.where((m) => m.conversationId == _chatId).map((
+        m,
+      ) {
+        final incomingStatus = MessageDeliveryStatus.values.firstWhere(
+          (e) => e.name == m.status,
+          orElse: () => MessageDeliveryStatus.sent,
+        );
+        // Monotonic safeguard: prevent incoming REST responses from downgrading locally known seen status
+        final existing = state.messages[m.id];
+        final resolvedStatus = existing != null
+            ? _maxDeliveryStatus(existing.deliveryStatus, incomingStatus)
+            : incomingStatus;
+
+        return MessageEntity(
+          id: m.id,
+          chatId: _chatId,
+          senderId: m.senderId,
+          createdAt: m.createdAt,
+          text: m.text,
+          mediaUrl: m.mediaUrl,
+          mediaType: m.mediaType,
+          deliveryStatus: resolvedStatus,
+          conversationSequence: m.sequence,
+        );
+      }).toList();
 
       if (!_isDisposed && _isActive) {
         final updated = Map<String, MessageEntity>.from(state.messages);
@@ -748,7 +755,12 @@ class MessageStore extends Notifier<ConversationMessageState> {
   void updateDeliveryStatus(String messageId, MessageDeliveryStatus status) {
     final msg = state.messages[messageId];
     if (msg == null) return;
-    if (status.statePriority <= msg.deliveryStatus.statePriority) return;
+    // 'failed' may override any in-flight state (pending, sent, delivered),
+    // but NOT the terminal 'seen' — a message already confirmed seen cannot fail.
+    final isForcedFailed = status == MessageDeliveryStatus.failed &&
+        msg.deliveryStatus != MessageDeliveryStatus.seen;
+    if (!isForcedFailed &&
+        status.statePriority <= msg.deliveryStatus.statePriority) return;
 
     final updatedEntity = msg.copyWith(deliveryStatus: status);
     final updated = Map<String, MessageEntity>.from(state.messages)

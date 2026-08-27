@@ -508,7 +508,7 @@ export const registerSocketEvents = (
                   lastSeenSequence: resolvedLastSeenSequence,
                 });
                 // Once fully seen, we can optionally cleanup the set (after a short delay or now)
-                await pubClient.expire(setKey, 3600); // Keep for an hour just in case of race conditions
+                await pubClient.expire(setKey, 1209600); // Keep for 14 days to prevent status decay
               }
             }
           }
