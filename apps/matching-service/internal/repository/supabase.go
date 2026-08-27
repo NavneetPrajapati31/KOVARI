@@ -175,7 +175,7 @@ type profileResponse struct {
 	Longitude      *float64    `json:"longitude"`
 }
 
-func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserIds []string, preResolved map[string]models.Coordinates) (map[string]*models.StaticAttributes, error) {
+func (r *SupabaseRepository) FetchFromSupabase(ctx context.Context, clerkUserIds []string, preResolved map[string]models.Coordinates) (map[string]*models.StaticAttributes, error) {
 	if len(clerkUserIds) == 0 {
 		return make(map[string]*models.StaticAttributes), nil
 	}
@@ -352,4 +352,41 @@ func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, clerkUserId
 	log.Printf("TIMER: FetchProfilesBatch TOTAL took: %v", time.Since(t1))
 
 	return results, nil
+}
+
+func (r *SupabaseRepository) FetchProfilesBatch(ctx context.Context, userIDs []string, preResolved map[string]models.Coordinates) (map[string]*models.StaticAttributes, error) {
+	if len(userIDs) == 0 {
+		return make(map[string]*models.StaticAttributes), nil
+	}
+
+	t1 := time.Now()
+
+	// 1. Check Cache First
+	cached, missing := r.redis.MGetProfiles(ctx, userIDs)
+
+	log.Printf("[CACHE] profiles hit=%d miss=%d", len(cached), len(missing))
+
+	if len(missing) == 0 {
+		log.Println("[CACHE] 100% hit — Supabase skipped")
+		return cached, nil
+	}
+
+	// 2. Fetch missing from Supabase
+	fresh, err := r.FetchFromSupabase(ctx, missing, preResolved)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Write missing back to Cache in background
+	go func() {
+		r.redis.SetProfiles(context.Background(), fresh, models.ProfileCacheTTL)
+	}()
+
+	// 4. Merge cached and fresh
+	for k, v := range fresh {
+		cached[k] = v
+	}
+
+	log.Printf("TIMER: FetchProfilesBatch TOTAL took: %v", time.Since(t1))
+	return cached, nil
 }

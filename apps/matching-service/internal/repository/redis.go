@@ -40,7 +40,7 @@ func (r *RedisRepository) Ping(ctx context.Context) error {
 	return r.client.Ping(ctx).Err()
 }
 
-const MaxCandidates = 500
+const MaxCandidates = 100
 
 func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId string) ([]models.SoloSession, error) {
 	var sessions []models.SoloSession
@@ -88,7 +88,7 @@ func (r *RedisRepository) FetchAllSessions(ctx context.Context, excludeUserId st
 					}
 					r.client.Del(bgCtx, "sessions:index")
 					r.client.SAdd(bgCtx, "sessions:index", ids...)
-					r.client.Expire(bgCtx, "sessions:index", 1*time.Hour)
+					r.client.Expire(bgCtx, "sessions:index", 24*time.Hour)
 					log.Printf("BACKGROUND INDEX REBUILD SUCCESS: Indexed %d sessions", len(allKeys))
 				}
 			}()
@@ -182,6 +182,96 @@ func (r *RedisRepository) SetCache(ctx context.Context, key string, value string
 	return r.client.Set(ctx, key, value, expiration).Err()
 }
 
+func (r *RedisRepository) DelCache(ctx context.Context, key string) error {
+	return r.client.Del(ctx, key).Err()
+}
+
+func (r *RedisRepository) GetSessionIndex(ctx context.Context) ([]string, error) {
+	return r.client.SMembers(ctx, "sessions:index").Result()
+}
+
 func (r *RedisRepository) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) (bool, error) {
 	return r.client.SetNX(ctx, key, value, expiration).Result()
+}
+
+// MGetProfiles fetches multiple profiles by their user IDs (preferably Clerk IDs).
+// It returns a map of cached profiles and a slice of userIDs that were missing from cache.
+func (r *RedisRepository) MGetProfiles(ctx context.Context, userIDs []string) (map[string]*models.StaticAttributes, []string) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+
+	keys := make([]string, len(userIDs))
+	for i, id := range userIDs {
+		keys[i] = fmt.Sprintf("profile:%s", id)
+	}
+
+	cached := make(map[string]*models.StaticAttributes)
+	var missing []string
+
+	values, err := r.client.MGet(ctx, keys...).Result()
+	if err != nil {
+		log.Printf("Warning: Redis MGetProfiles failed: %v", err)
+		// Graceful degradation: treat all as missing if Redis fails
+		return nil, userIDs
+	}
+
+	for i, val := range values {
+		id := userIDs[i]
+		if val == nil {
+			missing = append(missing, id)
+			continue
+		}
+
+		strVal, ok := val.(string)
+		if !ok {
+			missing = append(missing, id)
+			continue
+		}
+
+		var attr models.StaticAttributes
+		if err := json.Unmarshal([]byte(strVal), &attr); err != nil {
+			log.Printf("Warning: Failed to parse cached profile %s: %v", id, err)
+			missing = append(missing, id)
+			continue
+		}
+		cached[id] = &attr
+	}
+
+	return cached, missing
+}
+
+// SetProfiles writes multiple profiles to the cache using a pipeline for performance.
+func (r *RedisRepository) SetProfiles(ctx context.Context, profiles map[string]*models.StaticAttributes, expiration time.Duration) {
+	if len(profiles) == 0 {
+		return
+	}
+
+	pipe := r.client.Pipeline()
+	for id, attr := range profiles {
+		data, err := json.Marshal(attr)
+		if err == nil {
+			// We cache it using the exact ID the caller provided.
+			// Supabase FetchProfilesBatch maps to both UUID and ClerkID,
+			// so this handles both if they are present in the map!
+			pipe.Set(ctx, fmt.Sprintf("profile:%s", id), string(data), expiration)
+		}
+	}
+
+	if _, err := pipe.Exec(ctx); err != nil {
+		log.Printf("Warning: Redis SetProfiles pipeline failed: %v", err)
+	}
+}
+
+// InvalidateUser busts the cache for a specific user. Call this when a user updates their profile.
+func (r *RedisRepository) InvalidateUser(ctx context.Context, userID string) error {
+	pipe := r.client.Pipeline()
+	pipe.Del(ctx, fmt.Sprintf("profile:%s", userID))
+	pipe.Del(ctx, fmt.Sprintf("prefs:%s", userID))
+	
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		log.Printf("Warning: Redis InvalidateUser failed for %s: %v", userID, err)
+	}
+	return err
 }

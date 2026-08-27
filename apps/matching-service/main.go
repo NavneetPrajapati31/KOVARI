@@ -92,6 +92,9 @@ func main() {
 	}
 	log.Printf("SUCCESS: Connected to Supabase (%s) successfully (Geoapify: %v, Cache: ENABLED).", sbURL, geoKey != "")
 
+	// Pre-warm the cache asynchronously
+	go warmProfileCache(repo, sbRepo)
+
 	mlClient = ai.NewMLClient()
 
 	configPath := "../../packages/config/matching.json"
@@ -487,4 +490,32 @@ func main() {
 		logger.Fatal("Graceful shutdown failed", err)
 	}
 	logger.Info("", "", "Service stopped clean.", 0, 0, nil)
+}
+
+func warmProfileCache(r *repository.RedisRepository, s *repository.SupabaseRepository) {
+	ctx := context.Background()
+
+	// Distributed lock via Redis — only one replica warms
+	ok, _ := r.SetNX(ctx, "warm:lock", "1", 5*time.Minute)
+	if !ok {
+		log.Println("[WARM] another replica is warming, skipping")
+		return
+	}
+	defer r.DelCache(ctx, "warm:lock")
+
+	sessionIDs, err := r.GetSessionIndex(ctx)
+	if err != nil || len(sessionIDs) == 0 {
+		log.Println("[WARM] no sessions to warm")
+		return
+	}
+
+	// call internal fetch directly — skip cache-check on warm
+	profiles, err := s.FetchFromSupabase(ctx, sessionIDs, nil)
+	if err != nil {
+		log.Println("[WARM] supabase fetch failed:", err)
+		return
+	}
+
+	r.SetProfiles(ctx, profiles, models.ProfileCacheTTL)
+	log.Printf("[WARM] cached %d profiles on startup", len(profiles))
 }
