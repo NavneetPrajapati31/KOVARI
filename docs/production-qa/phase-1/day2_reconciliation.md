@@ -28,10 +28,11 @@ This document summarizes the reconciliation of the parallel manual QA validation
 ### Reconciled Metrics
 
 * **Total Scenarios Reconciled:** 15
-* **PASS:** 8 (A6, G1, C1, C2, C3, N2, R2, R1 as Partial/PASS)
+* **PASS:** 7 (A6, G1, C1, C2, C3, N2, R2)
+* **PARTIAL:** 1 (R1 — direct `/devices/register` endpoint validation was not established during physical-device QA, as documented in the authoritative master regression matrix; it must not be counted as PASS)
 * **FAIL:** 7 (G2, G3, C4, N1, S1, R3, R4)
-* **BLOCKED:** 0 (R4 unblocked and completed during execution)
-* **UNVERIFIED:** 0 (All assigned scenarios completed)
+* **BLOCKED:** 0
+* **UNVERIFIED:** 0
 
 ---
 
