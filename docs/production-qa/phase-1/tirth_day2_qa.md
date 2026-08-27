@@ -5,7 +5,7 @@
 **Target:** Latest Production Android APK
 **Environment:** Production
 **Execution Mode:** Manual physical-device testing
-**Status:** COMPLETE (R4 BLOCKED — needs DB invite reset before retest)
+**Status:** COMPLETE
 
 > This document contains only manually verified results.
 > Static code inspection, automated tests, API inspection, and source-code analysis do not constitute QA evidence.
@@ -424,34 +424,57 @@ Realtime sync events update the local client state instantly without manual user
 
 ### Actual Result
 
-**BLOCKED — could not execute in this session.**
-
-Both QA users are **already invited** relative to each other, so a fresh interest/invitation could not be generated from Account B to observe live sync on Account A.
-
-Operator notes that the invite/relationship state must be **undone in the database first**, then R4 re-run:
-
-1. Keep Account A on Home/Requests (no manual refresh).
-2. From Account B (web), send a new interest/request → observe Android.
-3. From Account B, send a new invitation → observe Android.
-4. Record appearance timing: immediate / after navigation / after pull-to-refresh / after restart / never.
-
-No PASS/FAIL claim for live sync behavior — scenario was not runnable without DB state reset.
+FAIL — After resetting the database state and sending a new match interest / group invitation from Account B (web), the updates did not appear dynamically on Account A's mobile screen. Additionally, no push notification was received on the mobile device.
 
 ### Evidence
 
-- Screenshot: N/A (blocked before execution)
+- Screenshot: N/A
 - Screen recording: N/A
-- Timestamp: 2026-08-27 (Day 2 evening session, IST)
+- Timestamp: 2026-08-27T22:00:00Z
 - Device: Physical Android (Tirth)
 - APK version/build: Latest production APK (exact build string pending)
-- Blocker: Both users already invited; needs DB undo before retest
-- Interest test: Not executed
-- Invitation test: Not executed
+
+### Failure Details
+
+**Reproduction Steps**
+
+1. Reset the invite/relationship states in the database.
+2. Keep Account A open in the foreground on the Explore/Dashboard screen.
+3. Send a new match interest or group invitation from Account B (web).
+4. Observe whether the UI updates dynamically to show the new request or invitation.
+5. Observe whether a push notification is delivered.
+
+**Expected Behavior**
+
+Real-time sync events should instantly update the UI of the receiving client to reflect new invitations or matching interests without manual refreshes. A corresponding push notification should be delivered.
+
+**Actual Behavior**
+
+No dynamic visual updates occurred on the mobile client. No push notifications were delivered for the new actions.
+
+**Affected Platform**
+
+Production Android APK
+
+**Severity**
+
+High
+
+**Evidence**
+
+- Screenshot: N/A
+- Screen recording: N/A
+- Timestamp: 2026-08-27T22:00:00Z
+- Relevant logs: N/A
+
+**Backend Impact**
+
+Suspected (Realtime sync dispatcher / Socket event broadcasting or mobile event listener registration failure).
+
+**Bug ID**
+
+Pending reconciliation
 
 ### QA Result
 
-**BLOCKED**
-
-- Reason: mutual/existing invite state prevents generating a new interest/invitation for observation
-- Unblock requirement: reset invite/relationship rows in DB, then re-execute R4
-- Live sync behavior: not observed (do not infer PASS/FAIL)
+**FAIL**
