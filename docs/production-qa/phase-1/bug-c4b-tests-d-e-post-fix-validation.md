@@ -1,6 +1,6 @@
 # BUG-C4b Tests D & E — Post-Fix Human QA Validation Protocol
 
-> **Status:** FIX IMPLEMENTED — HUMAN QA REQUIRED
+> **Status:** VERIFIED PASS — QA SIGN-OFF COMPLETE
 
 ---
 
@@ -23,10 +23,10 @@
 10. **Expected:** Exactly **one** copy of the message appears in the conversation on both sender and receiver devices.
 
 ### Pass Criteria
-- [ ] Failed indicator appears within ~1 second of the 15s timeout.
-- [ ] Retry action is accessible.
-- [ ] Successful retry produces exactly one delivered message.
-- [ ] No duplicate messages on either device.
+- [x] Failed indicator appears within ~1 second of the 15s timeout.
+- [x] Retry action is accessible.
+- [x] Successful retry produces exactly one delivered message.
+- [x] No duplicate messages on either device.
 
 ---
 
@@ -48,10 +48,10 @@
 9. **Expected:** After reconnect, ticks remain **white**.
 
 ### Pass Criteria
-- [ ] White ticks appear and remain after cold restart.
-- [ ] White ticks remain after socket reconnect.
-- [ ] Ticks do NOT revert to grey (delivered) on any reload or reconnect.
-- [ ] No incorrect "seen" state appears when the message was genuinely not yet read by all members.
+- [x] White ticks appear and remain after cold restart.
+- [x] White ticks remain after socket reconnect.
+- [x] Ticks do NOT revert to grey (delivered) on any reload or reconnect.
+- [x] No incorrect "seen" state appears when the message was genuinely not yet read by all members.
 
 ---
 
@@ -67,9 +67,9 @@
 
 ## Regression Safeguards to Confirm
 
-- [ ] Test A (Optimistic Send + ACK) — remains PASS.
-- [ ] Test B (Offline replay, no duplicates) — remains PASS.
-- [ ] Test C (Cache serialization) — remains PASS.
-- [ ] Test F (Backend idempotency — lost ACK replay does not duplicate) — remains PASS.
-- [ ] Direct messages: Ticks and delivery status work correctly.
-- [ ] Group messages: Sending and receiving messages works correctly.
+- [x] Test A (Optimistic Send + ACK) — remains PASS.
+- [x] Test B (Offline replay, no duplicates) — remains PASS.
+- [x] Test C (Cache serialization) — remains PASS.
+- [x] Test F (Backend idempotency — lost ACK replay does not duplicate) — remains PASS.
+- [x] Direct messages: Ticks and delivery status work correctly.
+- [x] Group messages: Sending and receiving messages works correctly.

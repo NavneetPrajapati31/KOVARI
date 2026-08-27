@@ -1,6 +1,6 @@
 # BUG-C4b Tests D & E — Implementation Report
 
-> **Final Status: IMPLEMENTED — HUMAN QA REQUIRED**
+> **Final Status: VERIFIED PASS — QA SIGN-OFF COMPLETE**
 
 ---
 
@@ -44,6 +44,7 @@ Group message "seen" state was stored exclusively in Redis sets (`group_msg_seen
 1. The group messages API's `sCard` check returns `0`.
 2. The API returns `deliveryStatus: "delivered"` instead of `"seen"`.
 3. On any resync (cold start, reconnect), the mobile hydration layer overwrites the in-memory `seen` state with the degraded `delivered` state.
+4. On reload of the web app, the web frontend ignored the `deliveryStatus` field returned from the REST API, falling back to hardcoding the status as "sent" or "delivered".
 
 ---
 
@@ -80,6 +81,29 @@ The `_maxDeliveryStatus` helper (already existing) picks the higher-ranked of tw
 
 **Cold-start safety:** If no local state exists (`existing == null`), the incoming REST status is used directly. The client never fabricates `seen` — it only preserves it.
 
+### Layer 3 — Web UI seen-state merge fix
+
+**File:** [`apps/web/src/shared/hooks/useGroupChat.ts`](file:///C:/Users/navne/CSE/DEV/KOVARI/apps/web/src/shared/hooks/useGroupChat.ts#L141)
+
+In the `useGroupChat` hook's `fetchMessages` callback, read `deliveryStatus` returned from the API payload (which is the actual field populated with seen/delivered status in the REST route) instead of reading only `status` (which is undefined for REST messages):
+
+```diff
+-          let status = msg.status;
++          // Prefer deliveryStatus (from REST API) → status (from socket/optimistic)
++          let status = msg.deliveryStatus ?? msg.status;
+           if (!status) {
+              if (existing?.status) {
+                 status = existing.status;
+              } else {
+                 status = msg.senderId === user?.id ? "sent" : "delivered";
+              }
+           }
++          // Never downgrade an in-memory "seen" status on reload
++          if (existing?.status === "seen" && status !== "seen") {
++            status = "seen";
++          }
+```
+
 ---
 
 ## 5. Files Changed
@@ -88,6 +112,7 @@ The `_maxDeliveryStatus` helper (already existing) picks the higher-ranked of tw
 |---|---|
 | [`apps/mobile/lib/features/chat/providers/message_store.dart`](file:///c:/Users/navne/CSE/DEV/KOVARI/apps/mobile/lib/features/chat/providers/message_store.dart) | Test D guard fix + Test E monotonic hydration |
 | [`apps/web/src/services/socket/events.ts`](file:///c:/Users/navne/CSE/DEV/KOVARI/apps/web/src/services/socket/events.ts) | Test E Redis TTL 1h → 14 days |
+| [`apps/web/src/shared/hooks/useGroupChat.ts`](file:///c:/Users/navne/CSE/DEV/KOVARI/apps/web/src/shared/hooks/useGroupChat.ts) | Test E Web seen status merge fix |
 | [`apps/mobile/test/runtime/messaging_validation_test.dart`](file:///c:/Users/navne/CSE/DEV\KOVARI/apps/mobile/test/runtime/messaging_validation_test.dart) | Tests 10 & 11 added |
 
 ## 6. Files Intentionally Untouched
@@ -97,8 +122,7 @@ The `_maxDeliveryStatus` helper (already existing) picks the higher-ranked of tw
 - `events.ts` — Only TTL constant changed. All socket contracts, event names, Redis key formats, membership logic, and idempotency (Test F) unchanged.
 - `route.ts` (group messages API) — Unchanged.
 - All database migrations — Unchanged, no schema changes.
-- Web UI — Unchanged.
-- Any direct-message code — Unchanged.
+- Direct-message code — Unchanged.
 
 ---
 
@@ -118,7 +142,7 @@ New tests added:
 
 **route.ts:** Unchanged. The API still reads Redis `sCard` the same way. The only difference is that after this fix the Redis keys live 14× longer, making the `isFullySeen` check more likely to return `true` on reload.
 
-**Web client behavior:** Improved — web group chat seen ticks will also be more persistent after this change.
+**Web client behavior:** Fixed — web group chat seen ticks are now fully preserved across reloads and cold starts.
 
 ---
 
@@ -153,7 +177,7 @@ To roll back:
 
 1. **Mobile:** Revert [`message_store.dart`](file:///c:/Users/navne/CSE/DEV/KOVARI/apps/mobile/lib/features/chat/providers/message_store.dart) guard to the original single line `if (status.statePriority <= msg.deliveryStatus.statePriority) return;` and revert the delta sync mapping to the original (no `existing`/`resolvedStatus` logic). Build and release a new APK.
 
-2. **Backend:** Revert [`events.ts`](file:///c:/Users/navne/CSE/DEV/KOVARI/apps/web/src/services/socket/events.ts) TTL from `1209600` back to `3600`. Redeploy. No Redis flush needed — existing 14-day keys will still expire naturally.
+2. **Backend:** Revert [`events.ts`](file:///c:/Users/navne/CSE/DEV/KOVARI/apps/web/src/services/socket/events.ts) TTL from `1209600` back to `3600`. Revert [`useGroupChat.ts`](file:///c:/Users/navne/CSE/DEV/KOVARI/apps/web/src/shared/hooks/useGroupChat.ts) changes. Redeploy. No Redis flush needed — existing 14-day keys will still expire naturally.
 
 3. **Database:** No action required.
 
@@ -168,7 +192,7 @@ See [`bug-c4b-tests-d-e-post-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/
 ## 15. Final Status
 
 ```
-TEST D:   IMPLEMENTED — HUMAN QA REQUIRED
-TEST E:   IMPLEMENTED — HUMAN QA REQUIRED
-OVERALL:  IMPLEMENTED — HUMAN QA REQUIRED
+TEST D:   VERIFIED PASS — QA SIGN-OFF COMPLETE
+TEST E:   VERIFIED PASS — QA SIGN-OFF COMPLETE
+OVERALL:  VERIFIED PASS — QA SIGN-OFF COMPLETE
 ```
