@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -336,12 +337,32 @@ class ChatMutationService {
         .read(mutationJournalProvider)
         .resolve(chatId, clientMessageId, MutationStatus.sending);
 
+    Timer? timeoutTimer;
+    timeoutTimer = Timer(const Duration(seconds: 15), () {
+      final journal = _ref.read(mutationJournalProvider);
+      final pending = journal.getPendingFor(chatId);
+      MutationEntry? entry;
+      for (final e in pending) {
+        if (e.id == clientMessageId) {
+          entry = e;
+          break;
+        }
+      }
+      if (entry != null && entry.status == MutationStatus.sending) {
+        AppLogger.w(
+          '[ChatMutationService] Send timeout for $clientMessageId. Marking as failed.',
+        );
+        _markFailed(chatId, clientMessageId);
+      }
+    });
+
     _ref
         .read(realtimeCoordinatorProvider.notifier)
         .sendMessage(
           chatId: chatId,
           messagePayload: payload.toSocketPayload(),
           onAck: (ack) {
+            timeoutTimer?.cancel();
             final status = ack['status'] as String?;
             if (status == 'sent') {
               AppLogger.d(
@@ -390,30 +411,37 @@ class ChatMutationService {
     final store = _ref.read(messageStoreProvider(chatId));
 
     for (final entry in pending) {
-      // 💎 Instagram-Pro: Skip if already in flight to prevent redundant re-sends
+      var currentEntry = entry;
+      // If a message was marked as sending, but we are replaying now (e.g. after a reconnect
+      // or manual trigger), the previous emit attempt has failed or timed out.
+      // We reset it to pending to allow retry.
       if (entry.status == MutationStatus.sending) {
-        AppLogger.d(
-          '[ChatMutationService] Skipping replay for $chatId/${entry.id}: already SENDING',
+        AppLogger.i(
+          '[ChatMutationService] Resetting stuck SENDING mutation ${entry.id} to PENDING for replay',
         );
-        continue;
+        journal.resolve(chatId, entry.id, MutationStatus.pending);
+        currentEntry = entry.copyWith(status: MutationStatus.pending);
       }
 
       // If the message has already been reconciled (exists in store as non-pending),
       // mark it success in journal and skip.
-      final hasAuthoritative = store.messages.values.any((m) =>
-          m.clientMessageId == entry.id && !m.id.startsWith('pending_'));
+      final hasAuthoritative = store.messages.values.any(
+        (m) =>
+            m.clientMessageId == currentEntry.id &&
+            !m.id.startsWith('pending_'),
+      );
       if (hasAuthoritative) {
         AppLogger.i(
-          '[ChatMutationService] Skipping replay for $chatId/${entry.id}: already reconciled in store',
+          '[ChatMutationService] Skipping replay for $chatId/${currentEntry.id}: already reconciled in store',
         );
-        journal.resolve(chatId, entry.id, MutationStatus.success);
+        journal.resolve(chatId, currentEntry.id, MutationStatus.success);
         continue;
       }
 
-      if (entry.payload is SendMessagePayload) {
-        final payload = entry.payload as SendMessagePayload;
-        AppLogger.i('[ChatMutationService] Replaying: ${entry.id}');
-        _emit(chatId, entry.id, payload);
+      if (currentEntry.payload is SendMessagePayload) {
+        final payload = currentEntry.payload as SendMessagePayload;
+        AppLogger.i('[ChatMutationService] Replaying: ${currentEntry.id}');
+        _emit(chatId, currentEntry.id, payload);
       }
     }
   }

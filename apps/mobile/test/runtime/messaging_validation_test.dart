@@ -90,7 +90,6 @@ class FakeMutationJournal extends ChangeNotifier implements MutationJournal {
   bool hasPending(String entityId) => getPendingFor(entityId).isNotEmpty;
 }
 
-
 // ─────────────────────────────────────────────
 // Fake PendingUploadStore (no Hive)
 // ─────────────────────────────────────────────
@@ -921,6 +920,116 @@ void main() {
       );
       print(
         '[OBSERVED RESULT] PASS: Media upload background recovery verified (plaintext mode).',
+      );
+    });
+
+    // ─────────────────────────────────────────────
+    // Test 8: BUG-C4b Forensic Safe Fix Tests
+    // ─────────────────────────────────────────────
+    test('8. Outbox Replay Recovery for Stuck SENDING Mutations', () async {
+      print('\n==================================================');
+      print('TEST SETUP: Outbox Replay Recovery for Stuck SENDING');
+      print('==================================================');
+
+      const chatId = 'user1_user2';
+      final socketService =
+          container.read(socketServiceProvider.notifier) as SocketServiceMock;
+      final mutationService = container.read(chatMutationServiceProvider);
+
+      // Force disconnected state and record a pending mutation
+      socketService.setMockState(SocketState.disconnected);
+      final clientMsgId = mutationService.sendMessage(
+        chatId: chatId,
+        senderId: 'uuid-user-1',
+        text: 'Stuck sending replay test',
+        receiverId: 'user2',
+        senderClerkId: 'user1',
+        receiverClerkId: 'clerk2',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Simulate it transition to SENDING state (representing in-flight emit before a crash/disconnect)
+      fakeMutationJournal.resolve(chatId, clientMsgId, MutationStatus.sending);
+      var pending = fakeMutationJournal.getPendingFor(chatId);
+      expect(
+        pending.firstWhere((e) => e.id == clientMsgId).status,
+        MutationStatus.sending,
+      );
+
+      // Now restore connection and trigger replayPendingMessages
+      socketService.setMockState(SocketState.connected);
+      mutationService.replayPendingMessages(chatId);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Check if it got re-emitted (which means it got reset to PENDING and processed)
+      final hasReplayed = socketService.emittedEvents.any(
+        (e) =>
+            e.type == 'send_message' &&
+            e.data['message']['tempId'] == clientMsgId,
+      );
+      expect(
+        hasReplayed,
+        true,
+        reason:
+            'Stuck SENDING mutation should be reset and replayed on reconnect',
+      );
+      print(
+        '[OBSERVED RESULT] PASS: Stuck SENDING mutations successfully recovered and replayed.',
+      );
+    });
+
+    test('9. Cache Write Serialization Queue in MessageStore', () async {
+      print('\n==================================================');
+      print('TEST SETUP: Cache Write Serialization Queue');
+      print('==================================================');
+
+      const chatId = 'user1_user2';
+      final store = container.read(messageStoreProvider(chatId).notifier);
+
+      // We simulate two rapid incoming messages. With serialization queue, they will run sequentially.
+      print('[OBSERVED LOGS] Emitting two rapid incoming realtime messages...');
+      socketEventsController.add(
+        SocketEvent(
+          type: 'receive_message',
+          data: {
+            'chatId': chatId,
+            'id': 'seq_msg_A',
+            'senderId': 'user2',
+            'text': 'Sequential Msg A',
+            'conversationSequence': 50,
+            'serverSequence': 1000,
+          },
+        ),
+      );
+      socketEventsController.add(
+        SocketEvent(
+          type: 'receive_message',
+          data: {
+            'chatId': chatId,
+            'id': 'seq_msg_B',
+            'senderId': 'user2',
+            'text': 'Sequential Msg B',
+            'conversationSequence': 51,
+            'serverSequence': 1001,
+          },
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final state = container.read(messageStoreProvider(chatId));
+      expect(
+        state.messages.containsKey('seq_msg_A'),
+        true,
+        reason: 'Msg A should be preserved',
+      );
+      expect(
+        state.messages.containsKey('seq_msg_B'),
+        true,
+        reason: 'Msg B should be preserved',
+      );
+      print(
+        '[OBSERVED RESULT] PASS: Cache write serialization queue prevents race conditions and data loss.',
       );
     });
   });

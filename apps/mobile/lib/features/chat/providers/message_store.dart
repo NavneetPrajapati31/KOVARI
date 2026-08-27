@@ -104,6 +104,32 @@ class MessageStore extends Notifier<ConversationMessageState> {
   bool _isActive = true;
   bool _isDisposed = false;
 
+  Future<void>? _syncQueue;
+
+  void _enqueueSyncOp(FutureOr<void> Function() op) {
+    if (_isDisposed) return;
+    _syncQueue = (_syncQueue ?? Future<void>.value()).then(
+      (_) async {
+        if (_isDisposed) return;
+        try {
+          await op();
+        } catch (e, stack) {
+          AppLogger.e(
+            '[MessageStore:$_chatId] Error in serialized sync operation',
+            error: e,
+            stackTrace: stack,
+          );
+        }
+      },
+      onError: (Object e) {
+        AppLogger.e(
+          '[MessageStore:$_chatId] Serialized sync queue error wrapper',
+          error: e,
+        );
+      },
+    );
+  }
+
   String? get _myUserId {
     final user = ref.read(authProvider).user;
     return user?.resolvedUuid ?? user?.id;
@@ -952,18 +978,13 @@ class MessageStore extends Notifier<ConversationMessageState> {
       final partnerClerkId = getPartnerClerkId();
 
       // Run local database caching in the background to prevent UI lag on new message receipt
-      unawaited(
-        syncEngine
-            .processRealtimeMessage(
-              chatId: _chatId,
-              data: data,
-              myUserId: userId,
-            )
-            .catchError((Object e) {
-              AppLogger.e('[MessageStore] Offline persistence error', error: e);
-              return null;
-            }),
-      );
+      _enqueueSyncOp(() async {
+        await syncEngine.processRealtimeMessage(
+          chatId: _chatId,
+          data: data,
+          myUserId: userId,
+        );
+      });
 
       final entity = MessageEntity.fromSocket(
         data,
@@ -1106,82 +1127,85 @@ class MessageStore extends Notifier<ConversationMessageState> {
     final cacheKey = _historyCacheKey();
     if (cacheKey == null) return;
 
-    try {
-      final cache = ref.read(localCacheProvider);
-      final cached = cache.get(cacheKey.path, params: cacheKey.params);
-      final rawEnvelope = cached?.data;
-      final dynamic payload =
-          rawEnvelope is Map && (rawEnvelope).containsKey('data')
-          ? (rawEnvelope as Map)['data']
-          : rawEnvelope;
+    _enqueueSyncOp(() async {
+      try {
+        final cache = ref.read(localCacheProvider);
+        final cached = cache.get(cacheKey.path, params: cacheKey.params);
+        final rawEnvelope = cached?.data;
+        final dynamic payload =
+            rawEnvelope is Map && (rawEnvelope).containsKey('data')
+            ? (rawEnvelope as Map)['data']
+            : rawEnvelope;
 
-      final existingMessages = payload is Map
-          ? (payload['messages'] as List<dynamic>? ?? [])
-          : <dynamic>[];
+        final existingMessages = payload is Map
+            ? (payload['messages'] as List<dynamic>? ?? [])
+            : <dynamic>[];
 
-      final serialized = message.toSocket();
-      final updatedMessages = <Map<String, dynamic>>[];
-      var replaced = false;
+        final serialized = message.toSocket();
+        final updatedMessages = <Map<String, dynamic>>[];
+        var replaced = false;
 
-      for (final item in existingMessages) {
-        if (item is! Map) continue;
-        final map = Map<String, dynamic>.from(item);
-        final sameId = map['id'] == message.id;
-        final sameClientId =
-            message.clientMessageId != null &&
-            (map['tempId'] == message.clientMessageId ||
-                map['client_id'] == message.clientMessageId);
-        if (sameId || sameClientId) {
-          updatedMessages.add(serialized);
-          replaced = true;
-        } else {
-          updatedMessages.add(map);
+        for (final item in existingMessages) {
+          if (item is! Map) continue;
+          final map = Map<String, dynamic>.from(item);
+          final sameId = map['id'] == message.id;
+          final sameClientId =
+              message.clientMessageId != null &&
+              (map['tempId'] == message.clientMessageId ||
+                  map['client_id'] == message.clientMessageId);
+          if (sameId || sameClientId) {
+            updatedMessages.add(serialized);
+            replaced = true;
+          } else {
+            updatedMessages.add(map);
+          }
         }
-      }
 
-      if (!replaced) {
-        updatedMessages.add(serialized);
-      }
+        if (!replaced) {
+          updatedMessages.add(serialized);
+        }
 
-      updatedMessages.sort((a, b) {
-        final aSeq = a['conversationSequence'] as int? ?? 0;
-        final bSeq = b['conversationSequence'] as int? ?? 0;
-        if (aSeq != 0 || bSeq != 0) return aSeq.compareTo(bSeq);
-        final aAt =
-            DateTime.tryParse(a['createdAt'] as String? ?? '') ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        final bAt =
-            DateTime.tryParse(b['createdAt'] as String? ?? '') ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        return aAt.compareTo(bAt);
-      });
+        updatedMessages.sort((a, b) {
+          final aSeq = a['conversationSequence'] as int? ?? 0;
+          final bSeq = b['conversationSequence'] as int? ?? 0;
+          if (aSeq != 0 || bSeq != 0) return aSeq.compareTo(bSeq);
+          final aAt =
+              DateTime.tryParse(a['createdAt'] as String? ?? '') ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final bAt =
+              DateTime.tryParse(b['createdAt'] as String? ?? '') ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          return aAt.compareTo(bAt);
+        });
 
-      if (updatedMessages.length > _kHotWindowSize) {
-        updatedMessages.removeRange(
-          0,
-          updatedMessages.length - _kHotWindowSize,
+        if (updatedMessages.length > _kHotWindowSize) {
+          updatedMessages.removeRange(
+            0,
+            updatedMessages.length - _kHotWindowSize,
+          );
+        }
+
+        final nextPayload = {'messages': updatedMessages};
+        final nextEnvelope =
+            rawEnvelope is Map && (rawEnvelope).containsKey('data')
+            ? {
+                ...Map<String, dynamic>.from(rawEnvelope as Map),
+                'data': nextPayload,
+              }
+            : nextPayload;
+
+        await cache.set(cacheKey.path, nextEnvelope, params: cacheKey.params);
+        AppLogger.d(
+          '[MessageStore] Persisted reconciled message ${message.id} to history cache',
+        );
+      } catch (e, stack) {
+        AppLogger.e(
+          '[MessageStore] Failed to persist reconciled message to cache',
+          error: e,
+          stackTrace: stack,
         );
       }
-
-      final nextPayload = {'messages': updatedMessages};
-      final nextEnvelope =
-          rawEnvelope is Map && (rawEnvelope).containsKey('data')
-          ? {
-              ...Map<String, dynamic>.from(rawEnvelope as Map),
-              'data': nextPayload,
-            }
-          : nextPayload;
-
-      await cache.set(cacheKey.path, nextEnvelope, params: cacheKey.params);
-      AppLogger.d(
-        '[MessageStore] Persisted reconciled message ${message.id} to history cache',
-      );
-    } catch (e) {
-      AppLogger.e(
-        '[MessageStore] Failed to persist reconciled message to cache',
-        error: e,
-      );
-    }
+    });
   }
 
   // ---------------------------------------------------------------------------
