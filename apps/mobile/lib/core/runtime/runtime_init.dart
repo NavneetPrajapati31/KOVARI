@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/notifications/notification_realtime_bridge.dart';
 import 'package:mobile/core/realtime/realtime_coordinator.dart';
 import 'package:mobile/core/realtime/socket_service.dart';
 import 'package:mobile/core/realtime/socket_status_watcher.dart';
@@ -17,6 +18,7 @@ final runtimeInitProvider = FutureProvider<void>((ref) async {
   ref
     ..read(socketServiceProvider)
     ..read(realtimeCoordinatorProvider)
+    ..read(notificationRealtimeBridgeProvider)
     ..read(socketStatusWatcherProvider)    // surfaces socket state via DynamicStatusOverlay
     ..read(selectiveHydrationProvider)     // manages hot MessageStore windows
     ..read(socketTokenRefreshWatcherProvider); // forces socket reconnect on token refresh
