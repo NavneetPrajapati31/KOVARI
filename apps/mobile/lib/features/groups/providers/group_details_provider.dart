@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/network/api_endpoints.dart';
+import 'package:mobile/core/providers/cache_provider.dart';
 import 'package:mobile/features/groups/data/group_service.dart';
 import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/entity_stores.dart';
@@ -28,7 +30,7 @@ final groupMembersProvider = FutureProvider.family<List<GroupMember>, String>((
 final joinRequestsProvider =
     FutureProvider.family<List<JoinRequestModel>, String>((ref, groupId) async {
       final service = ref.watch(groupServiceProvider);
-      return service.getJoinRequests(groupId);
+      return service.getJoinRequests(groupId, ignoreCache: true);
     });
 
 // The base source of truth itinerary
@@ -117,20 +119,40 @@ class GroupActionsNotifier {
 
   Future<void> approveRequest(String userId) async {
     await _service.approveJoinRequest(_groupId, userId);
+    final cache = _ref.read(localCacheProvider);
+    await cache.invalidate(ApiEndpoints.groupJoinRequest(_groupId));
+    await cache.invalidate(ApiEndpoints.groupMembers(_groupId));
+    await cache.invalidate(ApiEndpoints.groupMembership(_groupId));
+    await cache.invalidate(ApiEndpoints.groupDetails(_groupId));
+
     _ref.invalidate(joinRequestsProvider(_groupId));
-    _ref.invalidate(groupMembersProvider(_groupId));
-    _ref.invalidate(groupDetailsProvider(_groupId));
+    await Future.wait([
+      _ref.read(memberStoreProvider.notifier).subscribe(_groupId, force: true),
+      _ref.read(membershipStoreProvider.notifier).subscribe(_groupId, force: true),
+      _ref.read(groupStoreProvider.notifier).subscribe(_groupId, force: true),
+    ]);
   }
 
   Future<void> rejectRequest(String requestId) async {
     await _service.rejectJoinRequest(_groupId, requestId);
+    final cache = _ref.read(localCacheProvider);
+    await cache.invalidate(ApiEndpoints.groupJoinRequest(_groupId));
+
     _ref.invalidate(joinRequestsProvider(_groupId));
   }
 
   Future<void> removeMember(String memberId, String memberClerkId) async {
     await _service.removeMember(_groupId, memberId, memberClerkId);
-    _ref.invalidate(groupMembersProvider(_groupId));
-    _ref.invalidate(groupDetailsProvider(_groupId));
+    final cache = _ref.read(localCacheProvider);
+    await cache.invalidate(ApiEndpoints.groupMembers(_groupId));
+    await cache.invalidate(ApiEndpoints.groupMembership(_groupId));
+    await cache.invalidate(ApiEndpoints.groupDetails(_groupId));
+
+    await Future.wait([
+      _ref.read(memberStoreProvider.notifier).subscribe(_groupId, force: true),
+      _ref.read(membershipStoreProvider.notifier).subscribe(_groupId, force: true),
+      _ref.read(groupStoreProvider.notifier).subscribe(_groupId, force: true),
+    ]);
   }
 
   Future<void> inviteMember(String usernameOrEmail) async {
@@ -149,19 +171,40 @@ class GroupActionsNotifier {
 
   Future<void> joinRequest() async {
     await _service.sendJoinRequest(_groupId);
-    _ref.invalidate(groupMembershipProvider(_groupId));
+    final cache = _ref.read(localCacheProvider);
+    await cache.invalidate(ApiEndpoints.groupMembership(_groupId));
+
+    await _ref.read(membershipStoreProvider.notifier).subscribe(_groupId, force: true);
   }
 
   Future<void> joinViaInvite() async {
     await _service.joinGroup(_groupId, viaInvite: true);
-    _ref.invalidate(groupMembershipProvider(_groupId));
+    final cache = _ref.read(localCacheProvider);
+    await cache.invalidate(ApiEndpoints.groupMembership(_groupId));
+    await cache.invalidate(ApiEndpoints.groupMembers(_groupId));
+    await cache.invalidate(ApiEndpoints.groupDetails(_groupId));
+
     _ref.invalidate(myGroupsProvider);
+    await Future.wait([
+      _ref.read(memberStoreProvider.notifier).subscribe(_groupId, force: true),
+      _ref.read(membershipStoreProvider.notifier).subscribe(_groupId, force: true),
+      _ref.read(groupStoreProvider.notifier).subscribe(_groupId, force: true),
+    ]);
   }
 
   Future<void> leaveGroup() async {
     await _service.leaveGroup(_groupId);
-    _ref.invalidate(groupMembershipProvider(_groupId));
+    final cache = _ref.read(localCacheProvider);
+    await cache.invalidate(ApiEndpoints.groupMembership(_groupId));
+    await cache.invalidate(ApiEndpoints.groupMembers(_groupId));
+    await cache.invalidate(ApiEndpoints.groupDetails(_groupId));
+
     _ref.invalidate(myGroupsProvider);
+    await Future.wait([
+      _ref.read(memberStoreProvider.notifier).subscribe(_groupId, force: true),
+      _ref.read(membershipStoreProvider.notifier).subscribe(_groupId, force: true),
+      _ref.read(groupStoreProvider.notifier).subscribe(_groupId, force: true),
+    ]);
   }
 
   Future<void> deleteGroup() async {

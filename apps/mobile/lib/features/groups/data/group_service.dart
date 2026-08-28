@@ -101,9 +101,13 @@ class GroupService {
     throw Exception(response.error?.message ?? 'Failed to fetch group members');
   }
 
-  Future<List<JoinRequestModel>> getJoinRequests(String groupId) async {
+  Future<List<JoinRequestModel>> getJoinRequests(
+    String groupId, {
+    bool ignoreCache = false,
+  }) async {
     final response = await _apiClient.get<List<JoinRequestModel>>(
       ApiEndpoints.groupJoinRequest(groupId),
+      ignoreCache: ignoreCache,
       parser: (json) {
         if (json is Map && json['joinRequests'] is List) {
           return (json['joinRequests'] as List)
