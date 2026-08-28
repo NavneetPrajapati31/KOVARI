@@ -30,12 +30,18 @@ export interface ServerToClientEvents {
 
   // Notifications
   new_notification: (payload: {
+    id?: string;
     type: string;
     title: string;
     message: string;
-    chatId: string;
+    chatId?: string;
+    entity_type?: string | null;
+    entity_id?: string | null;
     created_at: string;
     image_url?: string;
+    messageId?: string;
+    senderId?: string;
+    mediaType?: string;
   }) => void;
   unread_update: (payload: { count: number }) => void;
   error: (payload: { message: string; code?: string }) => void;

@@ -7,6 +7,7 @@ export * from "./getUserUuidByClerkId";
 export * from "./chatId";
 export * from "./blocked-users";
 export * from "./moderation";
+export * from "./notifications";
 export * from "./supabase";
 export * from "./supabase-admin";
 export * from "./redis";

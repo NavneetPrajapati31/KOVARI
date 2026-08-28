@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { registerSocketEvents } from "./events";
 import { resolveSupabaseUserIdFromAuthId } from "./resolveSocketUser";
 import { connectRedis, redisAdapter, pubClient, subClient } from "./redis";
-import { BAN_SOCKET_CHANNEL } from "@kovari/api";
+import { BAN_SOCKET_CHANNEL, NOTIFICATION_SOCKET_CHANNEL } from "@kovari/api";
 import { PresenceManager } from "./presence";
 import { createAdminSupabaseClient } from "@kovari/api";
 import {
@@ -175,6 +175,39 @@ async function startServer() {
         console.log(`[Socket] Disconnected banned user sockets: ${keys.join(", ")}`);
       } catch (err) {
         console.error("[Socket] Failed to process ban event:", err);
+      }
+    });
+
+    await subClient.subscribe(NOTIFICATION_SOCKET_CHANNEL, async (message) => {
+      try {
+        const payload = JSON.parse(message) as {
+          clerkUserId: string;
+          id: string;
+          type: string;
+          title: string;
+          message: string;
+          entity_type?: string | null;
+          entity_id?: string | null;
+          chatId?: string | null;
+          image_url?: string | null;
+          created_at: string;
+        };
+
+        if (!payload.clerkUserId) return;
+
+        io.to(`user_socket:${payload.clerkUserId}`).emit("new_notification", {
+          id: payload.id,
+          type: payload.type,
+          title: payload.title,
+          message: payload.message,
+          entity_type: payload.entity_type,
+          entity_id: payload.entity_id,
+          chatId: payload.chatId ?? undefined,
+          image_url: payload.image_url ?? undefined,
+          created_at: payload.created_at,
+        });
+      } catch (err) {
+        console.error("[Socket] Failed to process notification event:", err);
       }
     });
   } else {

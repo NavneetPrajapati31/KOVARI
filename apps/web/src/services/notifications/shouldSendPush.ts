@@ -6,6 +6,7 @@ import {
 } from "@kovari/types";
 import { pubClient, connectRedis } from "../socket/redis";
 import { createAdminSupabaseClient, isActiveBan } from "@kovari/api";
+import { REALTIME_SOCKET_DELIVERED_TYPES } from "./realtimeNotificationTypes";
 
 interface ShouldSendPushParams {
   userId: string;       // Clerk ID
@@ -22,7 +23,7 @@ interface ShouldSendPushParams {
  *   User offline            → send
  *   User online + in chat   → suppress (already looking at the conversation)
  *   User online + elsewhere → send    (user won't see the message otherwise)
- *   Match/request online    → suppress (real-time socket event already fired)
+ *   Match/request/group transactional online → suppress FCM (realtime socket via createNotification)
  */
 export async function shouldSendPush({
   userId,
@@ -55,6 +56,11 @@ export async function shouldSendPush({
   if (!isOnline) {
     // User is fully offline → eligible for push (proceed to priority check below)
   } else {
+    // Transactional notifications delivered via createNotification → Redis → Socket.IO.
+    if (REALTIME_SOCKET_DELIVERED_TYPES.has(type)) {
+      return false;
+    }
+
     // User is online. Apply room-aware suppression for chat/group messages.
     if ((entityType === "chat" || entityType === "group") && entityId) {
       const activeChatsKey = `user_chats:${userId}`;
@@ -69,9 +75,7 @@ export async function shouldSendPush({
       // User is online but NOT in this room (e.g. on Explore, Groups, Profile).
       // Fall through → send push so they see the unread indicator.
     } else {
-      // For match / request / system notifications: the socket layer already
-      // fired a `new_notification` event in real-time. Suppress FCM to avoid
-      // double-alerting (one in-app banner + one system notification).
+      // Non-chat entity types without realtime socket delivery (legacy fallback).
       return false;
     }
   }

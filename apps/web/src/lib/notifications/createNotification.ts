@@ -16,6 +16,7 @@ import { pubClient, connectRedis } from "@/services/socket/redis";
 import { NotificationEventDispatcher } from "@/services/notifications/dispatcher";
 import { createAdminSupabaseClient, canUserReceiveNotifications } from "@kovari/api";
 import { PushService } from "@/services/notifications/pushService";
+import { emitRealtimeNotification } from "@/services/notifications/emitRealtimeNotification";
 
 /**
  * Server-only function to create a notification.
@@ -151,6 +152,23 @@ export async function createNotification(
         await NotificationEventDispatcher.dispatch(params, notificationId);
       } catch (err) {
         console.error("[Notification] Dispatcher Error:", err);
+      }
+
+      if (clerkId) {
+        try {
+          await emitRealtimeNotification({
+            clerkUserId: clerkId,
+            notificationId,
+            type,
+            title,
+            message,
+            entityType,
+            entityId,
+            imageUrl,
+          });
+        } catch (err) {
+          console.error("[Notification] Realtime emit Error:", err);
+        }
       }
 
       if (supabaseId) {

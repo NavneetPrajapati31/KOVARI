@@ -4,6 +4,7 @@ import { getAuthUserId } from "@/lib/auth/get-user-id";
 import { createAdminSupabaseClient } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
+import { notifyGroupJoinRequestRecipients } from "@/lib/notifications/notifyGroupJoinRequestRecipients";
 import { ApiErrorCode } from "@/types/api";
 
 type AccessContext =
@@ -175,6 +176,23 @@ export async function POST(
           );
         }
 
+        try {
+          await notifyGroupJoinRequestRecipients(groupId, ctx.userId);
+        } catch (notifyError) {
+          console.error(
+            "[JOIN_REQUEST_POST] Failed to send join-request notification:",
+            notifyError,
+          );
+        }
+
+        if (req.headers.get("x-kovari-client") === "mobile") {
+          return formatStandardResponse(
+            { success: true, message: "Join request sent" },
+            {},
+            { requestId, latencyMs: Date.now() - start },
+          );
+        }
+
         return NextResponse.json({
           success: true,
           message: "Join request sent",
@@ -218,6 +236,15 @@ export async function POST(
       return NextResponse.json(
         { error: "Failed to create join request" },
         { status: 500 },
+      );
+    }
+
+    try {
+      await notifyGroupJoinRequestRecipients(groupId, ctx.userId);
+    } catch (notifyError) {
+      console.error(
+        "[JOIN_REQUEST_POST] Failed to send join-request notification:",
+        notifyError,
       );
     }
 
