@@ -1,6 +1,6 @@
 # BUG-G2 Fix Validation Guide (Human QA Protocol)
 
-> **Status:** FIX IMPLEMENTED — HUMAN QA REQUIRED
+> **Status:** PARTIAL PASS — MUTATION SYNC VERIFIED (Tests A–F); INCOMING REALTIME SYNC OPEN (Test G)
 
 ---
 
@@ -100,15 +100,76 @@ Perform all scenarios using the latest release APK built from `dev` connected to
 3. Force-close the Mobile app completely and relaunch.
 4. **Expected:** Membership state and member lists remain 100% accurate and consistent after restart.
 
+### Test G — Incoming Join Request Realtime Sync (Receiver-Side)
+
+1. Account A (Group Creator/Admin) is logged into the mobile app with the target group accessible.
+2. Account B submits a join request to Account A's group (from mobile or web).
+3. **Expected:** Account A receives a push notification for the new join request.
+4. **Expected:** Account A's `JoinRequestsSheet` and pending-request badge update dynamically without manual refresh, navigation, or app restart.
+5. **Actual (2026-08-29):** FAIL — no push notification; Join Requests screen does not update until manual navigation or restart.
+
 ---
 
-## 7. Pass Criteria
+## 7. Human QA Results (2026-08-29)
 
-- [ ] Join request button updates state immediately.
-- [ ] Approved request clears from pending sheet instantly.
-- [ ] Approved member appears in active member list instantly.
-- [ ] Rejected request clears instantly.
-- [ ] Removed member disappears instantly.
-- [ ] Leave group clears member state.
-- [ ] Cold start retains accurate membership state.
-- [ ] Zero Web or backend regressions.
+| Test | Scenario | Result | Notes |
+| :--- | :--- | :--- | :--- |
+| **A** | Join Request (requester-side button state) | **PASS** | Button updates to *Request Pending* immediately. |
+| **B** | Accept Membership (admin mutation sync) | **PASS** | Pending list clears; member appears in active list; count updates. |
+| **C** | Reject Request | **PASS** | Request removed from pending list immediately. |
+| **D** | Remove Member | **PASS** | Member removed from active list immediately. |
+| **E** | Leave Group | **PASS** | Non-member redirect and state update verified. |
+| **F** | Cross-Platform & Cold Start Parity | **PASS** | Web/mobile parity and cold-start accuracy confirmed. |
+| **G** | Incoming Join Request Realtime Sync (receiver-side) | **FAIL** | See §8 — push notification and dynamic Join Requests sheet update still broken. |
+
+**Operator:** Navneet  
+**Environment:** Production Android APK → `https://app.kovari.in/api/`  
+**Date:** 2026-08-29
+
+---
+
+## 8. Remaining Defect — Incoming Join Request Realtime Sync (Test G)
+
+### Reproduction
+
+1. Account A (Group Creator/Admin) is logged into the mobile app and has the target group open (or is elsewhere in the app).
+2. Account B submits a join request to Account A's group (from mobile or web).
+3. **Expected:** Account A receives a push notification and the `JoinRequestsSheet` / pending-request badge updates dynamically without manual refresh or navigation.
+4. **Actual:** No push notification is delivered to Account A's mobile device. The Join Requests screen does not update dynamically — Account A must manually navigate away and back (or restart) to see the new request.
+
+### Scope Classification
+
+This is a **receiver-side passive sync** gap, distinct from the **mutation-side cache invalidation** fix validated in Tests A–F. The implemented fix correctly refreshes local stores after the admin *performs* an action (accept/reject/remove/leave/join), but does not subscribe to incoming join-request events from other clients.
+
+### Likely Investigation Areas
+
+- Socket event handler registration for `group_join_request` (or equivalent) on mobile.
+- FCM push payload routing for group join-request notification type.
+- `joinRequestsProvider` / `memberStoreProvider` passive invalidation on inbound socket or push events.
+- Overlap with **`BUG-R4`** (Requests screen live sync) and **`BUG-N1a`** (background push delivery).
+
+### Tracking
+
+Logged as **`BUG-G2b`** in [`mobile_production_bug_tracker.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/mobile_production_bug_tracker.md).
+
+Forensic trace complete: [`bug-g2b-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-forensic-report.md).
+
+---
+
+## 9. Pass Criteria
+
+### Mutation Sync (Tests A–F) — VERIFIED PASS
+
+- [x] Join request button updates state immediately.
+- [x] Approved request clears from pending sheet instantly.
+- [x] Approved member appears in active member list instantly.
+- [x] Rejected request clears instantly.
+- [x] Removed member disappears instantly.
+- [x] Leave group clears member state.
+- [x] Cold start retains accurate membership state.
+- [x] Zero Web or backend regressions.
+
+### Incoming Realtime Sync (Test G) — OPEN
+
+- [ ] Push notification delivered when a join request arrives on the admin's mobile device.
+- [ ] Join Requests sheet / pending badge updates dynamically without manual refresh.

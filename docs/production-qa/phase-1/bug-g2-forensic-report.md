@@ -4,7 +4,7 @@
 > **Module:** Groups / Membership Synchronization  
 > **Platform:** Mobile (Flutter) + Backend (Supabase/Next.js)  
 > **Severity:** High  
-> **Status:** FORENSIC AUDIT COMPLETE — FIX PROPOSED  
+> **Status:** MUTATION SYNC FIX VERIFIED — INCOMING REALTIME SYNC OPEN (`BUG-G2b`)  
 
 ---
 
@@ -142,3 +142,51 @@ To resolve BUG-G2 with zero regression risk:
 2. **Static Analysis:** `flutter analyze lib` must pass with zero issues.
 3. **Automated Test Suite:** `flutter test` must pass all tests.
 4. **Physical Device QA:** Verify all 6 reproduction scenarios (A through F) on physical Android device with production backend.
+
+---
+
+## 9. Post-Fix Validation Results (2026-08-29)
+
+Human QA on production Android APK confirmed the mutation-side fix resolves the original BUG-G2 reproduction scenarios:
+
+| Test | Scope | Result |
+| :--- | :--- | :--- |
+| A | Join request button → *Request Pending* | **PASS** |
+| B | Accept → pending list clears, member appears | **PASS** |
+| C | Reject → request removed from pending list | **PASS** |
+| D | Remove member → active list updates | **PASS** |
+| E | Leave group → redirect and non-member state | **PASS** |
+| F | Cross-platform + cold-start parity | **PASS** |
+| G | Incoming join request push + dynamic Join Requests sheet | **FAIL** |
+
+Full protocol and evidence: [`bug-g2-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2-fix-validation.md).
+
+---
+
+## 10. Remaining Gap — Incoming Join Request Realtime Sync (`BUG-G2b`)
+
+The implemented fix in `group_details_provider.dart` and `group_service.dart` operates exclusively on **outbound mutations** initiated by the local user (join, approve, reject, remove, leave). It does **not** address **inbound events** when another client submits a join request to a group where the local user is admin.
+
+### Observed Behavior (Test G)
+
+1. Account B submits a join request (mobile or web).
+2. Backend creates the `group_memberships` row with `status = 'pending_request'` ✅
+3. Account A (admin, on mobile):
+   - Does **not** receive a push notification ❌
+   - Join Requests sheet / pending badge does **not** update dynamically ❌
+   - Must manually navigate away and back (or restart) to see the new request ❌
+
+### Distinction from Original BUG-G2
+
+| Dimension | Original BUG-G2 | Remaining BUG-G2b |
+| :--- | :--- | :--- |
+| Trigger | Local user performs mutation (accept/reject/join/leave) | Remote user submits join request |
+| Fix scope | Cache invalidation + entity store force-subscribe after API call | Socket/FCM listener → passive provider invalidation |
+| QA status | **PASS** (Tests A–F) | **FAIL** (Test G) |
+
+### Recommended Next Steps
+
+1. Audit mobile socket handler registration for group membership / join-request events.
+2. Confirm backend emits the correct socket event and FCM payload for `group_join_request` notifications.
+3. On inbound event, invalidate `joinRequestsProvider` with `ignoreCache: true` and refresh pending badge counts.
+4. Cross-reference **`BUG-R4`** (Requests screen live sync) and **`BUG-N1a`** (background push delivery) for shared infrastructure fixes.

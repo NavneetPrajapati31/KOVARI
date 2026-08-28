@@ -103,7 +103,7 @@ Successfully created a temporary QA group. The group appeared in the 'My Groups'
 
 **Module:** Groups  
 **Owner:** Navneet  
-**Status:** UNVERIFIED  
+**Status:** PARTIAL (mutation sync PASS; incoming realtime FAIL)  
 **Priority:** High  
 **Platform:** Production Android APK
 
@@ -125,17 +125,34 @@ Successfully created a temporary QA group. The group appeared in the 'My Groups'
 
 Join request is sent, received by the creator, can be approved, and member list updates correctly on both clients.
 
-### Actual Result
+### Actual Result (Day 2 — 2026-08-27)
 
 FAIL — Verified that the join request was successfully submitted by Account B and received by Account A (Creator). However, two bugs occurred:
 1. After accepting or rejecting the join request, it still shows in the UI and is not removed.
 2. Although the user gets added as an accepted member in the backend, they are not visible in the group member list on the UI.
 
+### Post-Fix Revalidation (2026-08-29)
+
+Re-tested after BUG-G2 mutation-side cache invalidation fix. Full protocol: [`bug-g2-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2-fix-validation.md).
+
+| Test | Result | Notes |
+| :--- | :--- | :--- |
+| A — Join request button → *Request Pending* | **PASS** | Requester-side button state updates immediately. |
+| B — Accept membership | **PASS** | Pending list clears; member appears; count updates. |
+| C — Reject request | **PASS** | Request removed from pending list immediately. |
+| D — Remove member | **PASS** | Member removed from active list immediately. |
+| E — Leave group | **PASS** | Redirect and non-member state verified. |
+| F — Cross-platform + cold start | **PASS** | Web/mobile parity and cold-start accuracy confirmed. |
+| G — Incoming join request realtime sync | **FAIL** | No push notification on admin device. Join Requests sheet does not update dynamically. |
+
+**Remaining defect:** Logged as **`BUG-G2b`**. The mutation-side fix does not cover passive/receiver-side sync when another client submits a join request.
+
 ### Evidence
 
 - Screenshot: Pending
 - Screen recording: Pending
-- Timestamp: 2026-08-27T17:26:00Z
+- Timestamp (Day 2): 2026-08-27T17:26:00Z
+- Timestamp (Post-fix): 2026-08-29
 - Device: Physical Android Device
 - APK version/build: Latest Production APK
 
