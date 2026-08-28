@@ -100,3 +100,22 @@ Re-tested on production Android APK after mutation-side cache invalidation fix d
 **G2 mutation-side flows are signed off.** Receiver-side join-request notifications and dynamic Join Requests sheet updates remain open under **`BUG-G2b`**, with symptom overlap against **`BUG-R4`** and **`BUG-N1a`**.
 
 Full protocol: [`bug-g2-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2-fix-validation.md).
+
+---
+
+## Post-Mobile-Bridge QA — BUG-G2b Test G (2026-08-29)
+
+Re-tested after backend (`e9ad6bf8`) + mobile bridge (`d8029436`). Account A on mobile, Account B on web.
+
+| Scenario | Result |
+| :--- | :--- |
+| 1 — Foreground, Join Requests open | **FAIL** |
+| 2 — Foreground, elsewhere | **FAIL** |
+| 3 — Background | **FAIL** |
+| 4 — Cold start / notification tap | **FAIL** |
+| 5 — G2 mutation regression (A–F) | **PASS** |
+| 6 — Chat regression | **PASS** |
+
+**Overall Test G: FAIL** — end-to-end receiver-side delivery not fixed in production QA.
+
+Full results: [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md).

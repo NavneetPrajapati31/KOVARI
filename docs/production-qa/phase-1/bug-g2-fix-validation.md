@@ -120,7 +120,7 @@ Perform all scenarios using the latest release APK built from `dev` connected to
 | **D** | Remove Member | **PASS** | Member removed from active list immediately. |
 | **E** | Leave Group | **PASS** | Non-member redirect and state update verified. |
 | **F** | Cross-Platform & Cold Start Parity | **PASS** | Web/mobile parity and cold-start accuracy confirmed. |
-| **G** | Incoming Join Request Realtime Sync (receiver-side) | **FAIL** | See §8 — push notification and dynamic Join Requests sheet update still broken. |
+| **G** | Incoming Join Request Realtime Sync (receiver-side) | **FAIL** | Persists after backend (`e9ad6bf8`) + mobile bridge (`d8029436`) QA — see [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md) |
 
 **Operator:** Navneet  
 **Environment:** Production Android APK → `https://app.kovari.in/api/`  
@@ -135,7 +135,8 @@ Perform all scenarios using the latest release APK built from `dev` connected to
 1. Account A (Group Creator/Admin) is logged into the mobile app and has the target group open (or is elsewhere in the app).
 2. Account B submits a join request to Account A's group (from mobile or web).
 3. **Expected:** Account A receives a push notification and the `JoinRequestsSheet` / pending-request badge updates dynamically without manual refresh or navigation.
-4. **Actual:** No push notification is delivered to Account A's mobile device. The Join Requests screen does not update dynamically — Account A must manually navigate away and back (or restart) to see the new request.
+4. **Actual (2026-08-29, pre-bridge):** No push notification; Join Requests screen does not update dynamically.
+5. **Actual (2026-08-29, post backend + mobile bridge):** **Still FAIL** — Account B (web) → Account A (mobile); Scenarios 1–4 fail (no notification, no dynamic update). Scenarios 5–6 PASS. See [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md).
 
 ### Scope Classification
 

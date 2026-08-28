@@ -1,6 +1,6 @@
 # BUG-G2b Mobile Fix Validation Guide
 
-> **Status:** MOBILE BRIDGE IMPLEMENTED — HUMAN QA REQUIRED
+> **Status:** HUMAN QA FAIL — END-TO-END TEST G OPEN (Regressions PASS)
 
 ---
 
@@ -90,66 +90,81 @@ flutter analyze lib/core/notifications lib/core/runtime/runtime_init.dart
 
 ## 6. Manual Production APK Protocol — Test G
 
-> **NOT PERFORMED BY ANTIGRAVITY — HUMAN QA REQUIRED**
->
-> Navneet / Tirth must execute on physical Android devices with production APK against `https://app.kovari.in/api/`.
+> **Executed:** 2026-08-29  
+> **Operator:** Navneet  
+> **Setup:** Account A — mobile app (admin/creator); Account B — web app (requester)  
+> **Environment:** Production (`https://app.kovari.in/api/`)  
+> **Builds under test:** Backend `e9ad6bf8` + Mobile bridge `d8029436` (verify deployment/APK inclusion)
+
+### Summary
+
+| Scenario | Description | Result |
+| :--- | :--- | :--- |
+| **1** | Foreground, Join Requests sheet open | **FAIL** — no dynamic list update; no notification |
+| **2** | Foreground, elsewhere in app | **FAIL** — no notification; join list not updated on navigation |
+| **3** | Background | **FAIL** — no background notification; state not updated on resume |
+| **4** | Cold start from notification tap | **FAIL** — no notification to tap / data not fresh |
+| **5** | BUG-G2 mutation regression (Tests A–F) | **PASS** |
+| **6** | Chat regression spot check | **PASS** |
+
+**Overall Test G: FAIL** — receiver-side join-request notification and dynamic Join Requests sync remain broken in production despite backend + mobile bridge implementation.
 
 ### Preconditions
 
 - Backend fix deployed (commit `e9ad6bf8` or later).
-- Mobile APK built from branch containing this mobile bridge.
+- Mobile APK built from branch containing mobile bridge (`d8029436`).
 - Account A: group creator/admin.
-- Account B: separate account/device.
+- Account B: separate account (web).
 
 ### Scenario 1 — Foreground, Join Requests sheet open
 
 1. Account A opens group → Join Requests sheet.
-2. Account B submits join request.
+2. Account B submits join request (web).
 3. **Expected:** Request appears in list within ~2 s without manual refresh.
 4. **Expected:** Notification badge/state updates.
 
 | Result | PASS / FAIL |
 | :--- | :--- |
-| Join list updates dynamically | UNVERIFIED |
-| Notification state updates | UNVERIFIED |
+| Join list updates dynamically | **FAIL** — no update |
+| Notification state updates | **FAIL** — no notification |
 
 ### Scenario 2 — Foreground, elsewhere in app
 
 1. Account A on Home or another tab (not Join Requests).
-2. Account B submits join request.
+2. Account B submits join request (web).
 3. **Expected:** In-app/local notification or badge update.
 4. Navigate to Join Requests.
 5. **Expected:** New request visible without pull-to-refresh.
 
 | Result | PASS / FAIL |
 | :--- | :--- |
-| Notification received | UNVERIFIED |
-| Join list correct on navigation | UNVERIFIED |
+| Notification received | **FAIL** |
+| Join list correct on navigation | **FAIL** |
 
 ### Scenario 3 — Background
 
-1. Account A backgrounds the app.
-2. Account B submits join request.
+1. Account A backgrounds the mobile app.
+2. Account B submits join request (web).
 3. **Expected:** System notification appears (subject to BUG-N1a constraints).
 4. Bring app to foreground.
 5. **Expected:** Join Requests reflects new request.
 
 | Result | PASS / FAIL |
 | :--- | :--- |
-| Background notification | UNVERIFIED |
-| State after resume | UNVERIFIED |
+| Background notification | **FAIL** |
+| State after resume | **FAIL** |
 
 ### Scenario 4 — Cold start from notification tap
 
 1. Account A force-closes app.
-2. Account B submits join request.
+2. Account B submits join request (web).
 3. Account A taps notification.
 4. **Expected:** App opens to appropriate screen; join request data is current.
 
 | Result | PASS / FAIL |
 | :--- | :--- |
-| Tap routing preserved | UNVERIFIED |
-| Data fresh after open | UNVERIFIED |
+| Tap routing preserved | **FAIL** — no notification received to tap |
+| Data fresh after open | **FAIL** |
 
 ### Scenario 5 — Regression (BUG-G2 Tests A–F)
 
@@ -157,7 +172,7 @@ Re-run mutation-side tests from [`bug-g2-fix-validation.md`](file:///c:/Users/na
 
 | Result | PASS / FAIL |
 | :--- | :--- |
-| Tests A–F still PASS | UNVERIFIED |
+| Tests A–F still PASS | **PASS** |
 
 ### Scenario 6 — Chat regression spot check
 
@@ -166,7 +181,22 @@ Re-run mutation-side tests from [`bug-g2-fix-validation.md`](file:///c:/Users/na
 
 | Result | PASS / FAIL |
 | :--- | :--- |
-| Chat realtime intact | UNVERIFIED |
+| Chat realtime intact | **PASS** |
+
+---
+
+## 6.1 Post-QA Analysis Notes
+
+The mobile bridge and backend fixes did **not** resolve Test G in production QA. Regressions (Scenarios 5–6) confirm mutation-side G2 and chat paths remain intact.
+
+**Likely investigation areas (not yet forensically confirmed on device):**
+
+1. **Deployment gap** — production API / socket server may not include `e9ad6bf8`; APK may not include `d8029436`.
+2. **Delivery path** — socket `new_notification` or FCM may still not reach Account A's mobile session (socket auth, Redis channel, FCM token, online suppression).
+3. **Bridge activation** — `NotificationRealtimeBridge` may not be receiving events even if backend emits (runtime init, auth lifecycle, payload mismatch).
+4. **BUG-N1a overlap** — background delivery failure may compound Scenario 3, but Scenarios 1–2 fail in foreground too — root cause is not background-only.
+
+**Next engineering step:** Forensic trace on device/logcat with Account A online during web join-request — confirm whether notification DB row is created, socket event arrives, FCM fires, and bridge logs `[NotificationRealtimeBridge] Processing GROUP_JOIN_REQUEST_RECEIVED`.
 
 ---
 
@@ -193,5 +223,6 @@ Re-run mutation-side tests from [`bug-g2-fix-validation.md`](file:///c:/Users/na
 
 ### End-to-end BUG-G2b
 
-- [ ] Test G PASS on production APK (all scenarios above)
-- [ ] Human QA sign-off by Navneet / Tirth
+- [ ] Test G PASS on production APK (all delivery scenarios)
+- [x] Human QA executed (2026-08-29) — **FAIL** (Scenarios 1–4); regressions **PASS** (Scenarios 5–6)
+- [ ] Engineering follow-up — delivery-path forensic on production device

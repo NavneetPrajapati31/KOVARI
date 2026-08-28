@@ -143,9 +143,11 @@ Re-tested after BUG-G2 mutation-side cache invalidation fix. Full protocol: [`bu
 | D — Remove member | **PASS** | Member removed from active list immediately. |
 | E — Leave group | **PASS** | Redirect and non-member state verified. |
 | F — Cross-platform + cold start | **PASS** | Web/mobile parity and cold-start accuracy confirmed. |
-| G — Incoming join request realtime sync | **FAIL** | No push notification on admin device. Join Requests sheet does not update dynamically. |
+| G — Incoming join request realtime sync | **FAIL** | No push notification; Join Requests sheet does not update dynamically. |
 
-**Remaining defect:** Logged as **`BUG-G2b`**. The mutation-side fix does not cover passive/receiver-side sync when another client submits a join request.
+**Post-mobile-bridge QA (2026-08-29, same day):** Re-tested with backend `e9ad6bf8` + mobile bridge `d8029436`. Account A mobile / Account B web. Scenarios 1–4 **FAIL**; Scenarios 5–6 **PASS**. Full protocol: [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md).
+
+**Remaining defect:** **`BUG-G2b` OPEN** — end-to-end receiver-side delivery not resolved in production QA.
 
 ### Evidence
 

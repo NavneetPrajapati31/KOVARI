@@ -1,6 +1,6 @@
 # BUG-G2b Backend Fix Validation Guide
 
-> **Status:** BACKEND FIX IMPLEMENTED — HUMAN QA REQUIRED (Mobile bridge pending)
+> **Status:** BACKEND FIX IMPLEMENTED — END-TO-END TEST G FAIL (Mobile bridge QA 2026-08-29)
 
 ---
 
@@ -167,6 +167,10 @@ Re-run [`bug-g2-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/p
 
 ### End-to-end BUG-G2b (pending)
 
-- [ ] Push notification on admin mobile device.
-- [ ] Join Requests sheet updates dynamically.
-- [ ] Production APK human QA sign-off.
+- [x] Backend pipeline implemented and unit-tested (11/11 PASS)
+- [x] Mobile bridge implemented and unit-tested (13/13 PASS)
+- [x] Human production QA executed (2026-08-29) — **FAIL** Scenarios 1–4; **PASS** Scenarios 5–6
+- [ ] Delivery-path forensic on production device
+- [ ] Test G full PASS sign-off
+
+See [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md) for manual QA results.
