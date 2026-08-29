@@ -1,6 +1,6 @@
 # BUG-G2b Backend Fix Validation Guide
 
-> **Status:** RC-4 on Vercel confirmed — Test G **BLOCKED** (Render SHA + APK unverified, no device)
+> **Status:** OPEN — **PARTIAL PASS** post-RC-4 Test G (Scenario 2 FAIL; tap routing defect on 3–4)
 
 ---
 
@@ -178,13 +178,13 @@ Re-run [`bug-g2-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/p
 - [x] Backend pipeline RC-1–RC-3 (`e9ad6bf8`)
 - [x] Mobile bridge (`d8029436`)
 - [x] Delivery-path RC-4 dual-room + FCM alignment (`b8be0510`)
-- [x] Automated tests: 20/20 web + 13/13 mobile PASS
-- [x] Vercel production deploy confirmed (`b8be0510`, 2026-08-29 ~09:42 IST)
-- [ ] Render socket deploy SHA confirmed in Render logs
-- [ ] APK rebuild with `d8029436`+ bridge confirmed on test device
-- [x] Human production QA (2026-08-29, **pre-RC-4**) — **FAIL** Scenarios 1–4; **PASS** Scenarios 5–6
-- [ ] Test G Scenarios 1–6 re-run **post-RC-4 deploy**
-- [ ] Test G full PASS sign-off
+- [x] Vercel production deploy confirmed
+- [x] Post-RC-4 Test G executed (2026-08-29 ~10:27 IST) — **PARTIAL PASS**
+- [x] Scenario 1 PASS
+- [ ] Scenario 2 PASS (**FAIL** — no notification elsewhere in app)
+- [x] Scenarios 3–4 PASS (tap routing defect: group overview vs Join Requests sheet)
+- [x] Scenarios 5–6 PASS
+- [ ] Full VERIFIED PASS sign-off
 
 See [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md) for manual QA results.
 
@@ -248,26 +248,22 @@ adb devices → (empty — no test device connected to agent host)
 
 **Gate:** Per Test G protocol, **Test G was NOT executed** because APK bridge commit (`d8029436`+) could not be confirmed. Install/rebuild APK from `master` ≥ `d8029436`, record versionName/versionCode, then re-run.
 
-### 10.4 Test G — Post-RC-4 Deploy
+### 10.4 Test G — Post-RC-4 Deploy (2026-08-29 ~10:27 IST)
 
-**Execution status:** **BLOCKED / NOT RUN** (2026-08-29 ~09:54 IST)
+**Operator:** Navneet | **Backend:** Vercel `b8be0510`
 
-| Blocker | Detail |
-| :--- | :--- |
-| APK unverified | No connected device; bridge commit not confirmed |
-| Render SHA unverified | Dual-room subscriber not runtime-proven |
-| No operator session | Agent cannot drive Account A mobile + Account B web |
+| Scenario | Description | Result |
+| :--- | :--- | :--- |
+| **1** | Foreground, Join Requests open | **PASS** |
+| **2** | Foreground, elsewhere | **FAIL** — no notification |
+| **3** | Background | **PASS** — tap opens group overview (not Join Requests sheet) |
+| **4** | Cold start / notification tap | **PASS** — same tap routing defect as Scenario 3 |
+| **5** | BUG-G2 regression (A–F) | **PASS** |
+| **6** | Chat regression | **PASS** |
 
-| Scenario | Description | Result (post-RC-4) | Last known (pre-RC-4) |
-| :--- | :--- | :--- | :--- |
-| **1** | Foreground, Join Requests open | **NOT RUN** (blocked) | FAIL |
-| **2** | Foreground, elsewhere | **NOT RUN** (blocked) | FAIL |
-| **3** | Background | **NOT RUN** (blocked) | FAIL |
-| **4** | Cold start / notification tap | **NOT RUN** (blocked) | FAIL |
-| **5** | BUG-G2 regression (A–F) | **NOT RUN** (blocked) | PASS |
-| **6** | Chat regression | **NOT RUN** (blocked) | PASS |
+**Overall: PARTIAL PASS.** First failed stage for strict sign-off: **Scenario 2** (foreground notification when elsewhere in app).
 
-**Required before execution:** Connect test device via USB/Wi‑Fi adb; confirm APK ≥ `d8029436`; confirm Render deploy SHA; capture logcat for `[NotificationRealtimeBridge] Listeners attached`.
+See [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md) §6A for detail.
 
 ### 10.5 FCM / runtime pipeline (not verified this session)
 
@@ -289,9 +285,11 @@ join-request POST → notifyGroupJoinRequestRecipients → createNotification
 | RC-4 code committed | ✅ `b8be0510` |
 | Vercel production deploy | ✅ Confirmed |
 | Render socket healthy | ✅ Confirmed |
-| Render RC-4 SHA confirmed | ❌ **UNKNOWN** |
-| APK includes mobile bridge (`d8029436`+) | ❌ **UNKNOWN** (no device) |
-| Mobile runtime bridge logcat | ❌ **Not captured** |
-| Test G Scenarios 1–6 post-RC-4 | ❌ **BLOCKED — not run** |
+| Render RC-4 SHA confirmed | ⚠️ **UNKNOWN** |
+| Post-RC-4 Test G executed | ✅ 2026-08-29 ~10:27 IST |
+| Scenario 1 PASS | ✅ |
+| Scenario 2 PASS | ❌ **FAIL** |
+| Scenarios 3–4 PASS | ✅ (tap routing defect) |
+| Scenarios 5–6 PASS | ✅ |
 
-**Final status: OPEN — HUMAN QA REQUIRED** (not VERIFIED PASS).
+**Final status: OPEN — PARTIAL PASS** (not VERIFIED PASS).

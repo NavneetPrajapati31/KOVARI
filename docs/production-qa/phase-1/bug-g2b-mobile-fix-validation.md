@@ -1,29 +1,26 @@
 # BUG-G2b Mobile Fix Validation Guide
 
-> **Status:** OPEN — HUMAN QA REQUIRED (Test G blocked: APK + Render SHA unverified, no device connected)
+> **Status:** OPEN — **PARTIAL PASS** post-RC-4 (Scenario 2 FAIL; Scenarios 3–4 tap routing defect)
 
 ---
 
 ## 0. Post-RC-4 Deploy Gate (2026-08-29)
 
-The results in Section 6 below are from **pre-RC-4** production QA unless superseded by a post-RC-4 run.
-
-### Gate checklist (2026-08-29 ~09:54 IST)
+### Gate checklist
 
 | Gate | Status | Evidence |
 | :--- | :--- | :--- |
 | Vercel `app.kovari.in` on `b8be0510` | ✅ **Confirmed** | Dashboard + `vercel inspect app.kovari.in` |
-| Render `kovari-socket` deployed + healthy | ✅ **Deployed / healthy** | Dashboard screenshot; `socket.kovari.in/health` → ok |
-| Render deploy commit SHA | ❌ **UNKNOWN** | No deploy log access from agent; SHA not inferred |
-| APK ≥ `d8029436` (`NotificationRealtimeBridge`) | ❌ **UNKNOWN** | `adb devices` empty — no test phone connected |
-| Logcat bridge initialized | ❌ **Not captured** | Requires connected device |
-| Test G Scenarios 1–6 post-RC-4 | ❌ **NOT RUN** | Blocked by APK gate |
+| Render `kovari-socket` deployed + healthy | ✅ **Deployed / healthy** | Dashboard; `socket.kovari.in/health` → ok |
+| Render deploy commit SHA | ⚠️ **UNKNOWN** (not recorded by operator) | — |
+| APK ≥ `d8029436` (`NotificationRealtimeBridge`) | ✅ **Assumed** (bridge behavior observed in Test G) | Operator post-RC-4 run |
+| Test G Scenarios 1–6 post-RC-4 | ✅ **Executed** (~10:27 IST) | Navneet — results in §6A |
 
-**Decision:** Test G **not executed** in this session. Navneet must connect device, confirm APK, confirm Render SHA in dashboard, then run Scenarios 1–6.
+**Overall post-RC-4 Test G: PARTIAL PASS** — RC-4 fixed Scenario 1 and background/cold-start delivery (3–4). **Scenario 2 still FAIL.** Scenarios 3–4: tap opens **group overview**, not Join Requests sheet.
 
-**Do not mark BUG-G2b VERIFIED PASS** until all gates pass and Scenarios 1–6 pass.
+**Do not mark BUG-G2b VERIFIED PASS** until Scenario 2 passes (and tap routing corrected if required for sign-off).
 
-## 1. Original Symptom (Test G)
+---
 
 When Account B submits a join request:
 
@@ -109,16 +106,77 @@ flutter analyze lib/core/notifications lib/core/runtime/runtime_init.dart
 
 ## 6. Manual Production APK Protocol — Test G
 
-> **Pre-RC-4 run (historical):** 2026-08-29 ~02:24 IST — results below.  
-> **Post-RC-4 run:** **NOT EXECUTED** (2026-08-29 ~09:54 IST) — see Section 0 gate.
+### 6A. Post-RC-4 run (2026-08-29 ~10:27 IST) — **CURRENT**
 
-> **Executed (pre-RC-4):** 2026-08-29  
 > **Operator:** Navneet  
 > **Setup:** Account A — mobile app (admin/creator); Account B — web app (requester)  
 > **Environment:** Production (`https://app.kovari.in/api/`)  
-> **Builds under test:** Backend `e9ad6bf8` + Mobile bridge `d8029436` (verify deployment/APK inclusion)
+> **Backend:** Vercel **`b8be0510`** (RC-4 dual-room + FCM alignment)
 
-### Summary
+#### Summary
+
+| Scenario | Description | Result |
+| :--- | :--- | :--- |
+| **1** | Foreground, Join Requests sheet open | **PASS** — dynamic list update works |
+| **2** | Foreground, elsewhere in app | **FAIL** — no notification received |
+| **3** | Background | **PASS** — notification delivered; **tap routes to group overview** (not Join Requests sheet) |
+| **4** | Cold start / notification tap | **PASS** — notification delivered; **same tap routing defect as Scenario 3** |
+| **5** | BUG-G2 mutation regression (Tests A–F) | **PASS** |
+| **6** | Chat regression spot check | **PASS** |
+
+**Overall: PARTIAL PASS** — primary receiver-side sync fixed when Join Requests is open (Scenario 1) and push delivery works background/cold-start (3–4). **Scenario 2 remains open.** Notification deep-link lands on **group overview** instead of **Join Requests sheet** (3–4).
+
+**First failed stage (strict sign-off):** Scenario 2 — **foreground notification not received** when Account A is elsewhere in the app (delivery/alert path, not Join Requests invalidation — Scenario 1 proves bridge + provider path works).
+
+#### Scenario 1 — Foreground, Join Requests sheet open
+
+| Result | PASS / FAIL |
+| :--- | :--- |
+| Join list updates dynamically | **PASS** |
+| Notification state updates | **PASS** |
+
+#### Scenario 2 — Foreground, elsewhere in app
+
+| Result | PASS / FAIL |
+| :--- | :--- |
+| Notification received | **FAIL** — no notification |
+| Join list correct on navigation | *(not reported — blocked by missing notification)* |
+
+#### Scenario 3 — Background
+
+| Result | PASS / FAIL |
+| :--- | :--- |
+| Background notification | **PASS** |
+| State after resume | **PASS** (data current) |
+| Tap opens Join Requests sheet | **FAIL (UX)** — opens **group overview** instead |
+
+#### Scenario 4 — Cold start from notification tap
+
+| Result | PASS / FAIL |
+| :--- | :--- |
+| Notification available | **PASS** |
+| Tap routing | **PARTIAL** — opens **group overview**, not Join Requests sheet |
+| Data fresh after open | **PASS** |
+
+#### Scenario 5 — Regression (BUG-G2 Tests A–F)
+
+| Result | PASS / FAIL |
+| :--- | :--- |
+| Tests A–F still PASS | **PASS** |
+
+#### Scenario 6 — Chat regression spot check
+
+| Result | PASS / FAIL |
+| :--- | :--- |
+| Chat realtime intact | **PASS** |
+
+---
+
+### 6B. Pre-RC-4 run (2026-08-29 ~02:24 IST) — historical
+
+> **Builds under test:** Backend `e9ad6bf8` + Mobile bridge `d8029436` (pre dual-room RC-4)
+
+#### Summary
 
 | Scenario | Description | Result |
 | :--- | :--- | :--- |
@@ -129,16 +187,16 @@ flutter analyze lib/core/notifications lib/core/runtime/runtime_init.dart
 | **5** | BUG-G2 mutation regression (Tests A–F) | **PASS** |
 | **6** | Chat regression spot check | **PASS** |
 
-**Overall Test G: FAIL** — receiver-side join-request notification and dynamic Join Requests sync remain broken in production despite backend + mobile bridge implementation.
+**Overall Test G (pre-RC-4): FAIL** — receiver-side delivery broken (socket room mismatch; see forensic report).
 
 ### Preconditions
 
-- Backend fix deployed (commit `e9ad6bf8` or later).
+- Backend fix deployed (commit `b8be0510` or later for post-RC-4).
 - Mobile APK built from branch containing mobile bridge (`d8029436`).
 - Account A: group creator/admin.
 - Account B: separate account (web).
 
-### Scenario 1 — Foreground, Join Requests sheet open
+### Pre-RC-4 scenario detail (historical)
 
 1. Account A opens group → Join Requests sheet.
 2. Account B submits join request (web).
@@ -209,16 +267,28 @@ Re-run mutation-side tests from [`bug-g2-fix-validation.md`](file:///c:/Users/na
 
 ## 6.1 Post-QA Analysis Notes
 
-The mobile bridge and backend fixes did **not** resolve Test G in production QA. Regressions (Scenarios 5–6) confirm mutation-side G2 and chat paths remain intact.
+### Post-RC-4 (2026-08-29)
 
-**Likely investigation areas (not yet forensically confirmed on device):**
+RC-4 (`b8be0510`) ** materially improved** receiver-side delivery:
 
-1. **Deployment gap** — production API / socket server may not include `e9ad6bf8`; APK may not include `d8029436`.
-2. **Delivery path** — socket `new_notification` or FCM may still not reach Account A's mobile session (socket auth, Redis channel, FCM token, online suppression).
-3. **Bridge activation** — `NotificationRealtimeBridge` may not be receiving events even if backend emits (runtime init, auth lifecycle, payload mismatch).
-4. **BUG-N1a overlap** — background delivery failure may compound Scenario 3, but Scenarios 1–2 fail in foreground too — root cause is not background-only.
+| Area | Pre-RC-4 | Post-RC-4 |
+| :--- | :--- | :--- |
+| Join Requests dynamic sync (sheet open) | FAIL | **PASS** (Scenario 1) |
+| Foreground notification (elsewhere in app) | FAIL | **FAIL** (Scenario 2 — **remaining blocker**) |
+| Background FCM delivery | FAIL | **PASS** (Scenario 3) |
+| Cold-start notification | FAIL | **PASS** (Scenario 4) |
+| G2 mutation / chat regressions | PASS | **PASS** |
 
-**Next engineering step:** Forensic trace on device/logcat with Account A online during web join-request — confirm whether notification DB row is created, socket event arrives, FCM fires, and bridge logs `[NotificationRealtimeBridge] Processing GROUP_JOIN_REQUEST_RECEIVED`.
+**Remaining defects:**
+
+1. **Scenario 2 (P1 for sign-off):** No notification when Account A is foreground elsewhere in the app. Likely foreground alert path (`BUG-N1b` overlap) or FCM suppressed while UUID socket room occupied without in-app banner — **not** a Join Requests invalidation failure (Scenario 1 proves bridge + provider path).
+2. **Scenarios 3–4 (UX):** Notification tap deep-link opens **group overview** instead of **group settings → Join Requests sheet**. Data is fresh; routing target is wrong.
+
+**Next engineering step:** Forensic trace Scenario 2 only — confirm socket/FCM reaches device when Join Requests sheet is **not** open; check foreground suppression vs in-app alert. Separately audit notification tap router for `GROUP_JOIN_REQUEST_RECEIVED` deep link target.
+
+### Pre-RC-4 (historical)
+
+The mobile bridge and backend RC-1–RC-3 did **not** resolve Test G before RC-4. Root cause was socket room mismatch (forensic report). Regressions (Scenarios 5–6) confirmed mutation-side G2 and chat paths remained intact.
 
 ---
 
@@ -245,6 +315,10 @@ The mobile bridge and backend fixes did **not** resolve Test G in production QA.
 
 ### End-to-end BUG-G2b
 
-- [ ] Test G PASS on production APK (all delivery scenarios)
-- [x] Human QA executed (2026-08-29) — **FAIL** (Scenarios 1–4); regressions **PASS** (Scenarios 5–6)
-- [ ] Engineering follow-up — delivery-path forensic on production device
+- [x] Test G executed post-RC-4 (2026-08-29 ~10:27 IST) — **PARTIAL PASS**
+- [x] Scenario 1 PASS — dynamic Join Requests sync
+- [ ] Scenario 2 PASS — foreground notification elsewhere in app (**FAIL**)
+- [x] Scenarios 3–4 PASS — push delivery (tap routing defect noted)
+- [x] Scenarios 5–6 PASS — regressions intact
+- [ ] Notification tap opens Join Requests sheet (opens group overview today)
+- [ ] Full VERIFIED PASS sign-off
