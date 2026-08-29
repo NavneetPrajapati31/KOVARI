@@ -1,6 +1,6 @@
 # BUG-G2b Mobile Fix Validation Guide
 
-> **Status:** **Test G delivery VERIFIED PASS** (Scenarios 1–6) — tap routing S3–S4 remains a **separate follow-up**
+> **Status:** **Test G delivery VERIFIED PASS** (Scenarios 1–6) — **BUG-G2b-TAP VERIFIED PASS** (tap routing, `0a7ca12b`)
 
 ---
 
@@ -16,9 +16,9 @@
 | APK with `NotificationRealtimeBridge` + S2 fix | ✅ **Verified** (Scenario 2 PASS post-fix) | Operator QA 2026-08-29 ~11:25 IST |
 | Test G Scenarios 1–6 (delivery) | ✅ **PASS** | §6A + §6B |
 | Scenario 2 fix (`40e4884a`) | ✅ **VERIFIED PASS** | Production manual QA |
-| Tap routing (S3–S4) | ⚠️ **Separate follow-up** | Opens group overview, not Join Requests sheet |
+| Tap routing (S3–S4) | ✅ **VERIFIED PASS** | BUG-G2b-TAP `0a7ca12b` — Settings + Join Requests sheet |
 
-**Test G delivery: PASS.** Tap destination for background/cold-start notifications is **not** part of this sign-off — tracked separately.
+**Test G delivery: PASS.** Tap routing: **VERIFIED PASS** (BUG-G2b-TAP, 2026-08-29).
 
 ---
 
@@ -137,8 +137,8 @@ flutter analyze lib/core/notifications lib/core/runtime/runtime_init.dart
 | :--- | :--- | :--- |
 | **1** | Foreground, Join Requests open | **PASS** |
 | **2** | Foreground, elsewhere in app | **PASS** — visible local notification received |
-| **3** | Background | **PASS** (tap routing: separate follow-up) |
-| **4** | Cold start / notification tap | **PASS** (tap routing: separate follow-up) |
+| **3** | Background | **PASS** — tap opens Settings + Join Requests sheet (`0a7ca12b`) |
+| **4** | Cold start / notification tap | **PASS** — tap opens Settings + Join Requests sheet (`0a7ca12b`) |
 | **5** | BUG-G2 regression (A–F) | **PASS** |
 | **6** | Chat regression | **PASS** |
 
@@ -328,7 +328,7 @@ RC-4 (`b8be0510`) ** materially improved** receiver-side delivery:
 
 **Scenario 2 fix verified:** PASS post `40e4884a` (2026-08-29 ~11:25 IST).
 
-**Remaining (separate task):** Tap routing for Scenarios 3–4 — notification tap opens group overview, not Join Requests sheet.
+**Tap routing fix verified:** PASS post `0a7ca12b` (2026-08-29 ~12:57 IST) — see `bug-g2b-tap-routing-fix-validation.md`.
 
 ### Pre-RC-4 (historical)
 
@@ -364,4 +364,4 @@ The mobile bridge and backend RC-1–RC-3 did **not** resolve Test G before RC-4
 - [x] Scenario 2 PASS — foreground notification elsewhere in app (**VERIFIED** post `40e4884a`)
 - [x] Scenarios 3–4 PASS — push delivery
 - [x] Scenarios 5–6 PASS — regressions intact
-- [ ] Notification tap opens Join Requests sheet — **separate follow-up** (opens group overview today)
+- [x] Notification tap opens Join Requests sheet — **VERIFIED PASS** post `0a7ca12b` (BUG-G2b-TAP)

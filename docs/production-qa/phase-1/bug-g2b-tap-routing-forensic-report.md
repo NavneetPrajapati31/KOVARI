@@ -522,7 +522,7 @@ nothing to commit, working tree clean
 
 ## S. Implementation & Validation (2026-08-29)
 
-> **Status:** IMPLEMENTED — **pending physical-device QA sign-off**
+> **Status:** IMPLEMENTED — **VERIFIED PASS — QA SIGN-OFF COMPLETE** (2026-08-29 ~12:57 IST)
 
 ### Implementation summary
 
@@ -559,21 +559,21 @@ nothing to commit, working tree clean
 
 | Scenario | Status |
 | :--- | :--- |
-| S1 — Background tap → Settings + Join Requests sheet | **PENDING** |
-| S2 — Cold-start tap | **PENDING** |
-| S3 — Foreground local notification tap | **PENDING** |
-| S4 — Normal group notification → Overview | **PENDING** |
-| S5 — Demoted admin → no sheet | **PENDING** |
-| S6 — BUG-G2 regression (Tests A–F) | **PENDING** |
-| S7 — Chat notification routing | **PENDING** |
+| S1 — Background tap → Settings + Join Requests sheet | **PASS** |
+| S2 — Cold-start tap | **PASS** |
+| S3 — Foreground local notification tap | **PASS** |
+| S4 — Normal group notification → Overview | **PASS** |
+| S5 — Demoted admin → no sheet | **PASS** |
+| S6 — BUG-G2 regression (Tests A–F) | **PASS** |
+| S7 — Chat notification routing | **PASS** |
 
 ### APK
 
-Release APK build and physical-device install — **PENDING**.
+Release APK built, installed on physical Android device, tested against production — **VERIFIED** (2026-08-29).
 
 ### Final status
 
-**OPEN — awaiting physical-device QA sign-off.** Do not mark `VERIFIED PASS` until manual Scenarios 1–7 complete on production APK.
+**VERIFIED PASS — QA SIGN-OFF COMPLETE.** Fix commit: `0a7ca12b`.
 
 See also: `docs/production-qa/phase-1/bug-g2b-tap-routing-fix-validation.md`
 

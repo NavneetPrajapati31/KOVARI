@@ -1,8 +1,9 @@
 # BUG-G2b-TAP — Notification Tap Routing Fix Validation
 
-> **Status:** IMPLEMENTED — **pending physical-device QA sign-off**  
+> **Status:** **VERIFIED PASS — QA SIGN-OFF COMPLETE**  
 > **Date:** 2026-08-29  
-> **Parent:** BUG-G2b delivery — **VERIFIED PASS (closed)** — this is a separate UX fix  
+> **Fix commit:** `0a7ca12b` — `fix(mobile): route join request notifications to requests sheet`  
+> **Parent:** BUG-G2b delivery — **VERIFIED PASS (closed)** — separate UX fix, now also closed  
 > **Forensic reference:** `bug-g2b-tap-routing-forensic-report.md`
 
 ---
@@ -63,13 +64,15 @@ Use two accounts on **physical Android device** with production config.
 
 | # | Scenario | Steps | Expected | Result |
 | :--- | :--- | :--- | :--- | :--- |
-| 1 | Background tap | A backgrounds → B requests → A taps notification | Correct group, Settings tab, Join Requests sheet | **PENDING** |
-| 2 | Cold-start tap | Force-close A → B requests → A taps notification | Same as #1 | **PENDING** |
-| 3 | Foreground local tap | A elsewhere in app → receives tray notif → taps | Same as #1 | **PENDING** |
-| 4 | Normal group notification | Tap `GROUP_INVITE_RECEIVED` or similar | Group Overview only | **PENDING** |
-| 5 | Authorization | Demoted/non-admin recipient taps join-request notif | Settings tab, **no** sheet | **PENDING** |
-| 6 | BUG-G2 regression | Tests A–F (join/accept/reject/remove/leave) | PASS | **PENDING** |
-| 7 | Chat regression | DM + group chat notification taps | Unchanged routing | **PENDING** |
+| 1 | Background tap | A backgrounds → B requests → A taps notification | Correct group, Settings tab, Join Requests sheet | **PASS** |
+| 2 | Cold-start tap | Force-close A → B requests → A taps notification | Same as #1 | **PASS** |
+| 3 | Foreground local tap | A elsewhere in app → receives tray notif → taps | Same as #1 | **PASS** |
+| 4 | Normal group notification | Tap `GROUP_INVITE_RECEIVED` or similar | Group Overview only | **PASS** |
+| 5 | Authorization | Demoted/non-admin recipient taps join-request notif | Settings tab, **no** sheet | **PASS** |
+| 6 | BUG-G2 regression | Tests A–F (join/accept/reject/remove/leave) | PASS | **PASS** |
+| 7 | Chat regression | DM + group chat notification taps | Unchanged routing | **PASS** |
+
+**Overall:** **VERIFIED PASS** — production APK manual QA (2026-08-29 ~12:57 IST, operator Navneet).
 
 ---
 
@@ -77,9 +80,9 @@ Use two accounts on **physical Android device** with production config.
 
 | Item | Status |
 | :--- | :--- |
-| Release APK built | **PENDING** |
-| Installed on physical device | **PENDING** |
-| Production backend (`app.kovari.in`) | Required for sign-off |
+| Release APK built | ✅ **Verified** |
+| Installed on physical device | ✅ **Verified** |
+| Production backend (`app.kovari.in`) | ✅ Used for QA |
 
 ---
 
@@ -96,12 +99,10 @@ Use two accounts on **physical Android device** with production config.
 
 ## 8. Sign-Off Criteria
 
-Mark **VERIFIED PASS — QA SIGN-OFF COMPLETE** only when:
+**VERIFIED PASS — QA SIGN-OFF COMPLETE** (2026-08-29):
 
-- [ ] Physical-device Scenarios 1–7 all PASS
-- [ ] Release APK verified on device
-- [ ] BUG-G2 + chat regressions confirmed on device
-- [ ] Bug tracker updated
-- [ ] Regression matrix updated (post-reconciliation)
-
-Until then: **OPEN — implementation complete, QA pending.**
+- [x] Physical-device Scenarios 1–7 all PASS
+- [x] Release APK verified on device
+- [x] BUG-G2 + chat regressions confirmed on device
+- [x] Bug tracker updated
+- [x] Regression matrix updated (post-reconciliation)
