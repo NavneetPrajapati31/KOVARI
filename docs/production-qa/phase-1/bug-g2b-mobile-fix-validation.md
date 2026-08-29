@@ -326,12 +326,9 @@ RC-4 (`b8be0510`) ** materially improved** receiver-side delivery:
 
 **Verified root cause (code-proven):** FCM suppressed while UUID socket room occupied; `NotificationRealtimeBridge` only invalidates providers and does **not** call `FCMService.showLocalNotification` (unlike chat's `ConversationRuntimeStore`). Scenario 1 passes because `JoinRequestsSheet` is the visible feedback surface.
 
-**Remaining defects:**
+**Scenario 2 fix verified:** PASS post `40e4884a` (2026-08-29 ~11:25 IST).
 
-1. **Scenario 2 (sign-off blocker):** No visible foreground alert when elsewhere in app — **fix scoped separately** (forensic §10).
-2. **Scenarios 3–4 (separate task):** Notification tap opens group overview, not Join Requests sheet.
-
-**Next step:** Implement Scenario 2 minimal fix only. Tap routing is a follow-up task.
+**Remaining (separate task):** Tap routing for Scenarios 3–4 — notification tap opens group overview, not Join Requests sheet.
 
 ### Pre-RC-4 (historical)
 
@@ -362,10 +359,9 @@ The mobile bridge and backend RC-1–RC-3 did **not** resolve Test G before RC-4
 
 ### End-to-end BUG-G2b
 
-- [x] Test G executed post-RC-4 (2026-08-29 ~10:27 IST) — **PARTIAL PASS**
+- [x] Test G delivery sign-off (2026-08-29)
 - [x] Scenario 1 PASS — dynamic Join Requests sync
-- [ ] Scenario 2 PASS — foreground notification elsewhere in app (**FAIL**)
-- [x] Scenarios 3–4 PASS — push delivery (tap routing defect noted)
+- [x] Scenario 2 PASS — foreground notification elsewhere in app (**VERIFIED** post `40e4884a`)
+- [x] Scenarios 3–4 PASS — push delivery
 - [x] Scenarios 5–6 PASS — regressions intact
-- [ ] Notification tap opens Join Requests sheet (opens group overview today)
-- [ ] Full VERIFIED PASS sign-off
+- [ ] Notification tap opens Join Requests sheet — **separate follow-up** (opens group overview today)

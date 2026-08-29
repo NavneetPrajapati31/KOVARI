@@ -338,7 +338,7 @@ Do **not** mark BUG-G2b VERIFIED PASS until Scenario 2 passes after fix deployme
 
 ## 14. Implementation Status (Scenario 2 Fix)
 
-> **Implemented:** 2026-08-29 — production manual QA **pending**
+> **Implemented:** 2026-08-29 — production manual QA **PASS**
 
 | Item | Status |
 | :--- | :--- |
