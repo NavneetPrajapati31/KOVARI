@@ -151,7 +151,14 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
 
           GroupTabBar(
             activeIndex: _activeTabIndex,
-            onTabChanged: (index) => setState(() => _activeTabIndex = index),
+            onTabChanged: (index) {
+              setState(() => _activeTabIndex = index);
+              if (index == 2) {
+                ref
+                    .read(itineraryStoreProvider.notifier)
+                    .refresh(widget.groupId);
+              }
+            },
           ),
           Expanded(
             child: NotificationListener<OverscrollIndicatorNotification>(
@@ -215,6 +222,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
       ref
           .read(memberStoreProvider.notifier)
           .subscribe(widget.groupId, force: true),
+      ref.read(itineraryStoreProvider.notifier).refresh(widget.groupId),
     ]);
   }
 

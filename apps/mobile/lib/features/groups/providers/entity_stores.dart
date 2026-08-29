@@ -467,6 +467,11 @@ class ItineraryStore
   Future<void> subscribe(String groupId, {bool force = false}) async {
     _metadata.putIfAbsent(groupId, EntityMetadata.new).subscriberCount++;
     if (state[groupId] == null || force) {
+      if (force) {
+        await ref
+            .read(localCacheProvider)
+            .invalidate(ApiEndpoints.groupItinerary(groupId));
+      }
       final stream = ref
           .read(runtimeCoordinatorProvider)
           .requestHydration(
@@ -485,6 +490,8 @@ class ItineraryStore
       }
     }
   }
+
+  Future<void> refresh(String groupId) => subscribe(groupId, force: true);
 
   void unsubscribe(String groupId) {
     if (_metadata[groupId] != null && _metadata[groupId]!.subscriberCount > 0) {

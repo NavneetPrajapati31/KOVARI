@@ -60,8 +60,9 @@ class _ItineraryTabState extends ConsumerState<ItineraryTab>
 
     return KovariRefreshIndicator(
       onRefresh: () async {
-        // Hydration logic is handled by the scheduler; just request intent
-        ref.read(itineraryStoreProvider.notifier).subscribe(widget.group.id);
+        await ref
+            .read(itineraryStoreProvider.notifier)
+            .refresh(widget.group.id);
       },
       child: CustomScrollView(
         key: PageStorageKey(
