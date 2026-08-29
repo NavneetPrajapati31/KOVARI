@@ -8,10 +8,28 @@ import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/services/fcm_service.dart';
 import 'package:mobile/core/utils/app_logger.dart';
 import 'package:mobile/core/utils/nav_observer.dart';
-import 'package:mobile/features/chat/providers/conversation_runtime_store.dart';
 import 'package:mobile/features/chat/screens/chat_screen.dart';
 import 'package:mobile/features/chat/utils/direct_chat_id.dart';
-import 'package:mobile/features/groups/providers/entity_stores.dart';
+
+/// Backend notification type for incoming group join requests.
+const groupJoinRequestReceivedType = 'GROUP_JOIN_REQUEST_RECEIVED';
+
+/// Deep-link sheet token for join-request notification taps.
+const joinRequestsSheetDeepLink = 'joinRequests';
+
+/// Settings tab index on [GroupDetailsScreen] (`Overview=0 … Settings=3`).
+const groupSettingsTabIndex = 3;
+
+/// Resolves the GoRouter location for a group-scoped notification tap.
+String resolveGroupNotificationTapRoute({
+  required String entityId,
+  required String? notificationType,
+}) {
+  if (notificationType == groupJoinRequestReceivedType) {
+    return '/groups/$entityId?tab=$groupSettingsTabIndex&sheet=$joinRequestsSheetDeepLink';
+  }
+  return '/groups/$entityId';
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(routerNotifierProvider);
@@ -118,7 +136,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
         }
       case 'group':
-        if (entityId != null) router.push('/groups/$entityId');
+        if (entityId != null) {
+          final notificationType = data['type'] as String?;
+          router.push(
+            resolveGroupNotificationTapRoute(
+              entityId: entityId,
+              notificationType: notificationType,
+            ),
+          );
+        }
       case 'match':
         if (entityId != null) {
           final type = data['type'] as String?;

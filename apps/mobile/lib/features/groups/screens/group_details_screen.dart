@@ -9,6 +9,7 @@ import 'package:mobile/features/groups/models/group.dart';
 import 'package:mobile/features/groups/providers/entity_stores.dart';
 import 'package:mobile/features/groups/providers/group_details_provider.dart';
 import 'package:mobile/features/groups/widgets/group_tab_bar.dart';
+import 'package:mobile/features/groups/widgets/management_sheets.dart';
 import 'package:mobile/features/groups/widgets/tabs/chats_tab.dart';
 import 'package:mobile/features/groups/widgets/tabs/itinerary_tab.dart';
 import 'package:mobile/features/groups/widgets/tabs/overview_tab.dart';
@@ -25,6 +26,7 @@ class GroupDetailsScreen extends ConsumerStatefulWidget {
     super.key,
     required this.groupId,
     this.initialTabIndex = 0,
+    this.initialSheet,
   }) {
     debugPrint(
       '🚀 [GroupDetailsScreen] Constructor called for ID: $groupId with initialTabIndex: $initialTabIndex',
@@ -32,6 +34,7 @@ class GroupDetailsScreen extends ConsumerStatefulWidget {
   }
   final String groupId;
   final int initialTabIndex;
+  final String? initialSheet;
 
   @override
   ConsumerState<GroupDetailsScreen> createState() => _GroupDetailsScreenState();
@@ -40,6 +43,7 @@ class GroupDetailsScreen extends ConsumerStatefulWidget {
 class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
   final TextEditingController _notesController = TextEditingController();
   bool _isEditingNotes = false;
+  bool _joinRequestsSheetOpened = false;
   late int _activeTabIndex;
 
   late final GroupStore _groupStore;
@@ -126,6 +130,17 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
       });
     }
 
+    if (shouldAutoPresentJoinRequestsSheet(
+      initialSheet: widget.initialSheet,
+      sheetAlreadyOpened: _joinRequestsSheetOpened,
+      isAdmin: membership.isAdmin,
+      isCreator: membership.isCreator,
+    )) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _presentJoinRequestsSheetIfNeeded(group);
+      });
+    }
+
     return Scaffold(
       body: Column(
         children: [
@@ -201,6 +216,29 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
           .read(memberStoreProvider.notifier)
           .subscribe(widget.groupId, force: true),
     ]);
+  }
+
+  void _presentJoinRequestsSheetIfNeeded(GroupModel group) {
+    if (!mounted || _joinRequestsSheetOpened) return;
+
+    final membership = ref.read(membershipStoreProvider)[widget.groupId]?.data;
+    if (membership == null) return;
+    if (!shouldAutoPresentJoinRequestsSheet(
+      initialSheet: widget.initialSheet,
+      sheetAlreadyOpened: _joinRequestsSheetOpened,
+      isAdmin: membership.isAdmin,
+      isCreator: membership.isCreator,
+    )) {
+      return;
+    }
+
+    _joinRequestsSheetOpened = true;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => JoinRequestsSheet(group: group),
+    );
   }
 
   Widget _buildSkeletonState() => Scaffold(
@@ -472,4 +510,19 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
       ),
     );
   }
+}
+
+/// Must match [joinRequestsSheetDeepLink] in `router.dart`.
+const joinRequestsSheetDeepLinkToken = 'joinRequests';
+
+/// Whether [GroupDetailsScreen] should auto-present [JoinRequestsSheet].
+bool shouldAutoPresentJoinRequestsSheet({
+  required String? initialSheet,
+  required bool sheetAlreadyOpened,
+  required bool isAdmin,
+  required bool isCreator,
+}) {
+  if (sheetAlreadyOpened) return false;
+  if (initialSheet != joinRequestsSheetDeepLinkToken) return false;
+  return isAdmin || isCreator;
 }

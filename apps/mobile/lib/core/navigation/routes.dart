@@ -151,10 +151,15 @@ class GroupDetailsRouteData extends GoRouteData with $GroupDetailsRouteData {
   Page<void> buildPage(BuildContext context, GoRouterState state) {
     final tabStr = state.uri.queryParameters['tab'];
     final initialTab = tabStr != null ? int.tryParse(tabStr) ?? 0 : 0;
+    final initialSheet = state.uri.queryParameters['sheet'];
     return platformPageRoute<void>(
       context: context,
       state: state,
-      child: GroupDetailsScreen(groupId: groupId, initialTabIndex: initialTab),
+      child: GroupDetailsScreen(
+        groupId: groupId,
+        initialTabIndex: initialTab,
+        initialSheet: initialSheet,
+      ),
     );
   }
 }
