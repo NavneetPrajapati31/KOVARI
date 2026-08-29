@@ -2,6 +2,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/core/navigation/deep_link_resolver.dart';
 import 'package:mobile/core/navigation/router_notifier.dart';
 import 'package:mobile/core/navigation/routes.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
@@ -63,37 +64,32 @@ final routerProvider = Provider<GoRouter>((ref) {
   // Initialize AppLinks listener
   final appLinks = AppLinks();
 
+  void routeDeepLink(Uri uri) {
+    final location = resolveDeepLinkLocation(uri);
+    if (location == null) {
+      AppLogger.w(
+        '🔗 [DeepLink] Unsupported or incomplete link: ${sanitizeDeepLinkForLog(uri)}',
+      );
+      return;
+    }
+    AppLogger.i('🔗 [DeepLink] Routing to: $location');
+    router.go(location);
+  }
+
   // Listen to incoming deep links (when app is in background/foreground)
   final appLinksSub = appLinks.uriLinkStream.listen((uri) {
-    AppLogger.i('🔗 [DeepLink] Incoming Uri: $uri');
-    var path = uri.path;
-    if (path.isNotEmpty) {
-      if (path.startsWith('/invite/')) {
-        path = path.replaceFirst('/invite/', '/groups/invite/');
-      }
-      final location = uri.queryParameters.isEmpty
-          ? path
-          : Uri(path: path, queryParameters: uri.queryParameters).toString();
-      AppLogger.i('🔗 [DeepLink] Routing to: $location');
-      router.go(location);
-    }
+    AppLogger.i('🔗 [DeepLink] Incoming Uri: ${sanitizeDeepLinkForLog(uri)}');
+    routeDeepLink(uri);
   });
 
   // Handle the initial link (when app is launched from a terminated state)
   appLinks.getInitialLink().then((uri) {
     if (uri != null) {
-      AppLogger.i('🔗 [DeepLink] Initial Uri: $uri');
-      var path = uri.path;
-      if (path.isNotEmpty) {
-        if (path.startsWith('/invite/')) {
-          path = path.replaceFirst('/invite/', '/groups/invite/');
-        }
-        final location = uri.queryParameters.isEmpty
-            ? path
-            : Uri(path: path, queryParameters: uri.queryParameters).toString();
-        AppLogger.i('🔗 [DeepLink] Routing initial link to: $location');
-        router.go(location);
-      }
+      AppLogger.i('🔗 [DeepLink] Initial Uri: ${sanitizeDeepLinkForLog(uri)}');
+      // Allow router/auth bootstrap to settle before cold-start navigation.
+      Future.delayed(const Duration(milliseconds: 500), () {
+        routeDeepLink(uri);
+      });
     }
   });
 

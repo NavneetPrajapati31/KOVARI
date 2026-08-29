@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/core/navigation/deep_link_resolver.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/providers/profile_provider.dart';
 import 'package:mobile/core/utils/app_logger.dart';
@@ -32,22 +33,19 @@ class RouterNotifier extends ChangeNotifier {
 
     // 1. Sanitize full URLs passed from the platform channel (deep links)
     if (matchedLocation.startsWith('http://') ||
-        matchedLocation.startsWith('https://')) {
+        matchedLocation.startsWith('https://') ||
+        matchedLocation.startsWith('kovari://')) {
       try {
         final uri = Uri.parse(matchedLocation);
-        var path = uri.path;
-        if (path.startsWith('/invite/')) {
-          path = path.replaceFirst('/invite/', '/groups/invite/');
+        final sanitized = resolveDeepLinkLocation(uri);
+        if (sanitized != null) {
+          AppLogger.i(
+            '🔗 [RouterNotifier] Sanitized deep link -> $sanitized',
+          );
+          return sanitized;
         }
-        final sanitized = uri.queryParameters.isEmpty
-            ? path
-            : Uri(path: path, queryParameters: uri.queryParameters).toString();
-        AppLogger.i(
-          '🔗 [RouterNotifier] Sanitized full URL: $matchedLocation -> $sanitized',
-        );
-        return sanitized;
       } catch (e) {
-        AppLogger.e('Error sanitizing full URL: $matchedLocation', error: e);
+        AppLogger.e('Error sanitizing deep link: $matchedLocation', error: e);
       }
     }
 
