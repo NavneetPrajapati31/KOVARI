@@ -1,6 +1,6 @@
 # BUG-G2b Mobile Fix Validation Guide
 
-> **Status:** OPEN — **PARTIAL PASS** (Scenario 2 FAIL — forensic complete; fix not implemented)
+> **Status:** OPEN — **PARTIAL PASS** (Scenario 2 fix implemented — **production QA pending**)
 
 ---
 
@@ -16,14 +16,17 @@
 | APK ≥ `d8029436` (`NotificationRealtimeBridge`) | ✅ **Assumed** (bridge behavior observed in Test G) | Operator post-RC-4 run |
 | Test G Scenarios 1–6 post-RC-4 | ✅ **Executed** (~10:27 IST) | Navneet — results in §6A |
 | Scenario 2 forensic investigation | ✅ **Complete** | [`bug-g2b-scenario-2-foreground-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-scenario-2-foreground-forensic-report.md) |
+| Scenario 2 fix implemented | ✅ **Code complete** | Socket-path `showLocalNotification` — production QA **NOT RUN** |
 
-**Overall post-RC-4 Test G: PARTIAL PASS** — Scenario 2 remains **FAIL** (no visible foreground notification elsewhere in app). Scenarios 3–4 tap routing defect tracked separately.
+**Overall post-RC-4 Test G: PARTIAL PASS** — Scenario 2 **FAIL** at last manual run; fix landed, **re-test required**.
 
-**Next engineering task:** Implement **Scenario 2 fix only** per forensic report §10 (mirror chat `showLocalNotification` on socket path). Do **not** bundle tap routing.
+**Tap routing (Scenarios 3–4):** separate follow-up task — not modified in Scenario 2 fix.
 
-**Do not mark BUG-G2b VERIFIED PASS** until Scenario 2 passes after fix.
+**Do not mark BUG-G2b VERIFIED PASS** until Scenario 2 passes on production APK with this fix.
 
 ---
+
+## 1. Original Symptom (Test G)
 
 When Account B submits a join request:
 
@@ -130,6 +133,22 @@ flutter analyze lib/core/notifications lib/core/runtime/runtime_init.dart
 **Overall: PARTIAL PASS** — primary receiver-side sync fixed when Join Requests is open (Scenario 1) and push delivery works background/cold-start (3–4). **Scenario 2 remains open.** Notification deep-link lands on **group overview** instead of **Join Requests sheet** (3–4).
 
 **First failed stage (strict sign-off):** Scenario 2 — **foreground notification not received** when Account A is elsewhere in the app (delivery/alert path, not Join Requests invalidation — Scenario 1 proves bridge + provider path works).
+
+### 6A.1 Scenario 2 fix (implemented — QA pending)
+
+**Change:** On socket-path `GROUP_JOIN_REQUEST_RECEIVED`, after provider refresh/invalidation, call `FCMService.instance.showLocalNotification()` (mirrors chat `ConversationRuntimeStore` pattern). FCM suppression policy **unchanged**. Tap routing **unchanged**.
+
+| File | Change |
+| :--- | :--- |
+| `apps/mobile/lib/core/notifications/inbound_notification_event.dart` | Parse `title`/`message`; add `buildJoinRequestLocalNotification()` |
+| `apps/mobile/lib/core/notifications/notification_realtime_bridge.dart` | Socket-only `_maybeShowJoinRequestLocalNotification()` |
+| `apps/mobile/test/runtime/notification_realtime_bridge_test.dart` | +5 tests (18 total PASS) |
+
+**Automated:** `flutter test test/runtime/notification_realtime_bridge_test.dart` — **18/18 PASS**
+
+**Manual Scenario 2 re-test:** **NOT RUN** — rebuild/install APK and re-run Test G Scenario 2 on production.
+
+**Logcat markers:** `[NotificationRealtimeBridge] Processing GROUP_JOIN_REQUEST_RECEIVED via socket` → `[NotificationRealtimeBridge] Showing local notification for group join request`
 
 #### Scenario 1 — Foreground, Join Requests sheet open
 

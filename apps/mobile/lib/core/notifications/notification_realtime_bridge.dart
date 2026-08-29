@@ -122,6 +122,26 @@ class NotificationRealtimeBridge extends Notifier<void> {
     for (final action in dispatch.actions) {
       _applyAction(action, event);
     }
+
+    // Scenario 2: FCM is suppressed while the UUID socket room is occupied.
+    // Mirror chat's socket-path local notification for visible foreground feedback.
+    if (source == 'socket') {
+      _maybeShowJoinRequestLocalNotification(event);
+    }
+  }
+
+  void _maybeShowJoinRequestLocalNotification(InboundNotificationEvent event) {
+    final payload = buildJoinRequestLocalNotification(event);
+    if (payload == null) return;
+
+    AppLogger.i(
+      '[NotificationRealtimeBridge] Showing local notification for group join request',
+    );
+    FCMService.instance.showLocalNotification(
+      title: payload.title,
+      body: payload.body,
+      data: payload.data,
+    );
   }
 
   void _applyAction(

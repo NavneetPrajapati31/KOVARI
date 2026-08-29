@@ -3,6 +3,8 @@ class InboundNotificationEvent {
   const InboundNotificationEvent({
     required this.type,
     this.id,
+    this.title,
+    this.message,
     this.entityType,
     this.entityId,
     this.chatId,
@@ -10,6 +12,8 @@ class InboundNotificationEvent {
 
   final String type;
   final String? id;
+  final String? title;
+  final String? message;
   final String? entityType;
   final String? entityId;
   final String? chatId;
@@ -47,6 +51,8 @@ class InboundNotificationEvent {
     return InboundNotificationEvent(
       type: type,
       id: _string(data['id']) ?? _string(data['notificationId']),
+      title: _string(data['title']),
+      message: _string(data['message']) ?? _string(data['body']),
       entityType: _string(data['entity_type']) ?? _string(data['entityType']),
       entityId: _string(data['entity_id']) ?? _string(data['entityId']),
       chatId: _string(data['chatId']) ?? _string(data['chat_id']),
@@ -127,4 +133,41 @@ NotificationRealtimeDispatch dispatchInboundNotification(
   }
 
   return NotificationRealtimeDispatch(actions);
+}
+
+/// Foreground local notification payload for join requests (Scenario 2 fix).
+class JoinRequestLocalNotificationPayload {
+  const JoinRequestLocalNotificationPayload({
+    required this.title,
+    required this.body,
+    required this.data,
+  });
+
+  final String title;
+  final String body;
+  final Map<String, dynamic> data;
+}
+
+/// Builds tray notification content for socket-delivered join requests.
+JoinRequestLocalNotificationPayload? buildJoinRequestLocalNotification(
+  InboundNotificationEvent event,
+) {
+  if (event.type != 'GROUP_JOIN_REQUEST_RECEIVED') return null;
+
+  final groupId = event.groupId;
+  if (groupId == null) return null;
+
+  return JoinRequestLocalNotificationPayload(
+    title: event.title ?? 'Join Request',
+    body: event.message ?? 'Someone wants to join your group',
+    data: {
+      'type': 'GROUP_JOIN_REQUEST_RECEIVED',
+      'entity_type': 'group',
+      'entity_id': groupId,
+      if (event.id != null) ...{
+        'id': event.id,
+        'notificationId': event.id,
+      },
+    },
+  );
 }

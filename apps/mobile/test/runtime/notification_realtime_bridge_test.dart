@@ -17,6 +17,8 @@ void main() {
       expect(event, isNotNull);
       expect(event!.type, 'GROUP_JOIN_REQUEST_RECEIVED');
       expect(event.groupId, 'group-123');
+      expect(event.title, 'Join Request');
+      expect(event.message, 'Alex wants to join Paris Trip');
       expect(event.isChatNotification, isFalse);
       expect(event.dedupeKey, 'notif-abc');
     });
@@ -165,6 +167,86 @@ void main() {
       expect(
         dispatch.actions,
         contains(NotificationRealtimeAction.refreshInterests),
+      );
+    });
+  });
+
+  group('buildJoinRequestLocalNotification', () {
+    test('builds title, body, and data for join request socket event', () {
+      final event = InboundNotificationEvent.tryParse({
+        'id': 'notif-abc',
+        'type': 'GROUP_JOIN_REQUEST_RECEIVED',
+        'title': 'Join Request',
+        'message': 'Alex wants to join Paris Trip',
+        'entity_type': 'group',
+        'entity_id': 'group-123',
+      })!;
+
+      final payload = buildJoinRequestLocalNotification(event);
+
+      expect(payload, isNotNull);
+      expect(payload!.title, 'Join Request');
+      expect(payload.body, 'Alex wants to join Paris Trip');
+      expect(payload.data['type'], 'GROUP_JOIN_REQUEST_RECEIVED');
+      expect(payload.data['entity_type'], 'group');
+      expect(payload.data['entity_id'], 'group-123');
+      expect(payload.data['id'], 'notif-abc');
+      expect(payload.data['notificationId'], 'notif-abc');
+    });
+
+    test('uses defaults when title and message are missing', () {
+      final event = InboundNotificationEvent.tryParse({
+        'id': 'notif-xyz',
+        'type': 'GROUP_JOIN_REQUEST_RECEIVED',
+        'entity_type': 'group',
+        'entity_id': 'group-456',
+      })!;
+
+      final payload = buildJoinRequestLocalNotification(event);
+
+      expect(payload!.title, 'Join Request');
+      expect(payload.body, 'Someone wants to join your group');
+    });
+
+    test('returns null for chat notifications', () {
+      final event = InboundNotificationEvent.tryParse({
+        'type': 'NEW_MESSAGE',
+        'chatId': 'chat-1',
+        'title': 'Hi',
+        'message': 'Hello',
+      })!;
+
+      expect(buildJoinRequestLocalNotification(event), isNull);
+    });
+
+    test('returns null when group id is missing', () {
+      final event = InboundNotificationEvent.tryParse({
+        'id': 'n3',
+        'type': 'GROUP_JOIN_REQUEST_RECEIVED',
+        'entity_type': 'group',
+      })!;
+
+      expect(buildJoinRequestLocalNotification(event), isNull);
+    });
+
+    test('dedupe prevents duplicate dispatch actions for same notification id', () {
+      final event = InboundNotificationEvent.tryParse({
+        'id': 'dup-local-1',
+        'type': 'GROUP_JOIN_REQUEST_RECEIVED',
+        'entity_type': 'group',
+        'entity_id': 'group-1',
+      })!;
+
+      final guard = NotificationDedupeGuard();
+      expect(
+        dispatchInboundNotification(event, dedupeAllows: guard.shouldProcess(event.dedupeKey))
+            .actions,
+        isNotEmpty,
+      );
+      expect(
+        dispatchInboundNotification(event, dedupeAllows: guard.shouldProcess(event.dedupeKey))
+            .actions,
+        isEmpty,
       );
     });
   });

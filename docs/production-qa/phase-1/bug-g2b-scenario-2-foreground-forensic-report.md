@@ -333,3 +333,26 @@ Implement **only** the verified Scenario 2 minimal fix (socket-path `showLocalNo
 Handle **notification tap routing to Join Requests sheet** as a **separate follow-up task** (Scenarios 3–4 UX defect).
 
 Do **not** mark BUG-G2b VERIFIED PASS until Scenario 2 passes after fix deployment.
+
+---
+
+## 14. Implementation Status (Scenario 2 Fix)
+
+> **Implemented:** 2026-08-29 — production manual QA **pending**
+
+| Item | Status |
+| :--- | :--- |
+| Forensic report recommendation | Implemented |
+| `shouldSendPush` / backend | **Not modified** |
+| Tap routing (Scenarios 3–4) | **Not modified** |
+| Socket-path local notification | **Added** in `notification_realtime_bridge.dart` |
+| Automated tests | **18/18 PASS** (`notification_realtime_bridge_test.dart`) |
+| Manual Scenario 2 QA | **NOT RUN** |
+
+**Files changed:**
+
+- `apps/mobile/lib/core/notifications/inbound_notification_event.dart`
+- `apps/mobile/lib/core/notifications/notification_realtime_bridge.dart`
+- `apps/mobile/test/runtime/notification_realtime_bridge_test.dart`
+
+**Next step:** Rebuild APK → production Test G Scenario 2 → if PASS, address tap routing separately → final G2b sign-off.
