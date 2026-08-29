@@ -347,12 +347,6 @@ Do **not** mark BUG-G2b VERIFIED PASS until Scenario 2 passes after fix deployme
 | Tap routing (Scenarios 3–4) | **Not modified** |
 | Socket-path local notification | **Added** in `notification_realtime_bridge.dart` |
 | Automated tests | **18/18 PASS** (`notification_realtime_bridge_test.dart`) |
-| Manual Scenario 2 QA | **NOT RUN** |
+| Manual Scenario 2 QA | **PASS** (2026-08-29 ~11:25 IST) |
 
-**Files changed:**
-
-- `apps/mobile/lib/core/notifications/inbound_notification_event.dart`
-- `apps/mobile/lib/core/notifications/notification_realtime_bridge.dart`
-- `apps/mobile/test/runtime/notification_realtime_bridge_test.dart`
-
-**Next step:** Rebuild APK → production Test G Scenario 2 → if PASS, address tap routing separately → final G2b sign-off.
+**Next step:** Tap routing follow-up for Scenarios 3–4 (separate task) if product requires Join Requests sheet deep-link.
