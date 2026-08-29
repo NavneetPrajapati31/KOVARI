@@ -1,6 +1,6 @@
 # BUG-G2b Backend Fix Validation Guide
 
-> **Status:** BACKEND FIX IMPLEMENTED — END-TO-END TEST G FAIL (Mobile bridge QA 2026-08-29)
+> **Status:** DELIVERY FIX IMPLEMENTED (dual-room + FCM alignment) — **HUMAN QA REQUIRED** — do not mark VERIFIED PASS until Test G re-run on deployed backend + correct APK
 
 ---
 
@@ -26,6 +26,9 @@ Forensic report: [`bug-g2b-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/K
 | **RC-1** | `POST /groups/:groupId/join-request` never called `createNotification()` | Added `notifyGroupJoinRequestRecipients()` on both successful insert paths |
 | **RC-2** | `createNotification()` pipeline had no socket `new_notification` emit for non-chat types | Centralized Redis pub/sub → Socket.IO emit in `createNotification()` via `emitRealtimeNotification()` |
 | **RC-3** | `shouldSendPush()` suppressed FCM for online users assuming socket already delivered — but socket never fired | Suppression now keyed to `REALTIME_SOCKET_DELIVERED_TYPES` after RC-2 socket delivery exists |
+| **RC-4** | Socket emit targeted `user_socket:{clerkId}` only; mobile joins `user_socket:{supabaseUuid}` | Dual-room fan-out via `notificationSocketRoomIds()`; FCM suppresses on UUID room occupancy only; creator eligible for join-request FCM |
+
+Forensic report: [`bug-g2b-production-forensic-investigation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-production-forensic-investigation.md)
 
 ---
 
@@ -37,9 +40,10 @@ Forensic report: [`bug-g2b-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/K
 | `apps/web/src/lib/notifications/notifyGroupJoinRequestRecipients.ts` | **New** — server-side recipient resolution + `createNotification()` calls |
 | `apps/web/src/lib/notifications/createNotification.ts` | RC-2: call `emitRealtimeNotification()` in `after()` hook |
 | `apps/web/src/services/notifications/emitRealtimeNotification.ts` | **New** — Redis publish to `notifications:new_notification` channel |
-| `apps/web/src/services/notifications/realtimeNotificationTypes.ts` | **New** — shared types + `REALTIME_SOCKET_DELIVERED_TYPES` set |
-| `apps/web/src/services/notifications/shouldSendPush.ts` | RC-3: online FCM suppression aligned with realtime-delivered types |
-| `apps/web/src/services/socket/server.ts` | RC-2: subscribe to `NOTIFICATION_SOCKET_CHANNEL`, emit `new_notification` |
+| `apps/web/src/services/notifications/realtimeNotificationTypes.ts` | Shared types + `notificationSocketRoomIds()` dual-room helper |
+| `apps/web/src/services/notifications/shouldSendPush.ts` | RC-3/RC-4: UUID-room FCM suppression; creator eligibility for join requests |
+| `apps/web/src/services/notifications/pushService.ts` | Passes `clerkId` + `supabaseId` into `shouldSendPush()` |
+| `apps/web/src/services/socket/server.ts` | RC-2/RC-4: subscribe to channel; fan-out to all `notificationSocketRoomIds()` |
 | `packages/api/src/notifications/constants.ts` | **New** — `NOTIFICATION_SOCKET_CHANNEL` constant |
 | `packages/types/src/socket.ts` | Extended `new_notification` payload type (additive; chat fields preserved) |
 
@@ -65,7 +69,7 @@ createNotification()
     └── after()
           ├── NotificationEventDispatcher (email — unchanged)
           ├── emitRealtimeNotification() → Redis publish
-          │         └── Socket server → io.to(`user_socket:{clerkId}`).emit("new_notification", ...)
+          │         └── Socket server → io.to(`user_socket:{clerkId}`) **and** io.to(`user_socket:{supabaseUuid}`).emit("new_notification", ...)
           └── evaluatePushNotifications() → FCM (existing policy)
 ```
 
@@ -75,10 +79,20 @@ Mirrors the existing `BAN_SOCKET_CHANNEL` cross-process pattern (Next.js API ↔
 
 For types in `REALTIME_SOCKET_DELIVERED_TYPES` (join requests, match interest, group invites, etc.):
 
-- **Online:** FCM suppressed; socket delivery covers realtime.
-- **Offline:** FCM proceeds per existing priority/admin rules.
+- **Mobile UUID room occupied:** FCM suppressed; socket delivery covers mobile realtime.
+- **Web Clerk room occupied but mobile UUID room empty:** FCM **still sent** (mobile device may be offline/backgrounded).
+- **Offline (both rooms empty):** FCM proceeds per existing priority/admin/creator rules.
+- **Clerk-less recipients:** Redis emit uses Supabase UUID room; FCM no longer black-holed by wrong presence key.
 
 `NEW_MESSAGE` chat room-aware suppression is **unchanged**.
+
+### RC-4 — Dual-room delivery (2026-08-29 forensic follow-up)
+
+Production QA after `e9ad6bf8` + `d8029436` still failed Scenarios 1–4. Forensic investigation proved mobile sockets join `user_socket:{JWT sub}` (Supabase UUID) while emits targeted Clerk id only.
+
+**Fix:** `notificationSocketRoomIds(clerkUserId, userId)` drives both Redis payload fields and socket subscriber fan-out. `createNotification()` always passes both ids when available. `shouldSendPush()` suppresses FCM when the **UUID** socket room is occupied (not merely the Clerk room). Group **creators** are FCM-eligible even without admin/owner membership role.
+
+**Deployment:** Vercel / Render / APK runtime SHA **UNKNOWN** until confirmed post-deploy. Git commit alone ≠ production fix.
 
 ---
 
@@ -87,19 +101,18 @@ For types in `REALTIME_SOCKET_DELIVERED_TYPES` (join requests, match interest, g
 | Test File | Coverage |
 | :--- | :--- |
 | `notifyGroupJoinRequestRecipients.test.ts` | Recipient resolution, one notification per admin, no self-notify |
-| `emitRealtimeNotification.test.ts` | Redis publish payload, chat backward-compat, missing clerkId guard |
-| `shouldSendPush.test.ts` | Online suppress / offline allow for join requests; chat regression |
+| `emitRealtimeNotification.test.ts` | Dual-id Redis payload, UUID-only clerk-less path, chat backward-compat |
+| `shouldSendPush.test.ts` | UUID-room suppress; clerk-room-only does not suppress; creator eligibility; chat regression |
+| `realtimeNotificationTypes.test.ts` | `notificationSocketRoomIds()` dedupe and clerk-less cases |
 
 **Command:**
 
 ```bash
 cd apps/web
-npx vitest run src/services/notifications/shouldSendPush.test.ts \
-  src/services/notifications/emitRealtimeNotification.test.ts \
-  src/lib/notifications/notifyGroupJoinRequestRecipients.test.ts
+npx vitest run src/services/notifications/ src/lib/notifications/notifyGroupJoinRequestRecipients.test.ts
 ```
 
-**Result:** 11/11 tests PASS.
+**Result:** 17/17 notification tests PASS (2026-08-29 RC-4). Mobile bridge: 13/13 PASS (unchanged).
 
 ---
 
@@ -113,21 +126,16 @@ npx vitest run src/services/notifications/shouldSendPush.test.ts \
 
 ---
 
-## 7. Remaining Work (Out of Backend Scope)
+## 7. Remaining Work
 
-**MOBILE NOTIFICATION REALTIME BRIDGE IS NOT IMPLEMENTED IN THIS TASK.**
+1. **Deploy** backend RC-4 fix to Vercel + Render; confirm deployment SHA.
+2. **Rebuild APK** from branch containing `d8029436`+ mobile bridge; record versionCode on Test G protocol.
+3. **Human QA:** Re-run Test G Scenarios 1–6 per [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md).
 
-The production APK still requires a separate mobile task to:
+Until post-deploy human QA:
 
-1. Subscribe to `new_notification` for non-chat types (not only `ConversationRuntimeStore` chat handler).
-2. Invalidate `joinRequestsProvider(groupId)` on `GROUP_JOIN_REQUEST_RECEIVED`.
-3. Refresh `notificationProvider` / unread badge on inbound events.
-4. Handle foreground FCM events for group join requests.
-
-Until mobile bridge + production APK QA:
-
-- **BUG-G2b status:** Backend pipeline implemented; end-to-end **NOT VERIFIED PASS**.
-- **BUG-R4 / BUG-N1a:** Remain open; backend shared infra may partially help R4 once mobile bridge lands.
+- **BUG-G2b status:** FIX IMPLEMENTED — **HUMAN QA REQUIRED** (not VERIFIED PASS).
+- **BUG-R4 / BUG-N1a:** Remain open independently; RC-4 may partially help once deployed.
 
 ---
 
@@ -165,12 +173,14 @@ Re-run [`bug-g2-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/p
 - [x] No database migration.
 - [x] No mobile/Flutter changes.
 
-### End-to-end BUG-G2b (pending)
+### End-to-end BUG-G2b (pending human QA)
 
-- [x] Backend pipeline implemented and unit-tested (11/11 PASS)
-- [x] Mobile bridge implemented and unit-tested (13/13 PASS)
-- [x] Human production QA executed (2026-08-29) — **FAIL** Scenarios 1–4; **PASS** Scenarios 5–6
-- [ ] Delivery-path forensic on production device
+- [x] Backend pipeline RC-1–RC-3 (`e9ad6bf8`)
+- [x] Mobile bridge (`d8029436`)
+- [x] Delivery-path RC-4 dual-room + FCM alignment (uncommitted → pending commit)
+- [x] Automated tests: 17/17 web + 13/13 mobile PASS
+- [x] Human production QA (2026-08-29, pre-RC-4) — **FAIL** Scenarios 1–4; **PASS** Scenarios 5–6
+- [ ] Post-RC-4 deploy + APK rebuild confirmed
 - [ ] Test G full PASS sign-off
 
 See [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md) for manual QA results.

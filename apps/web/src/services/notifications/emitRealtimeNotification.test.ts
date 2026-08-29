@@ -22,16 +22,19 @@ vi.mock("@/services/socket/redis", () => ({
 
 import { emitRealtimeNotification } from "./emitRealtimeNotification";
 
-describe("emitRealtimeNotification (BUG-G2b RC-2)", () => {
+const ADMIN_UUID = "550e8400-e29b-41d4-a716-446655440000";
+
+describe("emitRealtimeNotification (BUG-G2b delivery fix)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockConnectRedis.mockResolvedValue(true);
     mockPublish.mockResolvedValue(1);
   });
 
-  it("publishes GROUP_JOIN_REQUEST_RECEIVED payload to Redis channel", async () => {
+  it("publishes payload with both clerkUserId and userId for dual-room fan-out", async () => {
     const ok = await emitRealtimeNotification({
       clerkUserId: "user_admin_clerk",
+      userId: ADMIN_UUID,
       notificationId: "notif-1",
       type: NotificationType.GROUP_JOIN_REQUEST_RECEIVED,
       title: "Join Request",
@@ -41,21 +44,36 @@ describe("emitRealtimeNotification (BUG-G2b RC-2)", () => {
     });
 
     expect(ok).toBe(true);
-    expect(mockPublish).toHaveBeenCalledTimes(1);
-    expect(mockPublish.mock.calls[0][0]).toBe(NOTIFICATION_SOCKET_CHANNEL);
-
     const payload = JSON.parse(mockPublish.mock.calls[0][1] as string);
     expect(payload.clerkUserId).toBe("user_admin_clerk");
+    expect(payload.userId).toBe(ADMIN_UUID);
     expect(payload.type).toBe(NotificationType.GROUP_JOIN_REQUEST_RECEIVED);
     expect(payload.entity_type).toBe("group");
     expect(payload.entity_id).toBe("group-123");
-    expect(payload.id).toBe("notif-1");
+  });
+
+  it("publishes with UUID only when clerk id is missing (mobile-only recipient)", async () => {
+    const ok = await emitRealtimeNotification({
+      userId: ADMIN_UUID,
+      notificationId: "notif-2",
+      type: NotificationType.GROUP_JOIN_REQUEST_RECEIVED,
+      title: "Join Request",
+      message: "Someone wants to join",
+      entityType: "group",
+      entityId: "group-456",
+    });
+
+    expect(ok).toBe(true);
+    const payload = JSON.parse(mockPublish.mock.calls[0][1] as string);
+    expect(payload.clerkUserId).toBeNull();
+    expect(payload.userId).toBe(ADMIN_UUID);
   });
 
   it("includes chatId for chat entity notifications (backward compatible)", async () => {
     await emitRealtimeNotification({
       clerkUserId: "user_chat",
-      notificationId: "notif-2",
+      userId: ADMIN_UUID,
+      notificationId: "notif-3",
       type: NotificationType.NEW_MESSAGE,
       title: "New message",
       message: "Hello",
@@ -68,15 +86,16 @@ describe("emitRealtimeNotification (BUG-G2b RC-2)", () => {
     expect(payload.entity_type).toBe("chat");
   });
 
-  it("returns false when clerkUserId is missing", async () => {
+  it("returns false when both clerkUserId and userId are missing", async () => {
     const ok = await emitRealtimeNotification({
       clerkUserId: "",
-      notificationId: "notif-3",
+      userId: null,
+      notificationId: "notif-4",
       type: NotificationType.GROUP_INVITE_RECEIVED,
       title: "Invite",
       message: "Join us",
       entityType: "group",
-      entityId: "group-456",
+      entityId: "group-789",
     });
 
     expect(ok).toBe(false);

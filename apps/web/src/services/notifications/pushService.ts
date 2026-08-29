@@ -54,7 +54,14 @@ export class PushService {
 
     try {
       // 1. Run suppression decision engine
-      const isEligible = await shouldSendPush({ userId: clerkId, type, entityType, entityId });
+      const isEligible = await shouldSendPush({
+        userId: clerkId || supabaseId,
+        clerkId,
+        supabaseId,
+        type,
+        entityType,
+        entityId,
+      });
 
       if (!isEligible) {
         console.log(`[PushService] Suppressed for ${clerkId} (type: ${type})`);

@@ -154,21 +154,20 @@ export async function createNotification(
         console.error("[Notification] Dispatcher Error:", err);
       }
 
-      if (clerkId) {
-        try {
-          await emitRealtimeNotification({
-            clerkUserId: clerkId,
-            notificationId,
-            type,
-            title,
-            message,
-            entityType,
-            entityId,
-            imageUrl,
-          });
-        } catch (err) {
-          console.error("[Notification] Realtime emit Error:", err);
-        }
+      try {
+        await emitRealtimeNotification({
+          clerkUserId: clerkId,
+          userId: supabaseId,
+          notificationId,
+          type,
+          title,
+          message,
+          entityType,
+          entityId,
+          imageUrl,
+        });
+      } catch (err) {
+        console.error("[Notification] Realtime emit Error:", err);
       }
 
       if (supabaseId) {
@@ -222,6 +221,8 @@ async function evaluatePushNotifications(
   // We run it here first only to gate the web-push subscription path below.
   const eligible = await shouldSendPush({
     userId: clerkId || supabaseId,
+    clerkId,
+    supabaseId,
     type,
     entityId,
     entityType,

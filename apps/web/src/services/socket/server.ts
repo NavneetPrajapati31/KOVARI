@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { registerSocketEvents } from "./events";
 import { resolveSupabaseUserIdFromAuthId } from "./resolveSocketUser";
 import { connectRedis, redisAdapter, pubClient, subClient } from "./redis";
+import { notificationSocketRoomIds } from "../notifications/realtimeNotificationTypes";
 import { BAN_SOCKET_CHANNEL, NOTIFICATION_SOCKET_CHANNEL } from "@kovari/api";
 import { PresenceManager } from "./presence";
 import { createAdminSupabaseClient } from "@kovari/api";
@@ -181,7 +182,8 @@ async function startServer() {
     await subClient.subscribe(NOTIFICATION_SOCKET_CHANNEL, async (message) => {
       try {
         const payload = JSON.parse(message) as {
-          clerkUserId: string;
+          clerkUserId?: string | null;
+          userId?: string | null;
           id: string;
           type: string;
           title: string;
@@ -193,9 +195,13 @@ async function startServer() {
           created_at: string;
         };
 
-        if (!payload.clerkUserId) return;
+        const rooms = notificationSocketRoomIds(
+          payload.clerkUserId,
+          payload.userId,
+        );
+        if (rooms.length === 0) return;
 
-        io.to(`user_socket:${payload.clerkUserId}`).emit("new_notification", {
+        const eventPayload = {
           id: payload.id,
           type: payload.type,
           title: payload.title,
@@ -205,7 +211,11 @@ async function startServer() {
           chatId: payload.chatId ?? undefined,
           image_url: payload.image_url ?? undefined,
           created_at: payload.created_at,
-        });
+        };
+
+        for (const room of rooms) {
+          io.to(`user_socket:${room}`).emit("new_notification", eventPayload);
+        }
       } catch (err) {
         console.error("[Socket] Failed to process notification event:", err);
       }

@@ -1,10 +1,15 @@
 import { NOTIFICATION_SOCKET_CHANNEL } from "@kovari/api";
 import { EntityType, NotificationType } from "@kovari/types";
 import { connectRedis, pubClient } from "@/services/socket/redis";
-import { RealtimeNotificationSocketPayload } from "./realtimeNotificationTypes";
+import {
+  notificationSocketRoomIds,
+  RealtimeNotificationSocketPayload,
+} from "./realtimeNotificationTypes";
 
 export interface EmitRealtimeNotificationParams {
-  clerkUserId: string;
+  clerkUserId?: string | null;
+  /** Internal Supabase UUID — required for mobile `user_socket:{uuid}` delivery */
+  userId?: string | null;
   notificationId: string;
   type: NotificationType;
   title: string;
@@ -17,7 +22,7 @@ export interface EmitRealtimeNotificationParams {
 
 /**
  * Publishes a realtime notification event to Redis for the Socket.IO server
- * to fan out as `new_notification` to `user_socket:{clerkUserId}`.
+ * to fan out as `new_notification` to Clerk and/or UUID socket rooms.
  *
  * Called centrally from createNotification() — never from individual API routes.
  */
@@ -26,6 +31,7 @@ export async function emitRealtimeNotification(
 ): Promise<boolean> {
   const {
     clerkUserId,
+    userId,
     notificationId,
     type,
     title,
@@ -36,8 +42,11 @@ export async function emitRealtimeNotification(
     createdAt,
   } = params;
 
-  if (!clerkUserId) {
-    console.warn("[RealtimeNotification] Missing clerkUserId — skipping emit");
+  const rooms = notificationSocketRoomIds(clerkUserId, userId);
+  if (rooms.length === 0) {
+    console.warn(
+      "[RealtimeNotification] Missing clerkUserId and userId — skipping emit",
+    );
     return false;
   }
 
@@ -48,7 +57,8 @@ export async function emitRealtimeNotification(
   }
 
   const payload: RealtimeNotificationSocketPayload = {
-    clerkUserId,
+    clerkUserId: clerkUserId?.trim() || null,
+    userId: userId?.trim() || null,
     id: notificationId,
     type,
     title,
