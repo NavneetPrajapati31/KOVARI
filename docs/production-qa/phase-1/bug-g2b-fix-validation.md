@@ -292,4 +292,6 @@ join-request POST → notifyGroupJoinRequestRecipients → createNotification
 | Scenarios 3–4 PASS | ✅ (tap routing defect) |
 | Scenarios 5–6 PASS | ✅ |
 
-**Final status: OPEN — PARTIAL PASS** (not VERIFIED PASS).
+**Final status: OPEN — PARTIAL PASS** (Scenario 2 forensic complete; fix not implemented).
+
+**Forensic report:** [`bug-g2b-scenario-2-foreground-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-scenario-2-foreground-forensic-report.md)

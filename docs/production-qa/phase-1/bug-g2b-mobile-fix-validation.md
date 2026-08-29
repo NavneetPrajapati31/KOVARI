@@ -1,6 +1,6 @@
 # BUG-G2b Mobile Fix Validation Guide
 
-> **Status:** OPEN — **PARTIAL PASS** post-RC-4 (Scenario 2 FAIL; Scenarios 3–4 tap routing defect)
+> **Status:** OPEN — **PARTIAL PASS** (Scenario 2 FAIL — forensic complete; fix not implemented)
 
 ---
 
@@ -15,10 +15,13 @@
 | Render deploy commit SHA | ⚠️ **UNKNOWN** (not recorded by operator) | — |
 | APK ≥ `d8029436` (`NotificationRealtimeBridge`) | ✅ **Assumed** (bridge behavior observed in Test G) | Operator post-RC-4 run |
 | Test G Scenarios 1–6 post-RC-4 | ✅ **Executed** (~10:27 IST) | Navneet — results in §6A |
+| Scenario 2 forensic investigation | ✅ **Complete** | [`bug-g2b-scenario-2-foreground-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-scenario-2-foreground-forensic-report.md) |
 
-**Overall post-RC-4 Test G: PARTIAL PASS** — RC-4 fixed Scenario 1 and background/cold-start delivery (3–4). **Scenario 2 still FAIL.** Scenarios 3–4: tap opens **group overview**, not Join Requests sheet.
+**Overall post-RC-4 Test G: PARTIAL PASS** — Scenario 2 remains **FAIL** (no visible foreground notification elsewhere in app). Scenarios 3–4 tap routing defect tracked separately.
 
-**Do not mark BUG-G2b VERIFIED PASS** until Scenario 2 passes (and tap routing corrected if required for sign-off).
+**Next engineering task:** Implement **Scenario 2 fix only** per forensic report §10 (mirror chat `showLocalNotification` on socket path). Do **not** bundle tap routing.
+
+**Do not mark BUG-G2b VERIFIED PASS** until Scenario 2 passes after fix.
 
 ---
 
@@ -274,17 +277,23 @@ RC-4 (`b8be0510`) ** materially improved** receiver-side delivery:
 | Area | Pre-RC-4 | Post-RC-4 |
 | :--- | :--- | :--- |
 | Join Requests dynamic sync (sheet open) | FAIL | **PASS** (Scenario 1) |
-| Foreground notification (elsewhere in app) | FAIL | **FAIL** (Scenario 2 — **remaining blocker**) |
+| Foreground notification (elsewhere in app) | FAIL | **FAIL** (Scenario 2 — **forensic complete**) |
 | Background FCM delivery | FAIL | **PASS** (Scenario 3) |
 | Cold-start notification | FAIL | **PASS** (Scenario 4) |
 | G2 mutation / chat regressions | PASS | **PASS** |
 
+**Scenario 2 forensic (2026-08-29):** See [`bug-g2b-scenario-2-foreground-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-scenario-2-foreground-forensic-report.md).
+
+**First failed stage:** Mobile foreground visible notification presentation (after socket + bridge silent refresh).
+
+**Verified root cause (code-proven):** FCM suppressed while UUID socket room occupied; `NotificationRealtimeBridge` only invalidates providers and does **not** call `FCMService.showLocalNotification` (unlike chat's `ConversationRuntimeStore`). Scenario 1 passes because `JoinRequestsSheet` is the visible feedback surface.
+
 **Remaining defects:**
 
-1. **Scenario 2 (P1 for sign-off):** No notification when Account A is foreground elsewhere in the app. Likely foreground alert path (`BUG-N1b` overlap) or FCM suppressed while UUID socket room occupied without in-app banner — **not** a Join Requests invalidation failure (Scenario 1 proves bridge + provider path).
-2. **Scenarios 3–4 (UX):** Notification tap deep-link opens **group overview** instead of **group settings → Join Requests sheet**. Data is fresh; routing target is wrong.
+1. **Scenario 2 (sign-off blocker):** No visible foreground alert when elsewhere in app — **fix scoped separately** (forensic §10).
+2. **Scenarios 3–4 (separate task):** Notification tap opens group overview, not Join Requests sheet.
 
-**Next engineering step:** Forensic trace Scenario 2 only — confirm socket/FCM reaches device when Join Requests sheet is **not** open; check foreground suppression vs in-app alert. Separately audit notification tap router for `GROUP_JOIN_REQUEST_RECEIVED` deep link target.
+**Next step:** Implement Scenario 2 minimal fix only. Tap routing is a follow-up task.
 
 ### Pre-RC-4 (historical)
 
