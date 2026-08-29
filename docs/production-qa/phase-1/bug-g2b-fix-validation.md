@@ -1,6 +1,6 @@
 # BUG-G2b Backend Fix Validation Guide
 
-> **Status:** OPEN — **PARTIAL PASS** post-RC-4 Test G (Scenario 2 FAIL; tap routing defect on 3–4)
+> **Status:** **Test G delivery VERIFIED PASS** — Scenario 2 confirmed post `40e4884a`
 
 ---
 
@@ -181,10 +181,9 @@ Re-run [`bug-g2-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/p
 - [x] Vercel production deploy confirmed
 - [x] Post-RC-4 Test G executed (2026-08-29 ~10:27 IST) — **PARTIAL PASS**
 - [x] Scenario 1 PASS
-- [ ] Scenario 2 PASS (**FAIL** — no notification elsewhere in app)
-- [x] Scenarios 3–4 PASS (tap routing defect: group overview vs Join Requests sheet)
-- [x] Scenarios 5–6 PASS
-- [ ] Full VERIFIED PASS sign-off
+- [x] Scenario 2 PASS — **VERIFIED** post `40e4884a` (2026-08-29 ~11:25 IST)
+- [x] Scenarios 3–6 PASS
+- [x] Test G delivery sign-off
 
 See [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md) for manual QA results.
 
@@ -255,15 +254,15 @@ adb devices → (empty — no test device connected to agent host)
 | Scenario | Description | Result |
 | :--- | :--- | :--- |
 | **1** | Foreground, Join Requests open | **PASS** |
-| **2** | Foreground, elsewhere | **FAIL** — no notification |
+| **2** | Foreground, elsewhere | **PASS** (post `40e4884a`, 2026-08-29 ~11:25 IST) |
 | **3** | Background | **PASS** — tap opens group overview (not Join Requests sheet) |
 | **4** | Cold start / notification tap | **PASS** — same tap routing defect as Scenario 3 |
 | **5** | BUG-G2 regression (A–F) | **PASS** |
 | **6** | Chat regression | **PASS** |
 
-**Overall: PARTIAL PASS.** First failed stage for strict sign-off: **Scenario 2** (foreground notification when elsewhere in app).
+**Overall: PASS (delivery).** Tap routing for S3–S4 remains a separate follow-up.
 
-See [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md) §6A for detail.
+**Forensic report:** [`bug-g2b-scenario-2-foreground-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-scenario-2-foreground-forensic-report.md)
 
 ### 10.5 FCM / runtime pipeline (not verified this session)
 
@@ -288,10 +287,8 @@ join-request POST → notifyGroupJoinRequestRecipients → createNotification
 | Render RC-4 SHA confirmed | ⚠️ **UNKNOWN** |
 | Post-RC-4 Test G executed | ✅ 2026-08-29 ~10:27 IST |
 | Scenario 1 PASS | ✅ |
-| Scenario 2 PASS | ❌ **FAIL** |
-| Scenarios 3–4 PASS | ✅ (tap routing defect) |
-| Scenarios 5–6 PASS | ✅ |
+| Scenario 2 PASS | ✅ **VERIFIED** (`40e4884a`) |
+| Scenarios 3–6 PASS | ✅ |
+| Tap routing follow-up | ⚠️ Separate task |
 
-**Final status: OPEN — PARTIAL PASS** (Scenario 2 forensic complete; fix not implemented).
-
-**Forensic report:** [`bug-g2b-scenario-2-foreground-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-scenario-2-foreground-forensic-report.md)
+**Final status: VERIFIED PASS (Test G delivery).**

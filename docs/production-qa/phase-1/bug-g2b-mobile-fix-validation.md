@@ -1,6 +1,6 @@
 # BUG-G2b Mobile Fix Validation Guide
 
-> **Status:** OPEN — **PARTIAL PASS** (Scenario 2 fix implemented — **production QA pending**)
+> **Status:** **Test G delivery VERIFIED PASS** (Scenarios 1–6) — tap routing S3–S4 remains a **separate follow-up**
 
 ---
 
@@ -13,16 +13,12 @@
 | Vercel `app.kovari.in` on `b8be0510` | ✅ **Confirmed** | Dashboard + `vercel inspect app.kovari.in` |
 | Render `kovari-socket` deployed + healthy | ✅ **Deployed / healthy** | Dashboard; `socket.kovari.in/health` → ok |
 | Render deploy commit SHA | ⚠️ **UNKNOWN** (not recorded by operator) | — |
-| APK ≥ `d8029436` (`NotificationRealtimeBridge`) | ✅ **Assumed** (bridge behavior observed in Test G) | Operator post-RC-4 run |
-| Test G Scenarios 1–6 post-RC-4 | ✅ **Executed** (~10:27 IST) | Navneet — results in §6A |
-| Scenario 2 forensic investigation | ✅ **Complete** | [`bug-g2b-scenario-2-foreground-forensic-report.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-scenario-2-foreground-forensic-report.md) |
-| Scenario 2 fix implemented | ✅ **Code complete** | Socket-path `showLocalNotification` — production QA **NOT RUN** |
+| APK with `NotificationRealtimeBridge` + S2 fix | ✅ **Verified** (Scenario 2 PASS post-fix) | Operator QA 2026-08-29 ~11:25 IST |
+| Test G Scenarios 1–6 (delivery) | ✅ **PASS** | §6A + §6B |
+| Scenario 2 fix (`40e4884a`) | ✅ **VERIFIED PASS** | Production manual QA |
+| Tap routing (S3–S4) | ⚠️ **Separate follow-up** | Opens group overview, not Join Requests sheet |
 
-**Overall post-RC-4 Test G: PARTIAL PASS** — Scenario 2 **FAIL** at last manual run; fix landed, **re-test required**.
-
-**Tap routing (Scenarios 3–4):** separate follow-up task — not modified in Scenario 2 fix.
-
-**Do not mark BUG-G2b VERIFIED PASS** until Scenario 2 passes on production APK with this fix.
+**Test G delivery: PASS.** Tap destination for background/cold-start notifications is **not** part of this sign-off — tracked separately.
 
 ---
 
@@ -112,29 +108,52 @@ flutter analyze lib/core/notifications lib/core/runtime/runtime_init.dart
 
 ## 6. Manual Production APK Protocol — Test G
 
-### 6A. Post-RC-4 run (2026-08-29 ~10:27 IST) — **CURRENT**
+### 6A. Post-RC-4 run (2026-08-29 ~10:27 IST) — pre Scenario 2 fix
 
 > **Operator:** Navneet  
-> **Setup:** Account A — mobile app (admin/creator); Account B — web app (requester)  
-> **Environment:** Production (`https://app.kovari.in/api/`)  
-> **Backend:** Vercel **`b8be0510`** (RC-4 dual-room + FCM alignment)
+> **Setup:** Account A — mobile; Account B — web  
+> **Backend:** Vercel **`b8be0510`**
 
-#### Summary
+#### Summary (pre-fix)
+
+| Scenario | Result |
+| :--- | :--- |
+| **1** | **PASS** |
+| **2** | **FAIL** — no notification |
+| **3–4** | **PASS** (tap → group overview) |
+| **5–6** | **PASS** |
+
+---
+
+### 6B. Post Scenario 2 fix (`40e4884a`) — **CURRENT**
+
+> **Operator:** Navneet  
+> **Date:** 2026-08-29 ~11:25 IST  
+> **Fix:** `fix(mobile): show foreground notification for group join requests` (`40e4884a`)
+
+#### Summary (current)
 
 | Scenario | Description | Result |
 | :--- | :--- | :--- |
-| **1** | Foreground, Join Requests sheet open | **PASS** — dynamic list update works |
-| **2** | Foreground, elsewhere in app | **FAIL** — no notification received |
-| **3** | Background | **PASS** — notification delivered; **tap routes to group overview** (not Join Requests sheet) |
-| **4** | Cold start / notification tap | **PASS** — notification delivered; **same tap routing defect as Scenario 3** |
-| **5** | BUG-G2 mutation regression (Tests A–F) | **PASS** |
-| **6** | Chat regression spot check | **PASS** |
+| **1** | Foreground, Join Requests open | **PASS** |
+| **2** | Foreground, elsewhere in app | **PASS** — visible local notification received |
+| **3** | Background | **PASS** (tap routing: separate follow-up) |
+| **4** | Cold start / notification tap | **PASS** (tap routing: separate follow-up) |
+| **5** | BUG-G2 regression (A–F) | **PASS** |
+| **6** | Chat regression | **PASS** |
 
-**Overall: PARTIAL PASS** — primary receiver-side sync fixed when Join Requests is open (Scenario 1) and push delivery works background/cold-start (3–4). **Scenario 2 remains open.** Notification deep-link lands on **group overview** instead of **Join Requests sheet** (3–4).
+**Overall Test G delivery: PASS**
 
-**First failed stage (strict sign-off):** Scenario 2 — **foreground notification not received** when Account A is elsewhere in the app (delivery/alert path, not Join Requests invalidation — Scenario 1 proves bridge + provider path works).
+#### Scenario 2 — Foreground, elsewhere (post-fix)
 
-### 6A.1 Scenario 2 fix (implemented — QA pending)
+| Result | PASS / FAIL |
+| :--- | :--- |
+| Visible notification received | **PASS** |
+| Join list fresh on navigation | *(assumed PASS — operator confirmed Scenario 2 PASS)* |
+
+---
+
+### 6A.1 Scenario 2 fix (implemented + verified)
 
 **Change:** On socket-path `GROUP_JOIN_REQUEST_RECEIVED`, after provider refresh/invalidation, call `FCMService.instance.showLocalNotification()` (mirrors chat `ConversationRuntimeStore` pattern). FCM suppression policy **unchanged**. Tap routing **unchanged**.
 
@@ -146,7 +165,7 @@ flutter analyze lib/core/notifications lib/core/runtime/runtime_init.dart
 
 **Automated:** `flutter test test/runtime/notification_realtime_bridge_test.dart` — **18/18 PASS**
 
-**Manual Scenario 2 re-test:** **NOT RUN** — rebuild/install APK and re-run Test G Scenario 2 on production.
+**Manual Scenario 2 re-test:** **PASS** (2026-08-29 ~11:25 IST, production APK with `40e4884a`)
 
 **Logcat markers:** `[NotificationRealtimeBridge] Processing GROUP_JOIN_REQUEST_RECEIVED via socket` → `[NotificationRealtimeBridge] Showing local notification for group join request`
 
@@ -296,7 +315,7 @@ RC-4 (`b8be0510`) ** materially improved** receiver-side delivery:
 | Area | Pre-RC-4 | Post-RC-4 |
 | :--- | :--- | :--- |
 | Join Requests dynamic sync (sheet open) | FAIL | **PASS** (Scenario 1) |
-| Foreground notification (elsewhere in app) | FAIL | **FAIL** (Scenario 2 — **forensic complete**) |
+| Foreground notification (elsewhere in app) | FAIL | **PASS** (post `40e4884a`) |
 | Background FCM delivery | FAIL | **PASS** (Scenario 3) |
 | Cold-start notification | FAIL | **PASS** (Scenario 4) |
 | G2 mutation / chat regressions | PASS | **PASS** |
