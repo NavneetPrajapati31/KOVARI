@@ -1,6 +1,6 @@
 # BUG-G2b Backend Fix Validation Guide
 
-> **Status:** DELIVERY FIX IMPLEMENTED (dual-room + FCM alignment) — **HUMAN QA REQUIRED** — do not mark VERIFIED PASS until Test G re-run on deployed backend + correct APK
+> **Status:** RC-4 on Vercel confirmed — Test G **BLOCKED** (Render SHA + APK unverified, no device)
 
 ---
 
@@ -177,10 +177,121 @@ Re-run [`bug-g2-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/p
 
 - [x] Backend pipeline RC-1–RC-3 (`e9ad6bf8`)
 - [x] Mobile bridge (`d8029436`)
-- [x] Delivery-path RC-4 dual-room + FCM alignment (uncommitted → pending commit)
-- [x] Automated tests: 17/17 web + 13/13 mobile PASS
-- [x] Human production QA (2026-08-29, pre-RC-4) — **FAIL** Scenarios 1–4; **PASS** Scenarios 5–6
-- [ ] Post-RC-4 deploy + APK rebuild confirmed
+- [x] Delivery-path RC-4 dual-room + FCM alignment (`b8be0510`)
+- [x] Automated tests: 20/20 web + 13/13 mobile PASS
+- [x] Vercel production deploy confirmed (`b8be0510`, 2026-08-29 ~09:42 IST)
+- [ ] Render socket deploy SHA confirmed in Render logs
+- [ ] APK rebuild with `d8029436`+ bridge confirmed on test device
+- [x] Human production QA (2026-08-29, **pre-RC-4**) — **FAIL** Scenarios 1–4; **PASS** Scenarios 5–6
+- [ ] Test G Scenarios 1–6 re-run **post-RC-4 deploy**
 - [ ] Test G full PASS sign-off
 
 See [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md) for manual QA results.
+
+---
+
+## 10. Production Deployment Verification (2026-08-29)
+
+Verification performed after RC-4 commit `b8be0510` merged to `master`. Git presence alone is not treated as deployed.
+
+### 10.1 Vercel (Next.js API — `app.kovari.in`)
+
+| Field | Value |
+| :--- | :--- |
+| **Commit SHA** | `b8be0510` (short: `b8be051`) |
+| **Branch** | `master` |
+| **Environment** | Production |
+| **Deployment ID** | `dpl_DS6qfDr3NHJf2grgr1Ed56V9Z8EN` |
+| **Deployment URL** | `https://kovari-eiplrcbbf-navneet31.vercel.app` |
+| **Aliases** | `app.kovari.in`, `kovari.in`, `www.kovari.in` |
+| **Status** | **Ready** (deploy ~09:42 IST, confirmed live via `vercel inspect app.kovari.in`) |
+| **Evidence** | Vercel dashboard screenshot (navneet316, Production, Ready 3m 39s); CLI alias resolves to this deployment |
+
+**Smoke:** `GET https://app.kovari.in/api/health` → `200`, `status: ok` (2026-08-29T04:20:54Z).
+
+**Required ancestors on this deploy:** `e9ad6bf8` (RC-1–RC-3), `d8029436` (mobile bridge in repo), `b8be0510` (RC-4 dual-room + FCM).
+
+### 10.2 Render (Socket.IO — `socket.kovari.in` / `kovari-socket`)
+
+| Field | Value |
+| :--- | :--- |
+| **Service** | `kovari-socket` |
+| **Status** | **Deployed** (Render dashboard screenshot, 2026-08-29 ~09:50 IST) |
+| **Region** | Singapore |
+| **Commit SHA** | **UNKNOWN** |
+| **Health** | `GET https://socket.kovari.in/health` → `{"status":"ok"}`; `GET /` → `Socket server running` (2026-08-29T04:25Z) |
+
+**SHA verification attempt (2026-08-29 ~09:54 IST):**
+
+| Method | Result |
+| :--- | :--- |
+| Render deploy log / dashboard commit field | **Not accessible** — no Render CLI, no Render API credentials, no browser session to dashboard in agent environment |
+| Socket `/health` response | No `commit` / `sha` field exposed (returns `{ status: "ok" }` only) |
+| Infer from deploy timing | **Not used** (explicitly disallowed) |
+
+**Conclusion:** Render service is **healthy and deployed**, but **RC-4 commit SHA is not proven at runtime**. Confirm `b8be0510` manually in Render → `kovari-socket` → Events/Logs → deploy commit before closing BUG-G2b.
+
+### 10.3 APK (Account A test device)
+
+| Field | Value |
+| :--- | :--- |
+| **versionName** | **UNKNOWN** |
+| **versionCode** | **UNKNOWN** |
+| **Build timestamp** | **UNKNOWN** |
+| **Source commit** | **UNKNOWN** |
+
+**APK verification attempt (2026-08-29 ~09:54 IST):**
+
+```text
+adb devices → (empty — no test device connected to agent host)
+```
+
+**Gate:** Per Test G protocol, **Test G was NOT executed** because APK bridge commit (`d8029436`+) could not be confirmed. Install/rebuild APK from `master` ≥ `d8029436`, record versionName/versionCode, then re-run.
+
+### 10.4 Test G — Post-RC-4 Deploy
+
+**Execution status:** **BLOCKED / NOT RUN** (2026-08-29 ~09:54 IST)
+
+| Blocker | Detail |
+| :--- | :--- |
+| APK unverified | No connected device; bridge commit not confirmed |
+| Render SHA unverified | Dual-room subscriber not runtime-proven |
+| No operator session | Agent cannot drive Account A mobile + Account B web |
+
+| Scenario | Description | Result (post-RC-4) | Last known (pre-RC-4) |
+| :--- | :--- | :--- | :--- |
+| **1** | Foreground, Join Requests open | **NOT RUN** (blocked) | FAIL |
+| **2** | Foreground, elsewhere | **NOT RUN** (blocked) | FAIL |
+| **3** | Background | **NOT RUN** (blocked) | FAIL |
+| **4** | Cold start / notification tap | **NOT RUN** (blocked) | FAIL |
+| **5** | BUG-G2 regression (A–F) | **NOT RUN** (blocked) | PASS |
+| **6** | Chat regression | **NOT RUN** (blocked) | PASS |
+
+**Required before execution:** Connect test device via USB/Wi‑Fi adb; confirm APK ≥ `d8029436`; confirm Render deploy SHA; capture logcat for `[NotificationRealtimeBridge] Listeners attached`.
+
+### 10.5 FCM / runtime pipeline (not verified this session)
+
+No production Account A/B session was available in the agent environment. Do not infer FCM suppress/deliver without device QA or Supabase `notifications.push_status` rows from a live join-request attempt.
+
+**Expected pipeline after RC-4 (code-proven, runtime unverified):**
+
+```text
+join-request POST → notifyGroupJoinRequestRecipients → createNotification
+  → after() → emitRealtimeNotification(clerkId + supabaseId) → Redis
+  → Render subscriber → io.to(user_socket:{clerkId}) + io.to(user_socket:{uuid})
+  → NotificationRealtimeBridge → joinRequestsProvider invalidation
+```
+
+### 10.6 BUG-G2b status gate
+
+| Condition | Status |
+| :--- | :--- |
+| RC-4 code committed | ✅ `b8be0510` |
+| Vercel production deploy | ✅ Confirmed |
+| Render socket healthy | ✅ Confirmed |
+| Render RC-4 SHA confirmed | ❌ **UNKNOWN** |
+| APK includes mobile bridge (`d8029436`+) | ❌ **UNKNOWN** (no device) |
+| Mobile runtime bridge logcat | ❌ **Not captured** |
+| Test G Scenarios 1–6 post-RC-4 | ❌ **BLOCKED — not run** |
+
+**Final status: OPEN — HUMAN QA REQUIRED** (not VERIFIED PASS).

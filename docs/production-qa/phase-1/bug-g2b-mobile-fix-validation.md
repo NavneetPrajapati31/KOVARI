@@ -1,8 +1,27 @@
 # BUG-G2b Mobile Fix Validation Guide
 
-> **Status:** HUMAN QA FAIL — END-TO-END TEST G OPEN (Regressions PASS)
+> **Status:** OPEN — HUMAN QA REQUIRED (Test G blocked: APK + Render SHA unverified, no device connected)
 
 ---
+
+## 0. Post-RC-4 Deploy Gate (2026-08-29)
+
+The results in Section 6 below are from **pre-RC-4** production QA unless superseded by a post-RC-4 run.
+
+### Gate checklist (2026-08-29 ~09:54 IST)
+
+| Gate | Status | Evidence |
+| :--- | :--- | :--- |
+| Vercel `app.kovari.in` on `b8be0510` | ✅ **Confirmed** | Dashboard + `vercel inspect app.kovari.in` |
+| Render `kovari-socket` deployed + healthy | ✅ **Deployed / healthy** | Dashboard screenshot; `socket.kovari.in/health` → ok |
+| Render deploy commit SHA | ❌ **UNKNOWN** | No deploy log access from agent; SHA not inferred |
+| APK ≥ `d8029436` (`NotificationRealtimeBridge`) | ❌ **UNKNOWN** | `adb devices` empty — no test phone connected |
+| Logcat bridge initialized | ❌ **Not captured** | Requires connected device |
+| Test G Scenarios 1–6 post-RC-4 | ❌ **NOT RUN** | Blocked by APK gate |
+
+**Decision:** Test G **not executed** in this session. Navneet must connect device, confirm APK, confirm Render SHA in dashboard, then run Scenarios 1–6.
+
+**Do not mark BUG-G2b VERIFIED PASS** until all gates pass and Scenarios 1–6 pass.
 
 ## 1. Original Symptom (Test G)
 
@@ -90,7 +109,10 @@ flutter analyze lib/core/notifications lib/core/runtime/runtime_init.dart
 
 ## 6. Manual Production APK Protocol — Test G
 
-> **Executed:** 2026-08-29  
+> **Pre-RC-4 run (historical):** 2026-08-29 ~02:24 IST — results below.  
+> **Post-RC-4 run:** **NOT EXECUTED** (2026-08-29 ~09:54 IST) — see Section 0 gate.
+
+> **Executed (pre-RC-4):** 2026-08-29  
 > **Operator:** Navneet  
 > **Setup:** Account A — mobile app (admin/creator); Account B — web app (requester)  
 > **Environment:** Production (`https://app.kovari.in/api/`)  
