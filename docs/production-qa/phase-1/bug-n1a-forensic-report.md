@@ -1,6 +1,6 @@
 # BUG-N1a — Background Push Notification Delivery Forensic Report
 
-> **Status:** **FIX IMPLEMENTED — HUMAN QA REQUIRED**  
+> **Status:** **FIX IMPLEMENTED — HUMAN QA REQUIRED** (Round 2)  
 > **Date:** 2026-08-30  
 > **Platform:** Mobile / Android (production APK)
 
@@ -144,3 +144,24 @@ apps/web/src/services/notifications/shouldSendPush.test.ts       (extended)
 | Tap routing | Unchanged | `notification_tap_routing_test.dart` (existing) |
 
 Physical regression (G2b, G2b-TAP, chat, cold start, multi-notif) — **pending human QA**.
+
+---
+
+## 10. Round 2 — Physical QA Failure (2026-08-30)
+
+| Scenario | Result | Evidence |
+| :--- | :--- | :--- |
+| A Foreground (Home) | **FAIL** | First tray OK; after open chat → Home, later msgs updated inbox but no tray |
+| B Background | **FAIL** | Two identical “New message” tray cards |
+| D Cold start | **FAIL** | Same doubles as B |
+
+### Round 2 root causes
+
+1. **Doubles (B/D):** Round 1 always called `showBackgroundFcmNotification`. Production FCM includes a `notification` payload, so Android already posts to the tray; the handler posted a second local notification.
+2. **Foreground gap (A):** `_shouldShowNotification` used a **15s per-chat** window, suppressing later legitimate messages. Separately, treating `AppLifecycleState.inactive` as background disconnected the socket during notification-shade / transitional UI.
+
+### Round 2 fix
+
+- Gate background local display with `shouldDisplayBackgroundFcmLocally` (data-only only).
+- Message-level 3s dedupe instead of 15s per-chat.
+- Disconnect socket only on `paused`/`hidden`, not `inactive`.

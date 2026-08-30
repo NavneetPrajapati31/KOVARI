@@ -4,12 +4,20 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+/// Whether the background isolate should post a local tray notification.
+///
+/// Android already displays FCM messages that include a [RemoteMessage.notification]
+/// payload. Posting again causes duplicate tray entries (BUG-N1a Round 2).
+bool shouldDisplayBackgroundFcmLocally(RemoteMessage message) =>
+    message.notification == null;
+
 /// Displays a tray notification from a background FCM [RemoteMessage].
 ///
-/// Some Android builds do not surface the system notification automatically when
-/// the Flutter process is alive but backgrounded; this is the safety net.
+/// Call only when [shouldDisplayBackgroundFcmLocally] is true (data-only).
 @pragma('vm:entry-point')
 Future<void> showBackgroundFcmNotification(RemoteMessage message) async {
+  if (!shouldDisplayBackgroundFcmLocally(message)) return;
+
   WidgetsFlutterBinding.ensureInitialized();
 
   final plugin = FlutterLocalNotificationsPlugin();

@@ -8,8 +8,8 @@ import 'package:mobile/core/realtime/realtime_coordinator.dart';
 import 'package:mobile/core/realtime/socket_service.dart';
 import 'package:mobile/core/runtime/runtime_scheduler.dart';
 import 'package:mobile/core/utils/app_logger.dart';
-import 'package:mobile/features/chat/providers/chat_runtime_providers.dart';
 import 'package:mobile/features/chat/providers/chat_media_service.dart';
+import 'package:mobile/features/chat/providers/chat_runtime_providers.dart';
 
 class BackgroundGovernor extends WidgetsBindingObserver {
 
@@ -20,8 +20,14 @@ class BackgroundGovernor extends WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
-      case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
+        // Transitional only (notification shade, app switcher). Do not
+        // disconnect the socket here — that broke subsequent foreground
+        // FCM/local notifications after the first tray tap (BUG-N1a Scenario A).
+        DeepLinkBridge.onAppPaused();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
         DeepLinkBridge.onAppPaused();
         _handleBackground();
         break;

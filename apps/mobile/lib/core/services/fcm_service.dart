@@ -17,6 +17,15 @@ import 'package:mobile/core/utils/app_logger.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   AppLogger.i('🔔 [FCM] Background message: ${message.messageId}');
+  // Notification-bearing FCM messages are already posted to the Android system
+  // tray by the OS. Showing another local notification causes duplicates (BUG-N1a
+  // Round 2 QA: Scenarios B/D). Only data-only payloads need an explicit display.
+  if (!shouldDisplayBackgroundFcmLocally(message)) {
+    AppLogger.d(
+      '🔔 [FCM] Skipping local display — system tray handles notification payload',
+    );
+    return;
+  }
   try {
     await showBackgroundFcmNotification(message);
   } catch (e, stack) {
@@ -284,21 +293,43 @@ class FCMService {
     }
   }
 
-  final Map<String, DateTime> _lastShownNotifications = {};
+  /// Dedupes true duplicates (socket local + FCM for the same message), not
+  /// subsequent messages in the same chat (BUG-N1a Round 2 Scenario A).
+  final Map<String, DateTime> _recentNotificationKeys = {};
+  static const _dedupeWindow = Duration(seconds: 3);
 
-  bool _shouldShowNotification(String? chatId) {
-    if (chatId == null || chatId.isEmpty) return true;
-    final lastShown = _lastShownNotifications[chatId];
-    if (lastShown != null) {
-      final difference = DateTime.now().difference(lastShown);
-      if (difference.inSeconds < 15) {
-        AppLogger.d(
-          '🔔 [FCM] Deduplicated notification for $chatId (within 15s)',
-        );
-        return false;
-      }
+  String _notificationDedupeKey(Map<String, dynamic> data, {String? messageId}) {
+    final explicit =
+        messageId ??
+        data['messageId'] as String? ??
+        data['message_id'] as String? ??
+        data['notificationId'] as String? ??
+        data['notification_id'] as String?;
+    if (explicit != null && explicit.isNotEmpty) return 'msg:$explicit';
+
+    final type = data['type'] as String? ?? '';
+    final entityType = data['entity_type'] as String? ?? '';
+    final entityId =
+        data['chat_id'] as String? ?? data['entity_id'] as String? ?? '';
+    final title = data['title'] as String? ?? data['__title'] as String? ?? '';
+    final body = data['body'] as String? ?? data['__body'] as String? ?? '';
+    return 'fallback:$type|$entityType|$entityId|$title|$body';
+  }
+
+  bool _shouldShowNotification(String dedupeKey) {
+    final now = DateTime.now();
+    _recentNotificationKeys.removeWhere(
+      (_, shownAt) => now.difference(shownAt) > _dedupeWindow,
+    );
+    final lastShown = _recentNotificationKeys[dedupeKey];
+    if (lastShown != null && now.difference(lastShown) < _dedupeWindow) {
+      AppLogger.d(
+        '🔔 [FCM] Deduplicated notification key=$dedupeKey '
+        '(within ${_dedupeWindow.inSeconds}s)',
+      );
+      return false;
     }
-    _lastShownNotifications[chatId] = DateTime.now();
+    _recentNotificationKeys[dedupeKey] = now;
     return true;
   }
 
@@ -307,14 +338,18 @@ class FCMService {
     required String body,
     required Map<String, dynamic> data,
   }) {
-    final chatId = data['chat_id'] as String? ?? data['entity_id'] as String?;
-    if (!_shouldShowNotification(chatId)) return;
+    final dedupeKey = _notificationDedupeKey({
+      ...data,
+      'title': title,
+      'body': body,
+    });
+    if (!_shouldShowNotification(dedupeKey)) return;
 
     final entityType = data['entity_type'] as String?;
     final channelId = _channelIdForEntityType(entityType);
 
     _localNotifications.show(
-      data.hashCode,
+      dedupeKey.hashCode,
       title,
       body,
       NotificationDetails(
@@ -340,10 +375,19 @@ class FCMService {
       '🔔 [FCM] Foreground message: ${message.notification?.title} (chatId: $chatId)',
     );
 
-    if (_shouldShowNotification(chatId)) {
+    final dedupeKey = _notificationDedupeKey(
+      {
+        ...message.data,
+        '__title': message.notification?.title ?? '',
+        '__body': message.notification?.body ?? '',
+      },
+      messageId: message.messageId,
+    );
+
+    if (_shouldShowNotification(dedupeKey)) {
       final channelId = _channelIdForEntityType(entityType);
       _localNotifications.show(
-        message.hashCode,
+        dedupeKey.hashCode,
         message.notification?.title ?? 'Kovari',
         message.notification?.body ?? '',
         NotificationDetails(
