@@ -1,6 +1,6 @@
 # BUG-A10 — Deleted Account Re-login Forensic Report
 
-> **Status:** FIX IMPLEMENTED — **pending physical-device production QA**  
+> **Status:** **VERIFIED PASS — QA SIGN-OFF COMPLETE**  
 > **Date:** 2026-08-30  
 > **Severity:** P2
 

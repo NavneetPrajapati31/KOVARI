@@ -1,6 +1,6 @@
 # BUG-A10 — Deleted Account Re-login Fix Validation
 
-> **Status:** ROUND 2 FIX IMPLEMENTED — **pending physical-device production QA (Scenario C re-test)**  
+> **Status:** **VERIFIED PASS — QA SIGN-OFF COMPLETE**  
 > **Date:** 2026-08-30  
 > **Forensic reference:** `bug-a10-forensic-report.md`
 
@@ -22,7 +22,7 @@ Login queries in `/api/auth/login` did not filter deleted accounts. After GDPR d
 | Deleted-account rejection helper | `loginCredentials.ts`, `deleted-account.ts` |
 | Google login deleted guard | `google/route.ts` |
 
-### Round 2 (Scenario C still failing)
+### Round 2 (`31d65bcb`) — Scenario C fix
 
 | Change | File |
 | :--- | :--- |
@@ -40,45 +40,42 @@ Login queries in `/api/auth/login` did not filter deleted accounts. After GDPR d
 
 | Suite | Result |
 | :--- | :--- |
-| `loginCredentials.test.ts` | **7/7 PASS** (Round 2) |
+| `loginCredentials.test.ts` | **7/7 PASS** |
 
 ---
 
 ## 4. Manual Production QA
 
-Use a **disposable QA account**. **Backend must be deployed** before testing — no new APK required for server-side fixes; mobile navigation fix needs a new APK build.
+Use a **disposable QA account**. Round 2 backend + mobile build deployed before re-test.
 
-### Round 1 QA (2026-08-30)
+### Round 2 QA (2026-08-30) — **SIGN-OFF**
 
 | # | Scenario | Expected | Result |
 | :--- | :--- | :--- | :--- |
 | A | Normal login | Active account succeeds | **PASS** |
 | B | Delete account | Deletion completes → Login screen | **PASS** |
-| C | Re-login after delete | 401, deleted message, no session, no Onboarding | **FAIL** — still logged in → Onboarding |
+| C | Re-login after delete | 401, deleted message, no session, no Onboarding | **PASS** |
 | D | Auth regression | Login/signup/OTP/logout/session/reset still work | **PASS** |
 
-### Round 2 QA (after deploy)
-
-| # | Scenario | Expected | Result |
-| :--- | :--- | :--- | :--- |
-| A | Normal login | Active account succeeds | **PENDING** |
-| B | Delete account | Deletion completes → Login screen | **PENDING** |
-| C | Re-login after delete | 401, deleted message, no session, no Onboarding | **PENDING** |
-| D | Auth regression | Login/signup/OTP/logout/session/reset still work | **PENDING** |
-
-### Scenario D must include
-
-- BUG-A7 cold + background reset deep link (sanity)
-- BUG-A8 full reset lifecycle (sanity)
-
-### Scenario C notes
-
-- Use **email/password** login (not Google) unless explicitly testing OAuth.
-- Tombstone is written on **new** deletions after Round 2 deploy. Re-delete the QA account after deploy so the audit log contains `details.deletedEmail`.
-- Expected UI: snackbar or error with *Account not found or has been deleted.* — must **not** reach Onboarding.
+Scenario D included BUG-A7 cold + background reset deep link sanity and BUG-A8 full reset lifecycle sanity.
 
 ---
 
 ## 5. Sign-Off
 
-Mark **VERIFIED PASS — QA SIGN-OFF COMPLETE** only after Round 2 Scenarios A–D pass on physical production APK (with Round 2 backend + mobile build deployed).
+**BUG-A10 — VERIFIED PASS — QA SIGN-OFF COMPLETE** (2026-08-30)
+
+---
+
+## 6. QA History (prior rounds)
+
+### Round 1 QA (2026-08-30, commit `54472d24`)
+
+| # | Result | Notes |
+| :--- | :--- | :--- |
+| A | **PASS** | |
+| B | **PASS** | |
+| C | **FAIL** | Still logged in → Onboarding |
+| D | **PASS** | |
+
+Round 2 fix required for Scenario C after post-delete email nullification broke login lookup and Google sync could reactivate identity.
