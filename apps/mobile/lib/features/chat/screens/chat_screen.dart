@@ -427,7 +427,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         body: Stack(
           children: [
             // Layer 1: Messages (Full Height)
-            (visibleMessages.isEmpty && msgState.isHydrating)
+            (visibleMessages.isEmpty &&
+                    (msgState.isHydrating ||
+                        !msgState.initialHydrationComplete))
                 ? SizedBox(
                     width: MediaQuery.of(context).size.width,
                     height: MediaQuery.of(context).size.height,
@@ -438,7 +440,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                     ),
                   )
-                : (visibleMessages.isEmpty && !msgState.isHydrating)
+                : (visibleMessages.isEmpty &&
+                      msgState.initialHydrationComplete &&
+                      !msgState.isHydrating)
                 ? _EmptyState(isDark: isDark)
                 : _MessageList(
                     messages: visibleMessages,

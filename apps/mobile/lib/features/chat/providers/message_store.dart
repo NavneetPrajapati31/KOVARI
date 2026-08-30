@@ -35,6 +35,7 @@ class ConversationMessageState {
     this.orderedIds = const [],
     this.highestKnownSequence = 0,
     this.isHydrating = false,
+    this.initialHydrationComplete = false,
     this.hasReachedTop = false,
     this.nextCursor,
     this.pendingGap,
@@ -52,6 +53,7 @@ class ConversationMessageState {
   final int highestKnownSequence;
 
   final bool isHydrating;
+  final bool initialHydrationComplete;
   final bool hasReachedTop;
   final String? nextCursor;
 
@@ -71,6 +73,7 @@ class ConversationMessageState {
     List<String>? orderedIds,
     int? highestKnownSequence,
     bool? isHydrating,
+    bool? initialHydrationComplete,
     bool? hasReachedTop,
     String? nextCursor,
     (int, int)? pendingGap,
@@ -81,6 +84,8 @@ class ConversationMessageState {
     orderedIds: orderedIds ?? this.orderedIds,
     highestKnownSequence: highestKnownSequence ?? this.highestKnownSequence,
     isHydrating: isHydrating ?? this.isHydrating,
+    initialHydrationComplete:
+        initialHydrationComplete ?? this.initialHydrationComplete,
     hasReachedTop: hasReachedTop ?? this.hasReachedTop,
     nextCursor: nextCursor ?? this.nextCursor,
     pendingGap: clearGap ? null : (pendingGap ?? this.pendingGap),
@@ -105,6 +110,9 @@ class MessageStore extends Notifier<ConversationMessageState> {
   bool _isDisposed = false;
 
   Future<void>? _syncQueue;
+  Future<void>? _hydrateInFlight;
+  bool _hydrateRerunRequested = false;
+  bool _hydrateRerunForceRefresh = false;
 
   void _enqueueSyncOp(FutureOr<void> Function() op) {
     if (_isDisposed) return;
@@ -214,13 +222,44 @@ class MessageStore extends Notifier<ConversationMessageState> {
 
     startSubscription();
 
+    ref.listen<String?>(
+      authProvider.select((s) => s.user?.resolvedUuid),
+      (previous, next) {
+        if (previous == next || next == null || _isDisposed) return;
+        if (_chatId.split('_').length != 2) return;
+        if (state.messages.isNotEmpty) return;
+        unawaited(_hydrate(forceRefresh: true));
+      },
+    );
+
     // Eagerly hydrate from API in the next microtask to ensure state is initialized
     Future.microtask(() => _hydrate());
 
     return ConversationMessageState(chatId: _chatId);
   }
 
-  Future<void> _hydrate({bool forceRefresh = false}) async {
+  Future<void> _hydrate({bool forceRefresh = false}) {
+    if (_hydrateInFlight != null) {
+      if (forceRefresh) {
+        _hydrateRerunRequested = true;
+        _hydrateRerunForceRefresh = true;
+      }
+      return _hydrateInFlight!;
+    }
+
+    _hydrateInFlight = _hydrateImpl(forceRefresh: forceRefresh).whenComplete(() async {
+      _hydrateInFlight = null;
+      if (_hydrateRerunRequested) {
+        final rerunForceRefresh = _hydrateRerunForceRefresh;
+        _hydrateRerunRequested = false;
+        _hydrateRerunForceRefresh = false;
+        await _hydrate(forceRefresh: rerunForceRefresh);
+      }
+    });
+    return _hydrateInFlight!;
+  }
+
+  Future<void> _hydrateImpl({bool forceRefresh = false}) async {
     AppLogger.d(
       '[MessageStore] HYDRATE START for $_chatId (forceRefresh: $forceRefresh)',
     );
@@ -340,27 +379,47 @@ class MessageStore extends Notifier<ConversationMessageState> {
 
       // 2. Perform delta sync in the background
       if (_conversationType == ConversationType.group) {
+        final meta = cacheRepo.getMetadata(_chatId);
+        final forceFullSync =
+            forceRefresh &&
+            cachedEntities.isEmpty &&
+            state.messages.isEmpty &&
+            (meta?.lastSequence ?? 0) > 0;
         await syncEngine.syncDelta(
           chatId: _chatId,
           path: 'groups/$_chatId/messages',
           baseParams: {'limit': _kHotWindowSize},
           partnerClerkId: null,
           myUserId: userId,
+          forceFullSync: forceFullSync,
         );
       } else {
-        final partnerId = directChatPartnerId(
+        var partnerId = runtimeEntry?.metadata?.partnerUserId;
+        partnerId ??= directChatPartnerId(
           _chatId,
           authUser.id,
           myUserUuid: authUser.resolvedUuid,
         );
         if (partnerId != null) {
           final partnerClerkId = getPartnerClerkId();
+          final cachedCount = cachedEntities.length;
+          final meta = cacheRepo.getMetadata(_chatId);
+          final forceFullSync =
+              forceRefresh &&
+              cachedCount == 0 &&
+              state.messages.isEmpty &&
+              (meta?.lastSequence ?? 0) > 0;
           await syncEngine.syncDelta(
             chatId: _chatId,
             path: 'direct-chat/messages',
             baseParams: {'partnerId': partnerId, 'limit': _kHotWindowSize},
             partnerClerkId: partnerClerkId,
             myUserId: userId,
+            forceFullSync: forceFullSync,
+          );
+        } else {
+          AppLogger.w(
+            '[MessageStore] Skipping direct-chat fetch for $_chatId — partner unresolved (will retry when auth UUID is ready)',
           );
         }
       }
@@ -412,7 +471,10 @@ class MessageStore extends Notifier<ConversationMessageState> {
       );
     } finally {
       if (!_isDisposed && _isActive) {
-        state = state.copyWith(isHydrating: false);
+        state = state.copyWith(
+          isHydrating: false,
+          initialHydrationComplete: true,
+        );
       }
     }
   }
@@ -451,8 +513,11 @@ class MessageStore extends Notifier<ConversationMessageState> {
       state = state.copyWith(isHydrating: value);
 
   /// Trigger a full sync of the conversation messages from the server.
-  void resync({bool forceRefresh = false}) =>
+  Future<void> resync({bool forceRefresh = false}) =>
       _hydrate(forceRefresh: forceRefresh);
+
+  /// Notification-entry prefetch: prioritize remote hydration before UI paint.
+  Future<void> prefetchFromNotification() => _hydrate(forceRefresh: true);
 
   /// Loads the next page of older messages using the oldest message's timestamp as cursor.
   Future<void> loadMore() async {

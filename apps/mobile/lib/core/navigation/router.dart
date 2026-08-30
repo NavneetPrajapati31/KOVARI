@@ -11,6 +11,7 @@ import 'package:mobile/core/services/fcm_service.dart';
 import 'package:mobile/core/utils/app_logger.dart';
 import 'package:mobile/core/utils/nav_observer.dart';
 import 'package:mobile/features/chat/screens/chat_screen.dart';
+import 'package:mobile/features/chat/utils/chat_notification_prefetch.dart';
 import 'package:mobile/features/chat/utils/direct_chat_id.dart';
 
 /// Backend notification type for incoming group join requests.
@@ -105,18 +106,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           final rawChatId = data['chat_id'] as String?;
           final isDirect = chatType == 'direct' || entityId.contains('_');
           if (isDirect) {
-            final resolvedChatId =
-                rawChatId ?? (entityId.contains('_') ? entityId : null);
+            final resolvedChatId = resolveDirectChatIdFromNotification(
+              entityId: entityId,
+              rawChatId: rawChatId,
+              myUuid: ref.read(authProvider).user?.resolvedUuid,
+            );
             if (resolvedChatId != null) {
+              prefetchChatForNotificationTap(ref, resolvedChatId);
               router.push('/chat/$resolvedChatId');
             } else {
-              final myUuid = ref.read(authProvider).user?.resolvedUuid;
-              if (myUuid != null) {
-                final targetChatId = directChatId(myUuid, entityId);
-                router.push('/chat/$targetChatId');
-              } else {
-                router.push('/chat/$entityId');
-              }
+              prefetchChatForNotificationTap(ref, entityId);
+              router.push('/chat/$entityId');
             }
           } else {
             router.push('/groups/$entityId?tab=1');
@@ -139,6 +139,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             final myUuid = ref.read(authProvider).user?.resolvedUuid;
             if (myUuid != null) {
               final targetChatId = directChatId(myUuid, entityId);
+              prefetchChatForNotificationTap(ref, targetChatId);
               router.push('/chat/$targetChatId');
               break;
             }

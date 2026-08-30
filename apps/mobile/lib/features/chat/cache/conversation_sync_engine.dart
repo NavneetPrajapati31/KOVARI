@@ -33,18 +33,21 @@ class ConversationSyncEngine {
     required Map<String, dynamic> baseParams,
     required String? partnerClerkId,
     required String? myUserId,
+    bool forceFullSync = false,
   }) async {
     final stopwatch = Stopwatch()..start();
     MetricsService.record(DeltaSyncStartedEvent(chatId));
 
     final meta = _cacheRepository.getMetadata(chatId);
-    final lastSeq = meta?.lastSequence ?? 0;
+    final cachedMsgs = _cacheRepository.getMessages(chatId);
+    final storedLastSeq = meta?.lastSequence ?? 0;
+    final lastSeq = forceFullSync ? 0 : storedLastSeq;
 
     final params = Map<String, dynamic>.from(baseParams)
       ..['afterSequence'] = lastSeq;
 
     AppLogger.d(
-      '[ConversationSyncEngine] Syncing delta for $chatId from sequence $lastSeq',
+      '[ConversationSyncEngine] Syncing delta for $chatId from sequence $lastSeq (forceFullSync: $forceFullSync)',
     );
 
     final response = await _remoteRepository.fetchMessages(
@@ -61,6 +64,19 @@ class ConversationSyncEngine {
 
     final rawMessages = response['messages'] as List<dynamic>? ?? [];
     if (rawMessages.isEmpty) {
+      if (!forceFullSync && cachedMsgs.isEmpty && storedLastSeq > 0) {
+        AppLogger.w(
+          '[ConversationSyncEngine] Empty delta with stale metadata for $chatId — retrying full sync',
+        );
+        return syncDelta(
+          chatId: chatId,
+          path: path,
+          baseParams: baseParams,
+          partnerClerkId: partnerClerkId,
+          myUserId: myUserId,
+          forceFullSync: true,
+        );
+      }
       MetricsService.record(
         DeltaSyncFinishedEvent(chatId, 0, stopwatch.elapsed),
       );
