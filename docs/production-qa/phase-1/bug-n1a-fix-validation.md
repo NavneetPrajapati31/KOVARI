@@ -1,6 +1,6 @@
 # BUG-N1a — Background Push Notification Delivery Fix Validation
 
-> **Status:** **FIX IMPLEMENTED — HUMAN QA REQUIRED** (Round 3)  
+> **Status:** **VERIFIED PASS — QA SIGN-OFF COMPLETE**  
 > **Date:** 2026-08-30  
 > **Forensic reference:** `bug-n1a-forensic-report.md`
 
@@ -16,17 +16,11 @@
 
 ## 2. Fix Summary
 
-### Round 3 (this fix)
-
-| Change | File |
-| :--- | :--- |
-| Fan-out chat `new_notification` to Clerk **and** Supabase socket rooms | `events.ts` |
-| Background FCM handler is log-only (no local tray) | `fcm_service.dart` |
-| Include `messageId` in socket-path local notification data | `conversation_runtime_store.dart` |
-
-### Prior rounds
-
-See `bug-n1a-forensic-report.md` sections 6 and 10.
+| Round | Change | File |
+| :--- | :--- | :--- |
+| 1 | Background tray display, channels, leaveChat, batching, presence | `fcm_*`, `background_governor.dart`, `batching.ts`, `shouldSendPush.ts` |
+| 2 | Skip duplicate local display when FCM has notification payload; message-level dedupe | `fcm_service.dart`, `fcm_background_notification.dart` |
+| 3 | Fan-out chat socket to Clerk + Supabase rooms; background handler log-only | `events.ts`, `fcm_service.dart`, `conversation_runtime_store.dart` |
 
 ---
 
@@ -43,25 +37,29 @@ See `bug-n1a-forensic-report.md` sections 6 and 10.
 
 ## 4. Manual Production QA
 
-| # | Scenario | Expected | Round 3 result | Round 4 retest |
-| :--- | :--- | :--- | :--- | :--- |
-| A | Foreground on Home — multiple messages | One tray notification per message | **FAIL** — no tray | **PENDING** |
-| B | Background — single message | Exactly one tray; no follow-up after swipe | **PASS** with stray “view update” after swipe | **PENDING** |
-| C | Multiple background notifications | No loss / dupes | **PASS** | — |
-| D | Cold start | One notification; tap routing OK | **PASS** | — |
-| E | G2b regression | Join-request delivery + tap | **PASS** | — |
-| F | Chat regression | Chat push + tap | **PASS** | — |
+Use **two QA accounts**, **production backend**, and **release APK** (Round 3+ build).
 
-### Round 3 physical evidence (2026-08-30)
+| # | Scenario | Expected | Result |
+| :--- | :--- | :--- | :--- |
+| A | Foreground on Home — multiple messages | One tray notification per message | **PASS** |
+| B | Background — single message; swipe away | Exactly one tray; no follow-up notification | **PASS** |
+| C | Multiple background notifications | No loss / dupes | **PASS** |
+| D | Cold start | One notification; tap routing OK | **PASS** |
+| E | G2b regression | Join-request delivery + tap | **PASS** |
+| F | Chat regression | Chat push + tap | **PASS** |
 
-- **A:** App foreground on Home; web sends chat → no tray notification.
-- **B:** Background delivery works; swiping away first notification triggered a second generic “Open Kovari to view update” card.
-- **C–F:** Pass.
+### Regression spot-checks
+
+| Area | Expected | Result |
+| :--- | :--- | :--- |
+| G2 / G2b / G2b-TAP | Unchanged | **PASS** (E) |
+| Chat tap routing / hydration | Unchanged | **PASS** (F) |
+| BUG-N1b in-app Home banner | Out of N1a scope | **N/A** (separate bug) |
 
 ---
 
 ## 5. Sign-Off
 
-**FIX IMPLEMENTED — HUMAN QA REQUIRED** (Round 3)
+**VERIFIED PASS — QA SIGN-OFF COMPLETE** (2026-08-30, physical production APK, Scenarios A–F).
 
-Retest **A** and **B** after Round 3 fix + redeploy (socket server + mobile APK). Do not mark **VERIFIED PASS** until A passes and B has no post-swipe stray notification.
+Fix commits: `a79b64e2`, `030c6c53`, `718f9e13`.

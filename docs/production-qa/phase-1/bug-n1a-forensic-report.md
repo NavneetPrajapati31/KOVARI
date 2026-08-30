@@ -1,6 +1,6 @@
 # BUG-N1a — Background Push Notification Delivery Forensic Report
 
-> **Status:** **FIX IMPLEMENTED — HUMAN QA REQUIRED** (Round 2)  
+> **Status:** **VERIFIED PASS — QA SIGN-OFF COMPLETE**  
 > **Date:** 2026-08-30  
 > **Platform:** Mobile / Android (production APK)
 
@@ -171,3 +171,9 @@ Physical regression (G2b, G2b-TAP, chat, cold start, multi-notif) — **pending 
 - Fan-out chat `new_notification` to both Clerk and Supabase `user_socket` rooms (foreground Home path).
 - Background FCM handler log-only — no local “view update” fallback tray post.
 - Socket local notification includes `messageId` for dedupe with FCM.
+
+---
+
+## 11. Sign-Off
+
+**VERIFIED PASS — QA SIGN-OFF COMPLETE** (2026-08-30). Physical production APK: Scenarios A–F **PASS** after Round 3 fix (`718f9e13`). See `bug-n1a-fix-validation.md`.
