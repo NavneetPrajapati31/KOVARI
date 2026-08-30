@@ -119,3 +119,16 @@ Re-tested after backend (`e9ad6bf8`) + mobile bridge (`d8029436`). Account A on 
 **Overall Test G: FAIL** — end-to-end receiver-side delivery not fixed in production QA.
 
 Full results: [`bug-g2b-mobile-fix-validation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-g2b-mobile-fix-validation.md).
+
+---
+
+## Post-C4b Reconciliation — BUG-C4 / C4a (2026-08-30)
+
+The Day 2 table above records **C4 = FAIL** from the **pre-C4b-fix** run (2026-08-27). After BUG-C4b sign-off (2026-08-29):
+
+| Item | Post-fix status |
+| :--- | :--- |
+| **BUG-C4b** | **VERIFIED PASS** — Tests A–F including outbox replay |
+| **BUG-C4a** | **RECONCILED — COVERED BY C4b** — offline outgoing recovery validated by C4b Test B; no standalone C4a implementation |
+
+See [`bug-c4a-reconciliation.md`](file:///c:/Users/navne/CSE/DEV/KOVARI/docs/production-qa/phase-1/bug-c4a-reconciliation.md). Regression matrix C4 updated to **PASS**.

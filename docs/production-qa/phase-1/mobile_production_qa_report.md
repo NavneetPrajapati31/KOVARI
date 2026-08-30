@@ -23,7 +23,7 @@ This report tracks the status, execution summary, and final decisions of the hum
 | **Phase 2** | Profile Validation | **UNVERIFIED** |
 | **Phase 3** | Explore & Matching | **UNVERIFIED** |
 | **Phase 4** | Groups | **UNVERIFIED** |
-| **Phase 5** | Chat & Realtime | **PASS (BUG-C4b verified, BUG-C4a pending)** |
+| **Phase 5** | Chat & Realtime | **PASS** (BUG-C4b verified; BUG-C4a reconciled under C4b 2026-08-30) |
 | **Phase 6** | Notifications | **UNVERIFIED** |
 | **Phase 7** | Safety | **UNVERIFIED** |
 | **Phase 8** | Settings | **UNVERIFIED** |
@@ -54,4 +54,5 @@ This E2E QA phase is complete only when all criteria have been verified by a hum
 | **BUG-G2b** | Notifications — join request delivery | 2026-08-29 | `bug-g2b-fix-validation.md` |
 | **BUG-G2b-TAP** | Notifications — tap routing | 2026-08-29 | `bug-g2b-tap-routing-fix-validation.md` |
 | **BUG-G3** | Groups — itinerary cross-platform sync | 2026-08-29 | `bug-g3-fix-validation.md` |
-| **BUG-C4b** | Chat — delivery / seen persistence | 2026-08-29 | `bug-c4b-fix-validation.md` |
+| **BUG-C4b** | Chat — delivery / seen persistence / outbox replay | 2026-08-29 | `bug-c4b-fix-validation.md` |
+| **BUG-C4a** | Chat — offline outbox (reconciled under C4b) | 2026-08-30 | `bug-c4a-reconciliation.md` |
