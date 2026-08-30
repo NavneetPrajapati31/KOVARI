@@ -78,9 +78,9 @@ groupMatches empty + hasSearched true → NO fetch (bug)
 
 ---
 
-## E. Manual QA Required
+## E. Manual QA
 
-See `bug-e5-fix-validation.md` — Scenarios A–H on physical production APK.
+**VERIFIED PASS — QA SIGN-OFF COMPLETE** (2026-08-30). See `bug-e5-fix-validation.md` — Round 2 Scenarios A–H all PASS on physical production APK.
 
 ---
 

@@ -21,6 +21,8 @@ import 'package:mobile/shared/models/kovari_user.dart';
 ///  │  5. Tab switches restore the IN-MEMORY deck; do NOT re-fetch.   │
 ///  └─────────────────────────────────────────────────────────────────┘
 class ExploreNotifier extends Notifier<ExploreState> {
+  int _searchGeneration = 0;
+
   @override
   ExploreState build() {
     // Start with an empty deck — discovery feed is never pre-loaded from cache.
@@ -101,10 +103,14 @@ class ExploreNotifier extends Notifier<ExploreState> {
     state = state.copyWith(
       searchData: updatedSearch,
       filters: defaultFilters,
-      matches: const [],
-      currentIndex: 0,
-      page: 1,
-      hasMore: true,
+      soloMatches: const [],
+      soloCurrentIndex: 0,
+      soloPage: 1,
+      soloHasMore: true,
+      groupMatches: const [],
+      groupCurrentIndex: 0,
+      groupPage: 1,
+      groupHasMore: true,
       hasSearched: false,
       soloHasSearched: false,
       groupHasSearched: false,
@@ -123,6 +129,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
     bool isLoadMore = false,
     bool isSilent = false,
   }) async {
+    final generation = ++_searchGeneration;
     final userId = _userId ?? 'dummy-user-id';
     final mode = state.searchData.travelMode;
 
@@ -132,13 +139,23 @@ class ExploreNotifier extends Notifier<ExploreState> {
       if (!state.hasMore || mode != TravelMode.solo) return;
       state = state.copyWith(isFetchingNextPage: true);
     } else if (!isSilent) {
-      state = state.copyWith(
-        isLoading: true,
-        matches: const [],
-        currentIndex: 0,
-        page: 1,
-        hasMore: true,
-      );
+      state = mode == TravelMode.solo
+          ? state.copyWith(
+              isLoading: true,
+              error: null,
+              soloMatches: const [],
+              soloCurrentIndex: 0,
+              soloPage: 1,
+              soloHasMore: true,
+            )
+          : state.copyWith(
+              isLoading: true,
+              error: null,
+              groupMatches: const [],
+              groupCurrentIndex: 0,
+              groupPage: 1,
+              groupHasMore: true,
+            );
     }
 
     try {
@@ -154,19 +171,19 @@ class ExploreNotifier extends Notifier<ExploreState> {
         if (!isLoadMore) {
           await _service.createSession(state.searchData, userId);
         }
+        if (generation != _searchGeneration) return;
+
         final fetchPage = isLoadMore ? state.page + 1 : 1;
         final result = await _matchService.getMatches(
           page: fetchPage,
           searchData: state.searchData,
           filters: state.filters,
         );
+        if (generation != _searchGeneration) return;
 
         List<MatchUser> fetchedMatches = result.matches.cast<MatchUser>();
         debugPrint('DEBUG: fetchedMatches before dedup: ${fetchedMatches.map((m) => m.id).toList()}');
 
-        // Client-side dedup: strip any user that is in our seen ledger.
-        // This is the same defense-in-depth approach Hinge uses to handle
-        // the window between a swipe and the server cache being invalidated.
         if (seenIds.isNotEmpty) {
           fetchedMatches = fetchedMatches.where((m) {
             final isSeen = seenIds.contains(m.id);
@@ -185,14 +202,26 @@ class ExploreNotifier extends Notifier<ExploreState> {
         }
         newHasMore = result.hasMore;
         newPage = fetchPage;
+
+        if (generation != _searchGeneration) return;
+
+        state = state.copyWith(
+          soloMatches: matches,
+          soloCurrentIndex: isLoadMore ? state.soloCurrentIndex : 0,
+          soloPage: newPage,
+          soloHasMore: newHasMore,
+          hasSearched: true,
+          soloHasSearched: true,
+          lastFetchTime: isLoadMore ? state.lastFetchTime : DateTime.now(),
+        );
       } else {
         final result = await _service.matchGroups(
           userId,
           state.searchData,
           state.filters,
         );
+        if (generation != _searchGeneration) return;
 
-        // Apply seen-ledger filter for groups too.
         var groupMatches = result.matches;
         if (seenIds.isNotEmpty) {
           groupMatches = groupMatches.where((m) {
@@ -205,24 +234,22 @@ class ExploreNotifier extends Notifier<ExploreState> {
           }).toList();
         }
 
-        matches = groupMatches;
-        newHasMore = result.hasMore;
-      }
+        if (generation != _searchGeneration) return;
 
-      state = state.copyWith(
-        matches: matches,
-        hasSearched: true,
-        soloHasSearched:
-            mode == TravelMode.solo ? true : state.soloHasSearched,
-        groupHasSearched:
-            mode == TravelMode.group ? true : state.groupHasSearched,
-        page: newPage,
-        hasMore: newHasMore,
-        lastFetchTime: isLoadMore ? state.lastFetchTime : DateTime.now(),
-      );
+        state = state.copyWith(
+          groupMatches: groupMatches,
+          groupCurrentIndex: 0,
+          groupHasMore: result.hasMore,
+          hasSearched: true,
+          groupHasSearched: true,
+          lastFetchTime: DateTime.now(),
+        );
+      }
     } catch (e) {
+      if (generation != _searchGeneration) return;
       state = state.copyWith(error: e.toString());
     } finally {
+      if (generation != _searchGeneration) return;
       state = state.copyWith(isLoading: false, isFetchingNextPage: false);
     }
   }
@@ -264,6 +291,7 @@ class ExploreNotifier extends Notifier<ExploreState> {
       }
     } catch (_) {}
 
+    final mode = state.searchData.travelMode;
     int newIndex = state.currentIndex;
     if (updatedMatches.isEmpty) {
       newIndex = 0;
@@ -271,7 +299,15 @@ class ExploreNotifier extends Notifier<ExploreState> {
       newIndex = updatedMatches.length - 1;
     }
 
-    state = state.copyWith(matches: updatedMatches, currentIndex: newIndex);
+    state = mode == TravelMode.solo
+        ? state.copyWith(
+            soloMatches: updatedMatches,
+            soloCurrentIndex: newIndex,
+          )
+        : state.copyWith(
+            groupMatches: updatedMatches,
+            groupCurrentIndex: newIndex,
+          );
 
     // Persist to seen-users ledger — the source of truth for dedup.
     final cache = ref.read(localCacheProvider);
