@@ -192,8 +192,37 @@ class ConversationRuntimeStore
   static const _kTypingTtlSeconds = 5;
   final Map<String, Timer> _typingTimers = {};
 
+  /// Drops all conversation runtime entries, typing timers, and inbox metadata.
+  /// Called on logout / account switch before the next user hydrates.
+  void clearAccountState() {
+    for (final timer in _typingTimers.values) {
+      timer.cancel();
+    }
+    _typingTimers.clear();
+    state = {};
+    AppLogger.i('[ConversationRuntimeStore] Account-scoped runtime state cleared');
+  }
+
   @override
   Map<String, ConversationRuntimeState> build() {
+    ref.listen<bool>(authProvider.select((s) => s.isAuthenticated), (
+      previous,
+      next,
+    ) {
+      if (previous == true && next == false) {
+        clearAccountState();
+      }
+    });
+
+    ref.listen<String?>(authProvider.select((s) => s.user?.id), (
+      previous,
+      next,
+    ) {
+      if (previous != null && next != null && previous != next) {
+        clearAccountState();
+      }
+    });
+
     // Listen to user changes. If user transitions to non-null and has a resolved UUID, fetch inbox
     ref.listen<KovariUser?>(authProvider.select((s) => s.user), (
       previous,

@@ -47,6 +47,14 @@ class PendingUploadStore extends ChangeNotifier {
   }
 
   PendingUpload? get(String id) => _uploads[id];
+
+  /// Clears persisted pending media uploads (global box — must run on logout).
+  Future<void> clearAll() async {
+    _uploads.clear();
+    await _box?.clear();
+    notifyListeners();
+    AppLogger.i('[PendingUploadStore] Cleared all pending uploads');
+  }
 }
 
 final pendingUploadStoreProvider = ChangeNotifierProvider<PendingUploadStore>((ref) {

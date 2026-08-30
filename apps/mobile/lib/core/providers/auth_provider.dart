@@ -11,8 +11,8 @@ import 'package:mobile/core/providers/connectivity_provider.dart';
 import 'package:mobile/core/providers/profile_provider.dart';
 import 'package:mobile/core/utils/app_logger.dart';
 import 'package:mobile/shared/models/kovari_user.dart';
+import 'package:mobile/core/auth/account_session_cleanup.dart';
 import 'package:mobile/core/providers/cache_provider.dart';
-import 'package:mobile/core/realtime/socket_service.dart';
 import 'package:mobile/features/chat/providers/cache_providers.dart';
 
 class AuthState {
@@ -195,11 +195,11 @@ class AuthNotifier extends Notifier<AuthState> {
         : bannedUser?.banExpiresAt;
 
     try {
-      await ref.read(localCacheProvider).clearAll();
+      await clearAccountScopedChatState(ref.container);
     } catch (_) {}
 
     try {
-      ref.read(socketServiceProvider.notifier).disconnect();
+      await ref.read(localCacheProvider).clearAll();
     } catch (_) {}
 
     // Save user data locally if we have it (for cold start BannedScreen to read ban status)
@@ -309,6 +309,8 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    await clearAccountScopedChatState(ref.container);
+
     final currentUser = state.user;
     if (currentUser != null) {
       try {

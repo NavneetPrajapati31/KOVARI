@@ -88,6 +88,12 @@ class FakeMutationJournal extends ChangeNotifier implements MutationJournal {
 
   @override
   bool hasPending(String entityId) => getPendingFor(entityId).isNotEmpty;
+
+  @override
+  Future<void> clearAll() async {
+    _journal.clear();
+    notifyListeners();
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -117,6 +123,12 @@ class FakePendingUploadStore extends ChangeNotifier
 
   @override
   PendingUpload? get(String id) => _uploads[id];
+
+  @override
+  Future<void> clearAll() async {
+    _uploads.clear();
+    notifyListeners();
+  }
 }
 
 // ─────────────────────────────────────────────

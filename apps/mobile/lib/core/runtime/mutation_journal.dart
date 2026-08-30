@@ -114,6 +114,14 @@ class MutationJournal extends ChangeNotifier {
   }
 
   bool hasPending(String entityId) => getPendingFor(entityId).isNotEmpty;
+
+  /// Removes all persisted outbox entries (global box — must run on logout).
+  Future<void> clearAll() async {
+    _journal.clear();
+    await _box?.clear();
+    notifyListeners();
+    AppLogger.i('[MutationJournal] Cleared all pending mutations');
+  }
 }
 
 final mutationJournalProvider = ChangeNotifierProvider(

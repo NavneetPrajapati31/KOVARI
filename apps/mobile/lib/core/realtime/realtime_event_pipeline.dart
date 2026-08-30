@@ -77,6 +77,15 @@ class RealtimeEventPipeline {
     _batchedEventController.close();
   }
 
+  /// Drops queued socket events so the next authenticated session does not
+  /// process events from the previous account's connection window.
+  void clearPendingQueues() {
+    _queues.clear();
+    _retryQueue.clear();
+    _frameCallbackScheduled = false;
+    AppLogger.i('[RealtimeEventPipeline] Cleared pending event queues');
+  }
+
   /// Categorize event priority.
   EventPriority _classifyPriority(String type) {
     switch (type) {
