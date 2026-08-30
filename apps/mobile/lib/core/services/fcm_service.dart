@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile/core/auth/token_storage.dart';
 import 'package:mobile/core/config/env.dart';
+import 'package:mobile/core/services/fcm_background_notification.dart';
 import 'package:mobile/core/utils/app_logger.dart';
 
 // ---------------------------------------------------------------------------
@@ -15,10 +16,16 @@ import 'package:mobile/core/utils/app_logger.dart';
 // ---------------------------------------------------------------------------
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Firebase is already initialised by the time this runs.
-  // FCM automatically shows the system tray notification for
-  // data+notification messages — no extra work needed here.
   AppLogger.i('🔔 [FCM] Background message: ${message.messageId}');
+  try {
+    await showBackgroundFcmNotification(message);
+  } catch (e, stack) {
+    AppLogger.e(
+      '🔔 [FCM] Background notification display failed',
+      error: e,
+      stackTrace: stack,
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -35,12 +42,14 @@ const _channelMatches = AndroidNotificationChannel(
   'kovari_matches',
   'Matches & Requests',
   description: 'Match notifications and connection requests',
+  importance: Importance.high,
 );
 
 const _channelGroups = AndroidNotificationChannel(
   'kovari_groups',
   'Groups',
   description: 'Group invitations and activity',
+  importance: Importance.high,
 );
 
 // ---------------------------------------------------------------------------

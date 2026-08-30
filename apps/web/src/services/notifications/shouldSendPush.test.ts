@@ -234,11 +234,37 @@ describe("shouldSendPush (BUG-G2b delivery fix)", () => {
 
     const result = await shouldSendPush({
       userId: "user_chat",
+      clerkId: "user_chat",
+      supabaseId: "770e8400-e29b-41d4-a716-446655440002",
       type: NotificationType.NEW_MESSAGE,
       entityType: "chat",
       entityId: "chat-room-1",
     });
 
     expect(result).toBe(true);
+    expect(mockSIsMember).toHaveBeenCalledWith(
+      "user_chats:770e8400-e29b-41d4-a716-446655440002",
+      "chat-room-1",
+    );
+  });
+
+  it("suppresses FCM for NEW_MESSAGE when supabase user_chats contains the room", async () => {
+    mockSCard.mockResolvedValue(1);
+    mockSIsMember.mockResolvedValue(true);
+
+    const result = await shouldSendPush({
+      userId: "user_chat",
+      clerkId: "user_chat",
+      supabaseId: "770e8400-e29b-41d4-a716-446655440002",
+      type: NotificationType.NEW_MESSAGE,
+      entityType: "chat",
+      entityId: "chat-room-1",
+    });
+
+    expect(result).toBe(false);
+    expect(mockSIsMember).toHaveBeenCalledWith(
+      "user_chats:770e8400-e29b-41d4-a716-446655440002",
+      "chat-room-1",
+    );
   });
 });

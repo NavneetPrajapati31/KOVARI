@@ -67,14 +67,34 @@ export async function shouldSendPush({
     if (canDeliverViaSocket) return false;
   } else {
     // 2b. Chat/message presence (NEW_MESSAGE and other non-realtime types)
-    const userSocketsKey = `user_socket:${userId}`;
-    const isOnlineCount = await pubClient.sCard(userSocketsKey);
-    const isOnline = isOnlineCount > 0;
+    let resolvedClerkId = clerkId?.trim() || null;
+    let resolvedSupabaseId = supabaseId?.trim() || null;
+
+    if (!resolvedClerkId && !resolvedSupabaseId) {
+      if (UUID_REGEX.test(userId)) {
+        resolvedSupabaseId = userId;
+      } else {
+        resolvedClerkId = userId;
+      }
+    }
+
+    const onlineClerk = resolvedClerkId
+      ? await pubClient.sCard(`user_socket:${resolvedClerkId}`)
+      : 0;
+    const onlineSupabase = resolvedSupabaseId
+      ? await pubClient.sCard(`user_socket:${resolvedSupabaseId}`)
+      : 0;
+    const isOnline = onlineClerk > 0 || onlineSupabase > 0;
 
     if (isOnline) {
+      const presenceUserId =
+        resolvedSupabaseId || resolvedClerkId || userId;
       if ((entityType === "chat" || entityType === "group") && entityId) {
-        const activeChatsKey = `user_chats:${userId}`;
-        const isViewingTargetRoom = await pubClient.sIsMember(activeChatsKey, entityId);
+        const activeChatsKey = `user_chats:${presenceUserId}`;
+        const isViewingTargetRoom = await pubClient.sIsMember(
+          activeChatsKey,
+          entityId,
+        );
 
         if (isViewingTargetRoom) {
           return false;

@@ -4,6 +4,43 @@ import {
   CreateNotificationParams,
 } from "@kovari/types";
 import { SITE_URL } from "@/lib/config/site";
+import { createAdminSupabaseClient } from "@kovari/api";
+
+const UUID_REGEX =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+async function isRecipientOffline(clerkOrUserId: string): Promise<boolean> {
+  const supabase = createAdminSupabaseClient();
+  let clerkId = clerkOrUserId;
+  let supabaseId: string | null = null;
+
+  if (UUID_REGEX.test(clerkOrUserId)) {
+    supabaseId = clerkOrUserId;
+    const { data } = await supabase
+      .from("users")
+      .select("clerk_user_id")
+      .eq("id", clerkOrUserId)
+      .maybeSingle();
+    clerkId = data?.clerk_user_id || clerkOrUserId;
+  } else {
+    const { data } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_user_id", clerkOrUserId)
+      .maybeSingle();
+    supabaseId = data?.id || null;
+  }
+
+  let socketCount = 0;
+  if (clerkId && !UUID_REGEX.test(clerkId)) {
+    socketCount += await pubClient.sCard(`user_socket:${clerkId}`);
+  }
+  if (supabaseId) {
+    socketCount += await pubClient.sCard(`user_socket:${supabaseId}`);
+  }
+
+  return socketCount === 0;
+}
 
 /**
  * Buffers notifications to avoid spamming the user with multiple alerts
@@ -22,6 +59,12 @@ export async function bufferNotification(
   try {
     // Add message to buffer
     await pubClient.rPush(bufferKey, messagePreview);
+
+    const offline = await isRecipientOffline(userId);
+    if (offline) {
+      await processBuffer(userId, chatId, senderName, senderAvatar, senderId);
+      return;
+    }
     
     // Check if timer is already running
     const timerExists = await pubClient.get(timerKey);

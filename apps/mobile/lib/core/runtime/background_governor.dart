@@ -4,9 +4,11 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/core/navigation/deep_link_router.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
+import 'package:mobile/core/realtime/realtime_coordinator.dart';
 import 'package:mobile/core/realtime/socket_service.dart';
 import 'package:mobile/core/runtime/runtime_scheduler.dart';
 import 'package:mobile/core/utils/app_logger.dart';
+import 'package:mobile/features/chat/providers/chat_runtime_providers.dart';
 import 'package:mobile/features/chat/providers/chat_media_service.dart';
 
 class BackgroundGovernor extends WidgetsBindingObserver {
@@ -42,7 +44,18 @@ class BackgroundGovernor extends WidgetsBindingObserver {
     PaintingBinding.instance.imageCache.clear();
     PaintingBinding.instance.imageCache.clearLiveImages();
 
-    // 3. Disconnect socket instantly for clean status updates and battery savings
+    // 3. Leave active chat rooms so presence/FCM suppression reflects background state
+    try {
+      final activeChatId = _ref.read(activeConversationProvider);
+      if (activeChatId != null) {
+        _ref.read(realtimeCoordinatorProvider.notifier).leaveChat(activeChatId);
+        _ref.read(activeConversationProvider.notifier).set(null);
+      }
+    } catch (e) {
+      AppLogger.e('⚠️ [BackgroundGovernor] leaveChat on background failed', error: e);
+    }
+
+    // 4. Disconnect socket instantly for clean status updates and battery savings
     try {
       _ref.read(socketServiceProvider.notifier).disconnect();
     } catch (e) {
