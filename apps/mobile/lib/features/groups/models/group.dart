@@ -137,9 +137,15 @@ class GroupModel {
       })(),
       tags: json['tags'] != null
           ? List<String>.from(json['tags'] as List)
+          : json['interests'] != null
+          ? List<String>.from(json['interests'] as List)
+          : json['topInterests'] != null
+          ? List<String>.from(json['topInterests'] as List)
           : null,
       languages: json['languages'] != null
           ? List<String>.from(json['languages'] as List)
+          : json['dominantLanguages'] != null
+          ? List<String>.from(json['dominantLanguages'] as List)
           : null,
       smokingPolicy: (json['non_smokers'] == true)
           ? 'Non-smokers preferred'
@@ -296,12 +302,20 @@ class GroupCreator {
         profession: json['profession']?.toString(),
         religion: json['religion']?.toString(),
         personality: json['personality']?.toString(),
-        interests: json['interests'] != null ? List<String>.from(json['interests'] as List) : const [],
-        languages: json['languages'] != null ? List<String>.from(json['languages'] as List) : const [],
+        interests: _parseStringList(json['interests']),
+        languages: _parseStringList(json['languages']),
         smoking: json['smoking']?.toString(),
         drinking: json['drinking']?.toString(),
         foodPreference: json['foodPreference']?.toString(),
       );
+
+  static List<String> _parseStringList(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
 
   final String name;
   final String username;

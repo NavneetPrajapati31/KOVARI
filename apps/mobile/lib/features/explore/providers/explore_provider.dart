@@ -82,9 +82,11 @@ class ExploreNotifier extends Notifier<ExploreState> {
       isFetchingNextPage: false,
     );
 
-    // Only hit the server if this mode has no in-memory deck yet.
-    // If we have a deck (even empty after swiping everything), trust it.
-    if (state.matches.isEmpty && !state.hasSearched) {
+    // Only hit the server if this mode has no in-memory deck yet and has never been fetched.
+    final needsFetch = mode == TravelMode.solo
+        ? state.soloMatches.isEmpty && !state.soloHasSearched
+        : state.groupMatches.isEmpty && !state.groupHasSearched;
+    if (needsFetch) {
       performSearch();
     }
   }
@@ -104,6 +106,8 @@ class ExploreNotifier extends Notifier<ExploreState> {
       page: 1,
       hasMore: true,
       hasSearched: false,
+      soloHasSearched: false,
+      groupHasSearched: false,
     );
 
     performSearch();
@@ -208,6 +212,10 @@ class ExploreNotifier extends Notifier<ExploreState> {
       state = state.copyWith(
         matches: matches,
         hasSearched: true,
+        soloHasSearched:
+            mode == TravelMode.solo ? true : state.soloHasSearched,
+        groupHasSearched:
+            mode == TravelMode.group ? true : state.groupHasSearched,
         page: newPage,
         hasMore: newHasMore,
         lastFetchTime: isLoadMore ? state.lastFetchTime : DateTime.now(),

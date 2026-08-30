@@ -382,6 +382,8 @@ export async function performGroupDbMatchingFallback(
       ai_overview,
       non_smokers,
       non_drinkers,
+      top_interests,
+      dominant_languages,
       destination_lat,
       destination_lon
     ` as any)
@@ -464,7 +466,13 @@ export async function performGroupDbMatchingFallback(
       budget: g.budget,
       ai_overview: g.ai_overview,
       coverImage: g.cover_image,
-      is_public: g.is_public
+      is_public: g.is_public,
+      topInterests: g.top_interests ?? [],
+      tags: g.top_interests ?? [],
+      languages: g.dominant_languages ?? [],
+      dominantLanguages: g.dominant_languages ?? [],
+      non_smokers: g.non_smokers ?? null,
+      non_drinkers: g.non_drinkers ?? null,
     };
   });
 

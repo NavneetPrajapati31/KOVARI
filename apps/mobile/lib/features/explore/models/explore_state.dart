@@ -112,6 +112,8 @@ class ExploreState {
     required this.isLoading,
     this.error,
     required this.hasSearched,
+    this.soloHasSearched = false,
+    this.groupHasSearched = false,
     this.lastFetchTime,
     required int page,
     required bool hasMore,
@@ -166,6 +168,8 @@ class ExploreState {
   final bool isLoading;
   final String? error;
   final bool hasSearched;
+  final bool soloHasSearched;
+  final bool groupHasSearched;
   final DateTime? lastFetchTime;
   final bool isPending;
   final bool isFetchingNextPage;
@@ -183,6 +187,8 @@ class ExploreState {
     bool? isLoading,
     String? error,
     bool? hasSearched,
+    bool? soloHasSearched,
+    bool? groupHasSearched,
     DateTime? lastFetchTime,
     int? page,
     bool? hasMore,
@@ -206,6 +212,8 @@ class ExploreState {
       isLoading: isLoading ?? this.isLoading,
       error: error,
       hasSearched: hasSearched ?? this.hasSearched,
+      soloHasSearched: soloHasSearched ?? this.soloHasSearched,
+      groupHasSearched: groupHasSearched ?? this.groupHasSearched,
       lastFetchTime: lastFetchTime ?? this.lastFetchTime,
       isPending: isPending ?? this.isPending,
       isFetchingNextPage: isFetchingNextPage ?? this.isFetchingNextPage,
