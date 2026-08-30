@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { generateAccessToken, generateRefreshToken, hashToken } from "@/lib/auth/jwt";
 import { writeAuditLog } from "@/lib/audit/log";
 import { sendSecurityAlert } from "@/lib/alerts/security";
-import { createRouteHandlerSupabaseClientWithServiceRole, isActiveBan, BAN_ERROR_MESSAGE } from "@kovari/api";
+import { createRouteHandlerSupabaseClientWithServiceRole, isActiveBan, BAN_ERROR_MESSAGE, DELETED_ACCOUNT_LOGIN_MESSAGE } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { detectClient } from "@/lib/api/clientDetection";
 import { 
@@ -14,6 +14,10 @@ import {
 import { userTransformer } from "@/lib/transformers/userTransformer";
 import { ApiErrorCode, KovariClient } from "@/types/api";
 import { checkRateLimit } from "@/lib/auth/rateLimit";
+import {
+  evaluatePasswordLogin,
+  LOGIN_USER_SELECT,
+} from "@/lib/auth/loginCredentials";
 
 /**
  * 🏛️ HARDENED LOGIN API (Phase 3 True Isolation)
@@ -42,11 +46,19 @@ export async function POST(request: NextRequest) {
       const supabase = createRouteHandlerSupabaseClientWithServiceRole();
       const { data: user } = await supabase
         .from("users")
-        .select("id, email, password_hash, banned, ban_reason, ban_expires_at, profiles(name)")
+        .select(LOGIN_USER_SELECT)
         .ilike("email", email)
+        .eq("isDeleted", false)
         .maybeSingle();
 
-      if (!user || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) {
+      const loginResult = await evaluatePasswordLogin(user, password, bcrypt.compare);
+      if (loginResult === "deleted") {
+        return NextResponse.json(
+          { error: DELETED_ACCOUNT_LOGIN_MESSAGE },
+          { status: 401 },
+        );
+      }
+      if (loginResult === "invalid") {
         return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
       }
 
@@ -118,14 +130,31 @@ async function handleStandardLogin(
     const supabase = createRouteHandlerSupabaseClientWithServiceRole();
     const { data: user } = await supabase
       .from("users")
-      .select("id, email, password_hash, banned, ban_reason, ban_expires_at, profiles(name)")
+      .select(LOGIN_USER_SELECT)
       .ilike("email", email)
+      .eq("isDeleted", false)
       .maybeSingle();
 
     const ip = request.headers.get("x-forwarded-for") || "unknown";
     const userAgent = request.headers.get("user-agent") || "unknown";
 
-    if (!user || !user.password_hash || !(await bcrypt.compare(password, user.password_hash))) {
+    const loginResult = await evaluatePasswordLogin(user, password, bcrypt.compare);
+    if (loginResult === "deleted") {
+      await writeAuditLog({
+        action: "AUTH_LOGIN_ATTEMPT",
+        targetId: email,
+        ipAddress: ip,
+        userAgent: userAgent,
+        details: { status: "failed", reason: "deleted account" },
+      });
+      return formatErrorResponse(
+        DELETED_ACCOUNT_LOGIN_MESSAGE,
+        ApiErrorCode.UNAUTHORIZED,
+        requestId,
+        401,
+      );
+    }
+    if (loginResult === "invalid") {
       await writeAuditLog({
         action: "AUTH_LOGIN_ATTEMPT",
         targetId: email, // Can't easily use user.id if user doesn't exist
@@ -141,6 +170,10 @@ async function handleStandardLogin(
         ipAddress: ip,
         details: { email }
       });
+      return formatErrorResponse("Invalid credentials", ApiErrorCode.UNAUTHORIZED, requestId, 401);
+    }
+
+    if (!user) {
       return formatErrorResponse("Invalid credentials", ApiErrorCode.UNAUTHORIZED, requestId, 401);
     }
 

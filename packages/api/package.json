@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
     "./server": "./src/server.ts",
+    "./auth/deleted-account": "./src/auth/deleted-account.ts",
     "./moderation/ban-gate": "./src/moderation/ban-gate.ts"
   },
   "scripts": {

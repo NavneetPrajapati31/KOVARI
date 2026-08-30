@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyGoogleToken } from "@/lib/auth/google";
 import { generateAccessToken, generateRefreshToken, hashToken } from "@/lib/auth/jwt";
-import { createRouteHandlerSupabaseClientWithServiceRole, isActiveBan, BAN_ERROR_MESSAGE } from "@kovari/api";
+import { createRouteHandlerSupabaseClientWithServiceRole, isActiveBan, BAN_ERROR_MESSAGE, DELETED_ACCOUNT_LOGIN_MESSAGE, isDeletedLoginUser } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
 import { ApiErrorCode } from "@/types/api";
@@ -52,13 +52,22 @@ export async function POST(request: NextRequest) {
     // 3.5 Fetch full user data including ban status
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("id, email, banned, ban_reason, ban_expires_at, profiles(name)")
+      .select('id, email, banned, ban_reason, ban_expires_at, "isDeleted", profiles(name)')
       .eq("id", userId)
       .maybeSingle();
 
     if (userError || !user) {
       console.error("Failed to fetch user after sync:", userError);
       return formatErrorResponse("User fetch failed", ApiErrorCode.INTERNAL_SERVER_ERROR, requestId, 500);
+    }
+
+    if (isDeletedLoginUser(user)) {
+      return formatErrorResponse(
+        DELETED_ACCOUNT_LOGIN_MESSAGE,
+        ApiErrorCode.UNAUTHORIZED,
+        requestId,
+        401,
+      );
     }
 
     if (isActiveBan(user)) {
