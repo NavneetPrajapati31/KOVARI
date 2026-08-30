@@ -90,7 +90,9 @@ class AuthService {
       await _finalizeAuthentication(response.data!, response.raw);
       return response.data;
     }
-    throw Exception(response.error?.message ?? 'Email Login failed');
+    throw Exception(
+      response.error?.message ?? 'Invalid email or password. Please try again.',
+    );
   }
 
   Future<Map<String, dynamic>> registerWithEmail(

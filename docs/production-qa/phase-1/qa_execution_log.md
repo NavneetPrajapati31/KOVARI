@@ -71,5 +71,17 @@ This log records the active progress and results of the controlled production QA
 
 ---
 
+## Mobile Auth — BUG-A7 / A8 Sign-Off (2026-08-30)
+
+Physical-device production APK verification for password reset deep link and full lifecycle:
+
+| Item | Result | Evidence |
+| :--- | :--- | :--- |
+| BUG-A7 — reset deep link (cold + background) | **PASS** | `bug-a7-fix-validation.md` |
+| A8 — full reset lifecycle (Scenario D) | **PASS** | Same doc, Scenario D |
+| Regression matrix A7 / A8 | **PASS** | `mobile_regression_matrix.md` |
+
+---
+
 ## Next Steps for Manual QA Execution
-With **Gate A fully passed**, manual E2E user verification can now proceed to **Gate B — Authentication** on staging/production environments using the dedicated QA test accounts.
+With **Gate A fully passed**, manual E2E user verification can now proceed to **Gate B — Authentication** on staging/production environments using the dedicated QA test accounts. Mobile scenarios **A7** and **A8** (password reset) signed off 2026-08-30.

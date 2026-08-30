@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/core/navigation/deep_link_resolver.dart';
+import 'package:mobile/core/navigation/deep_link_router.dart';
 import 'package:mobile/core/navigation/router_notifier.dart';
 import 'package:mobile/core/navigation/routes.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
@@ -33,7 +34,9 @@ String resolveGroupNotificationTapRoute({
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final notifier = ref.watch(routerNotifierProvider);
+  // Keep a single GoRouter instance; auth/profile changes refresh via
+  // [refreshListenable] instead of recreating the router (which drops warm links).
+  final notifier = ref.read(routerNotifierProvider);
 
   final router = GoRouter(
     initialLocation: '/',
@@ -63,32 +66,20 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   // Initialize AppLinks listener
   final appLinks = AppLinks();
-
-  void routeDeepLink(Uri uri) {
-    final location = resolveDeepLinkLocation(uri);
-    if (location == null) {
-      AppLogger.w(
-        '🔗 [DeepLink] Unsupported or incomplete link: ${sanitizeDeepLinkForLog(uri)}',
-      );
-      return;
-    }
-    AppLogger.i('🔗 [DeepLink] Routing to: $location');
-    router.go(location);
-  }
-
-  // Listen to incoming deep links (when app is in background/foreground)
-  final appLinksSub = appLinks.uriLinkStream.listen((uri) {
-    AppLogger.i('🔗 [DeepLink] Incoming Uri: ${sanitizeDeepLinkForLog(uri)}');
-    routeDeepLink(uri);
-  });
+  final deepLinkRouter = DeepLinkRouter.fromGoRouter(router);
+  DeepLinkBridge.register(deepLinkRouter, appLinks);
+  final streamBinder = DeepLinkStreamBinder(deepLinkRouter, appLinks);
+  streamBinder.bind();
 
   // Handle the initial link (when app is launched from a terminated state)
   appLinks.getInitialLink().then((uri) {
     if (uri != null) {
       AppLogger.i('🔗 [DeepLink] Initial Uri: ${sanitizeDeepLinkForLog(uri)}');
       // Allow router/auth bootstrap to settle before cold-start navigation.
-      Future.delayed(const Duration(milliseconds: 500), () {
-        routeDeepLink(uri);
+      Future<void>.delayed(const Duration(milliseconds: 500), () {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          deepLinkRouter.route(uri);
+        });
       });
     }
   });
@@ -167,8 +158,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   });
 
   ref.onDispose(() {
-    appLinksSub.cancel();
+    streamBinder.dispose();
     fcmSub.cancel();
+    DeepLinkBridge.unregister();
   });
 
   return router;

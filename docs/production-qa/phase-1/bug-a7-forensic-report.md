@@ -1,20 +1,27 @@
 # BUG-A7 — Mobile Password Reset Deep Link Forensic Report
 
-> **Status:** FORENSIC COMPLETE — fix implemented (pending production QA)  
-> **Date:** 2026-08-29  
-> **Severity:** P1
+> **Status:** **VERIFIED PASS — QA SIGN-OFF COMPLETE**  
+> **Date:** 2026-08-30 (forensic: 2026-08-29; QA sign-off: 2026-08-30)  
+> **Severity:** P1  
+> **Validation:** `bug-a7-fix-validation.md`
 
 ---
 
 ## A. Executive Summary
 
-**Symptom:** Reset email link does not open KOVARI on `/reset-password` with token preserved.
+**Symptom:** Reset email link does not open KOVARI on `/reset-password` with token preserved (cold start and warm/background).
 
-**Updated finding:** The tracker conclusion that **`app_links` was missing is outdated**. `app_links` is in `pubspec.yaml` and `router.dart` already registers `uriLinkStream` + `getInitialLink`.
+**Updated finding:** The tracker conclusion that **`app_links` was missing is outdated**. `app_links` is in `pubspec.yaml` and `router.dart` already registered `uriLinkStream` + `getInitialLink`.
 
-**Actual first failed stage:** Custom-scheme URI resolution in `router.dart` — handler only routed when `uri.path.isNotEmpty`. For `kovari://reset-password?token=...`, **`uri.path` is empty** (host carries `reset-password`), so the listener **silently dropped** the link.
+**Root causes (three rounds):**
 
-**Minimal fix:** `resolveDeepLinkLocation()` maps `kovari://reset-password?token=` → `/reset-password?token=`; cold-start delay aligned with FCM pattern; token redacted in logs.
+| Round | First failed stage | Fix |
+| :--- | :--- | :--- |
+| **1** | Custom-scheme URI resolution — handler required non-empty `uri.path`; `kovari://reset-password` uses host, not path | `resolveDeepLinkLocation()` |
+| **2** | `routerProvider` recreated `GoRouter` on auth refresh → warm links lost on resume | Stable router via `ref.read(notifier)` |
+| **3** | Permanent URI dedup blocked re-taps; `router.go` from login lost to restoration; resume poll ran before bootstrap | `DeepLinkRouter`, `BackgroundGovernor` resume poll, `router.push` on auth screens |
+
+**Production QA (2026-08-30):** Scenarios A–D, F **PASS** on physical device. E skipped.
 
 ---
 
@@ -31,13 +38,15 @@ Android intent-filter (scheme=kovari, host=reset-password) ✅
       ↓
 app_links → Uri (host=reset-password, path="", query token) ✅
       ↓
-router.dart deep-link handler
-      ↓
-[BUG] path.isEmpty → no navigation ❌
+[Round 1 BUG] path.isEmpty → no navigation ❌
       ↓
 [FIX] resolveDeepLinkLocation → /reset-password?token=... ✅
       ↓
+[Round 2–3] cold: getInitialLink + delay; warm: stream + resume poll + push ✅
+      ↓
 ResetPasswordRouteData → ResetPasswordScreen ✅
+      ↓
+POST reset-password → login with new password ✅ (BUG-A8 lifecycle)
 ```
 
 ---
@@ -51,13 +60,16 @@ ResetPasswordRouteData → ResetPasswordScreen ✅
 | `AndroidManifest.xml` intent-filter | ✅ `kovari` + host `reset-password` |
 | `app_links` package | ✅ present (`^6.3.0`) |
 | AppLinks listeners | ✅ existed pre-fix |
-| Custom scheme → GoRouter path | ❌ **broken pre-fix** |
+| Custom scheme → GoRouter path | ✅ fixed (Round 1) |
+| Cold-start deep link | ✅ verified (Scenario B) |
+| Background/warm deep link | ✅ verified (Scenario C, Round 3) |
 | `ResetPasswordRouteData` | ✅ reads `token` query param |
 | Auth guard for `/reset-password` | ✅ public auth page when logged out |
+| Full reset lifecycle | ✅ verified (Scenario D → BUG-A8) |
 
 ---
 
-## D. Root Cause
+## D. Root Cause (Round 1 — primary)
 
 **File:** `apps/mobile/lib/core/navigation/router.dart` (pre-fix)
 
@@ -77,16 +89,22 @@ The handler never entered the routing block.
 
 ---
 
-## E. Fix Implemented
+## E. Fix Implemented (all rounds)
 
 | File | Change |
 | :--- | :--- |
 | `deep_link_resolver.dart` | **New** — `resolveDeepLinkLocation`, `sanitizeDeepLinkForLog` |
-| `router.dart` | Use resolver; 500ms cold-start delay; redacted logging |
+| `deep_link_router.dart` | **New** — dedup, warm `push`, resume poll, lifecycle bridge |
+| `router.dart` | Resolver + stable GoRouter + stream binder |
 | `router_notifier.dart` | Sanitize `kovari://` in redirect guard |
-| `deep_link_resolver_test.dart` | **New** — 7 unit tests |
+| `background_governor.dart` | Resume deep-link poll after foreground |
+| `MainActivity.kt` | `onNewIntent` + `setIntent` |
+| `deep_link_resolver_test.dart` | 7 unit tests |
+| `deep_link_router_test.dart` | 4 unit tests |
+| `api_client.dart` | 401 client errors surfaced to AuthService (login UX) |
+| `auth_service.dart` / `api_error_handler.dart` | User-facing invalid-credentials message |
 
-**Not modified:** Backend, `AuthService`, login/signup, G2/G2b/G3.
+**Not modified:** Backend reset-token generation, G2/G2b/G3 delivery stack.
 
 ---
 
@@ -95,15 +113,31 @@ The handler never entered the routing block.
 - Reset tokens **not logged** (sanitized as `[REDACTED]`)
 - Missing token → no navigation
 - Unknown `kovari://` hosts → ignored
+- Token not persisted beyond reset flow
 
 ---
 
-## G. Manual QA Required
+## G. Production QA Sign-Off
 
-See `bug-a7-fix-validation.md` — Scenarios A–F on physical production APK.
+See `bug-a7-fix-validation.md`.
+
+| Scenario | Result |
+| :--- | :--- |
+| A — Request reset email | **PASS** |
+| B — Cold-start deep link | **PASS** |
+| C — Background deep link | **PASS** |
+| D — Complete reset + login | **PASS** |
+| E — Invalid/expired token | **SKIPPED** |
+| F — Auth regression | **PASS** |
+
+**BUG-A7 — VERIFIED PASS — QA SIGN-OFF COMPLETE** (2026-08-30)
 
 ---
 
-## H. BUG-A8
+## H. BUG-A8 (Password Reset Lifecycle)
 
-Remains **blocked** until complete password-reset lifecycle verified on device.
+**Status:** **VERIFIED PASS** — validated via Scenario D on the same Round 3 production APK (2026-08-30).
+
+Full lifecycle confirmed: forgot-password email → deep link (cold + background) → reset screen → new password → email login success.
+
+Regression matrix scenario **A8** updated to **PASS** in `mobile_regression_matrix.md`.

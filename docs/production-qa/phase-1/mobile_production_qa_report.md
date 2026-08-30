@@ -19,7 +19,7 @@ This report tracks the status, execution summary, and final decisions of the hum
 
 | Phase | Description | Status |
 | :--- | :--- | :--- |
-| **Phase 1** | Authentication Validation | **PASS** |
+| **Phase 1** | Authentication Validation | **PASS** (A7/A8 password reset verified 2026-08-30) |
 | **Phase 2** | Profile Validation | **UNVERIFIED** |
 | **Phase 3** | Explore & Matching | **UNVERIFIED** |
 | **Phase 4** | Groups | **UNVERIFIED** |
@@ -41,3 +41,17 @@ This E2E QA phase is complete only when all criteria have been verified by a hum
 - [x] All failures documented and root causes analyzed.
 - [x] Production regression matrix fully updated.
 - [x] Production bug tracker updated with isolated hotfix cards.
+
+---
+
+## 3. Closed Production Fixes (Phase 1)
+
+| Bug / Scenario | Module | Sign-Off Date | Doc |
+| :--- | :--- | :--- | :--- |
+| **BUG-A7** | Auth — password reset deep link | 2026-08-30 | `bug-a7-fix-validation.md` |
+| **A8** (lifecycle) | Auth — full reset → login | 2026-08-30 | Scenario D in `bug-a7-fix-validation.md` |
+| **BUG-G2** | Groups — membership sync | 2026-08-29 | `bug-g2-fix-validation.md` |
+| **BUG-G2b** | Notifications — join request delivery | 2026-08-29 | `bug-g2b-fix-validation.md` |
+| **BUG-G2b-TAP** | Notifications — tap routing | 2026-08-29 | `bug-g2b-tap-routing-fix-validation.md` |
+| **BUG-G3** | Groups — itinerary cross-platform sync | 2026-08-29 | `bug-g3-fix-validation.md` |
+| **BUG-C4b** | Chat — delivery / seen persistence | 2026-08-29 | `bug-c4b-fix-validation.md` |

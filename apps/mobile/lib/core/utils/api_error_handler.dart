@@ -38,6 +38,7 @@ class ApiErrorHandler {
           return 'Something went wrong. Please try again.';
       }
     }
-    return error?.toString() ?? 'An unknown error occurred.';
+    return error?.toString().replaceFirst(RegExp(r'^Exception:\s*'), '') ??
+        'An unknown error occurred.';
   }
 }

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile/core/navigation/deep_link_router.dart';
 import 'package:mobile/core/providers/auth_provider.dart';
 import 'package:mobile/core/realtime/socket_service.dart';
 import 'package:mobile/core/runtime/runtime_scheduler.dart';
@@ -17,10 +20,12 @@ class BackgroundGovernor extends WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
+        DeepLinkBridge.onAppPaused();
         _handleBackground();
         break;
       case AppLifecycleState.resumed:
         _handleForeground();
+        unawaited(DeepLinkBridge.onAppResumed());
         break;
       default:
         break;

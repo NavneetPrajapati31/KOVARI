@@ -910,6 +910,33 @@ class DioApiClient implements ApiClient {
         );
       }
 
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+        if (e.response?.data is Map) {
+          final data = Map<String, dynamic>.from(e.response!.data as Map);
+          ApiError? apiError;
+          final errorField = data['error'];
+          if (errorField is Map) {
+            apiError = ApiError.fromJson(
+              Map<String, dynamic>.from(errorField),
+            );
+          } else if (errorField is String && errorField.isNotEmpty) {
+            apiError = ApiError(
+              message: errorField,
+              code: data['code']?.toString() ?? 'HTTP_$statusCode',
+            );
+          }
+          if (apiError != null) {
+            return ApiResponse<T>(
+              success: false,
+              meta: const ApiMeta(),
+              error: apiError,
+              requestId: requestId,
+            );
+          }
+        }
+      }
+
       var reason = 'network';
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout ||
