@@ -7,6 +7,12 @@ describe("isDeletedLoginUser", () => {
     expect(isDeletedLoginUser({ isDeleted: true })).toBe(true);
   });
 
+  it("returns true when deletedAt is set", () => {
+    expect(
+      isDeletedLoginUser({ isDeleted: false, deletedAt: "2026-08-30T00:00:00.000Z" }),
+    ).toBe(true);
+  });
+
   it("returns false for active rows", () => {
     expect(isDeletedLoginUser({ isDeleted: false })).toBe(false);
     expect(isDeletedLoginUser(null)).toBe(false);

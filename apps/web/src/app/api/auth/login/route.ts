@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { generateAccessToken, generateRefreshToken, hashToken } from "@/lib/auth/jwt";
 import { writeAuditLog } from "@/lib/audit/log";
 import { sendSecurityAlert } from "@/lib/alerts/security";
-import { createRouteHandlerSupabaseClientWithServiceRole, isActiveBan, BAN_ERROR_MESSAGE, DELETED_ACCOUNT_LOGIN_MESSAGE } from "@kovari/api";
+import { createRouteHandlerSupabaseClientWithServiceRole, isActiveBan, BAN_ERROR_MESSAGE, DELETED_ACCOUNT_LOGIN_MESSAGE, isDeletedAccountEmail } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { detectClient } from "@/lib/api/clientDetection";
 import { 
@@ -16,7 +16,7 @@ import { ApiErrorCode, KovariClient } from "@/types/api";
 import { checkRateLimit } from "@/lib/auth/rateLimit";
 import {
   evaluatePasswordLogin,
-  LOGIN_USER_SELECT,
+  fetchPasswordLoginUser,
 } from "@/lib/auth/loginCredentials";
 
 /**
@@ -44,12 +44,7 @@ export async function POST(request: NextRequest) {
       if (!email || !password) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
       const supabase = createRouteHandlerSupabaseClientWithServiceRole();
-      const { data: user } = await supabase
-        .from("users")
-        .select(LOGIN_USER_SELECT)
-        .ilike("email", email)
-        .eq("isDeleted", false)
-        .maybeSingle();
+      const user = await fetchPasswordLoginUser(supabase, email);
 
       const loginResult = await evaluatePasswordLogin(user, password, bcrypt.compare);
       if (loginResult === "deleted") {
@@ -59,6 +54,12 @@ export async function POST(request: NextRequest) {
         );
       }
       if (loginResult === "invalid") {
+        if (await isDeletedAccountEmail(supabase, email)) {
+          return NextResponse.json(
+            { error: DELETED_ACCOUNT_LOGIN_MESSAGE },
+            { status: 401 },
+          );
+        }
         return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
       }
 
@@ -128,12 +129,7 @@ async function handleStandardLogin(
   try {
     const { email, password } = await request.json();
     const supabase = createRouteHandlerSupabaseClientWithServiceRole();
-    const { data: user } = await supabase
-      .from("users")
-      .select(LOGIN_USER_SELECT)
-      .ilike("email", email)
-      .eq("isDeleted", false)
-      .maybeSingle();
+    const user = await fetchPasswordLoginUser(supabase, email);
 
     const ip = request.headers.get("x-forwarded-for") || "unknown";
     const userAgent = request.headers.get("user-agent") || "unknown";
@@ -155,6 +151,21 @@ async function handleStandardLogin(
       );
     }
     if (loginResult === "invalid") {
+      if (await isDeletedAccountEmail(supabase, email)) {
+        await writeAuditLog({
+          action: "AUTH_LOGIN_ATTEMPT",
+          targetId: email,
+          ipAddress: ip,
+          userAgent: userAgent,
+          details: { status: "failed", reason: "deleted account tombstone" },
+        });
+        return formatErrorResponse(
+          DELETED_ACCOUNT_LOGIN_MESSAGE,
+          ApiErrorCode.UNAUTHORIZED,
+          requestId,
+          401,
+        );
+      }
       await writeAuditLog({
         action: "AUTH_LOGIN_ATTEMPT",
         targetId: email, // Can't easily use user.id if user doesn't exist

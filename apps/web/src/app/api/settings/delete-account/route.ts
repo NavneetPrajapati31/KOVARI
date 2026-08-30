@@ -5,6 +5,7 @@ import * as Sentry from "@sentry/nextjs";
 import { getAuthenticatedUser } from "@/lib/auth/get-user";
 import { sendSecurityAlert } from "@/lib/alerts/security";
 import { writeAuditLog } from "@/lib/audit/log";
+import { normalizeLoginEmail } from "@kovari/api/auth/deleted-account";
 
 /**
  * GDPR Article 17 Compliant Deletion
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
     // 1) Find DB user row (Safety check)
     const { data: userRow, error: userRowError } = await supabaseAdmin
       .from("users")
-      .select('id, "isDeleted", "deletedAt"')
+      .select('id, email, "isDeleted", "deletedAt"')
       .eq("id", user.id)
       .maybeSingle();
 
@@ -161,6 +162,9 @@ export async function POST(req: NextRequest) {
     // 7) Audit Log
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     const userAgent = req.headers.get("user-agent") || "unknown";
+    const deletedEmail = normalizeLoginEmail(
+      userRow.email ?? profileRow?.email ?? user.email ?? "",
+    );
     
     await sendSecurityAlert({
       event: "Account Deleted",
@@ -177,7 +181,10 @@ export async function POST(req: NextRequest) {
       targetType: "user",
       ipAddress: ip,
       userAgent: userAgent,
-      details: { clerkUserId: user.clerkUserId },
+      details: {
+        clerkUserId: user.clerkUserId,
+        ...(deletedEmail ? { deletedEmail } : {}),
+      },
     });
 
     return NextResponse.json({ success: true }, { status: 200 });

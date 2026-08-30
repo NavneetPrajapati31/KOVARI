@@ -1,7 +1,23 @@
-import { isDeletedLoginUser } from "@kovari/api/auth/deleted-account";
+import {
+  isDeletedLoginUser,
+  normalizeLoginEmail,
+} from "@kovari/api/auth/deleted-account";
 
 export const LOGIN_USER_SELECT =
-  'id, email, password_hash, banned, ban_reason, ban_expires_at, "isDeleted", profiles(name)';
+  'id, email, password_hash, banned, ban_reason, ban_expires_at, "isDeleted", "deletedAt", profiles(name)';
+
+type LoginQueryClient = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      ilike: (
+        column: string,
+        value: string,
+      ) => {
+        maybeSingle: () => Promise<{ data: LoginUserRecord | null }>;
+      };
+    };
+  };
+};
 
 export type LoginUserRecord = {
   id: string;
@@ -11,8 +27,24 @@ export type LoginUserRecord = {
   ban_reason?: string | null;
   ban_expires_at?: string | null;
   isDeleted?: boolean | null;
+  deletedAt?: string | null;
   profiles?: unknown;
 };
+
+/** Loads a login candidate by email without excluding soft-deleted rows. */
+export async function fetchPasswordLoginUser(
+  supabase: LoginQueryClient,
+  email: string,
+): Promise<LoginUserRecord | null> {
+  const normalized = normalizeLoginEmail(email);
+  const { data: user } = await supabase
+    .from("users")
+    .select(LOGIN_USER_SELECT)
+    .ilike("email", normalized)
+    .maybeSingle();
+
+  return user;
+}
 
 export type PasswordLoginEvaluation = "ok" | "deleted" | "invalid";
 

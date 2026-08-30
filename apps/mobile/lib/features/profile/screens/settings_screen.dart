@@ -246,7 +246,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           _showSnackBar('Account deleted successfully');
           await ref.read(authProvider.notifier).logout();
           if (!mounted) return;
-          const OnboardingRouteData().go(context);
+          const LoginRouteData().go(context);
         } catch (e) {
           _showSnackBar(
             e.toString().replaceAll('Exception: ', ''),

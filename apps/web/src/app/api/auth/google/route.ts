@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyGoogleToken } from "@/lib/auth/google";
 import { generateAccessToken, generateRefreshToken, hashToken } from "@/lib/auth/jwt";
-import { createRouteHandlerSupabaseClientWithServiceRole, isActiveBan, BAN_ERROR_MESSAGE, DELETED_ACCOUNT_LOGIN_MESSAGE, isDeletedLoginUser } from "@kovari/api";
+import { createRouteHandlerSupabaseClientWithServiceRole, isActiveBan, BAN_ERROR_MESSAGE, DELETED_ACCOUNT_LOGIN_MESSAGE, isDeletedLoginUser, isDeletedAccountEmail, normalizeLoginEmail } from "@kovari/api";
 import { generateRequestId } from "@/lib/api/requestId";
 import { formatStandardResponse, formatErrorResponse } from "@/lib/api/responseHelpers";
 import { ApiErrorCode } from "@/types/api";
@@ -30,9 +30,28 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, name, googleId } = googlePayload;
+    const normalizedEmail = normalizeLoginEmail(email);
 
     // 2. Initialize Supabase
     const supabase = createRouteHandlerSupabaseClientWithServiceRole();
+
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select('id, "isDeleted", "deletedAt"')
+      .ilike("email", normalizedEmail)
+      .maybeSingle();
+
+    if (
+      isDeletedLoginUser(existingUser) ||
+      (!existingUser && (await isDeletedAccountEmail(supabase, normalizedEmail)))
+    ) {
+      return formatErrorResponse(
+        DELETED_ACCOUNT_LOGIN_MESSAGE,
+        ApiErrorCode.UNAUTHORIZED,
+        requestId,
+        401,
+      );
+    }
 
     // 3. Consolidated Atomic Identity Sync
     const { data: userId, error: syncError } = await supabase
