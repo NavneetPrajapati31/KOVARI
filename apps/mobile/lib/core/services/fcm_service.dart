@@ -7,7 +7,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile/core/auth/token_storage.dart';
 import 'package:mobile/core/config/env.dart';
-import 'package:mobile/core/services/fcm_background_notification.dart';
 import 'package:mobile/core/utils/app_logger.dart';
 
 // ---------------------------------------------------------------------------
@@ -17,24 +16,9 @@ import 'package:mobile/core/utils/app_logger.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   AppLogger.i('🔔 [FCM] Background message: ${message.messageId}');
-  // Notification-bearing FCM messages are already posted to the Android system
-  // tray by the OS. Showing another local notification causes duplicates (BUG-N1a
-  // Round 2 QA: Scenarios B/D). Only data-only payloads need an explicit display.
-  if (!shouldDisplayBackgroundFcmLocally(message)) {
-    AppLogger.d(
-      '🔔 [FCM] Skipping local display — system tray handles notification payload',
-    );
-    return;
-  }
-  try {
-    await showBackgroundFcmNotification(message);
-  } catch (e, stack) {
-    AppLogger.e(
-      '🔔 [FCM] Background notification display failed',
-      error: e,
-      stackTrace: stack,
-    );
-  }
+  // Production FCM payloads include a notification block; Android posts those
+  // to the system tray automatically. Do not post a second local notification
+  // (BUG-N1a Round 3: stray "Open Kovari to view update" after swipe-away).
 }
 
 // ---------------------------------------------------------------------------

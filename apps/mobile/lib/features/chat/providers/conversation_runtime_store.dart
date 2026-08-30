@@ -681,7 +681,13 @@ class ConversationRuntimeStore
           FCMService.instance.showLocalNotification(
             title: senderName,
             body: bodyMessage,
-            data: {'entity_type': 'chat', 'entity_id': chatId},
+            data: {
+              'entity_type': 'chat',
+              'entity_id': chatId,
+              'chat_id': chatId,
+              if (messageId != null) 'messageId': messageId,
+              'type': 'NEW_MESSAGE',
+            },
           );
         }
 

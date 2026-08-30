@@ -165,3 +165,9 @@ Physical regression (G2b, G2b-TAP, chat, cold start, multi-notif) — **pending 
 - Gate background local display with `shouldDisplayBackgroundFcmLocally` (data-only only).
 - Message-level 3s dedupe instead of 15s per-chat.
 - Disconnect socket only on `paused`/`hidden`, not `inactive`.
+
+### Round 3 fix
+
+- Fan-out chat `new_notification` to both Clerk and Supabase `user_socket` rooms (foreground Home path).
+- Background FCM handler log-only — no local “view update” fallback tray post.
+- Socket local notification includes `messageId` for dedupe with FCM.

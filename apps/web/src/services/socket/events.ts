@@ -10,6 +10,7 @@ import { createAdminSupabaseClient, isActiveBan } from "@kovari/api";
 import { PresenceManager } from "./presence";
 import { RateLimiter } from "./rateLimiter";
 import { bufferNotification } from "../notifications/batching";
+import { notificationSocketRoomIds } from "../notifications/realtimeNotificationTypes";
 import {
   presenceKeyForSupabaseUserId,
   resolveSupabaseUserIdFromAuthId,
@@ -244,11 +245,9 @@ export const registerSocketEvents = (
         // Direct Chat: Recipient is message.receiverId (Supabase users.id)
         const recipientId = message.receiverId;
         if (recipientId) {
-          const notifyTargetId =
-            await presenceKeyForSupabaseUserId(recipientId);
           await handleNotificationForUser(
             io,
-            notifyTargetId,
+            recipientId,
             chatId,
             senderName,
             senderAvatar ?? undefined,
@@ -271,10 +270,9 @@ export const registerSocketEvents = (
 
         if (members) {
           for (const member of members) {
-            const notifyTargetId = await presenceKeyForSupabaseUserId(member.user_id);
             await handleNotificationForUser(
               io,
-              notifyTargetId,
+              member.user_id,
               chatId,
               senderName,
               senderAvatar ?? undefined,
@@ -300,7 +298,7 @@ export const registerSocketEvents = (
    */
   async function handleNotificationForUser(
     io: Server,
-    targetClerkUserId: string,
+    targetSupabaseUserId: string,
     chatId: string,
     senderName: string,
     senderAvatar: string | null | undefined,
@@ -310,13 +308,30 @@ export const registerSocketEvents = (
     createdAt?: string | null,
     mediaType?: string | null,
   ) {
-    // 1. Check if user is in the active chat room
+    const supabase = createAdminSupabaseClient();
+    const { data: targetUser } = await supabase
+      .from("users")
+      .select("clerk_user_id")
+      .eq("id", targetSupabaseUserId)
+      .maybeSingle();
+    const targetClerkUserId = targetUser?.clerk_user_id || null;
+    const socketRooms = notificationSocketRoomIds(
+      targetClerkUserId,
+      targetSupabaseUserId,
+    );
+
+    // 1. Check if user is in the active chat room (any connected device/tab).
     const targetSockets = io.sockets.adapter.rooms.get(chatId);
-    const userSocketsKey = `user_socket:${targetClerkUserId}`;
-    const userSocketIds = await pubClient.sMembers(userSocketsKey);
+    const userSocketIds = new Set<string>();
+    for (const roomId of socketRooms) {
+      const ids = await pubClient.sMembers(`user_socket:${roomId}`);
+      for (const id of ids) {
+        userSocketIds.add(id);
+      }
+    }
 
     let isUserInChat = false;
-    if (targetSockets && userSocketIds) {
+    if (targetSockets && userSocketIds.size > 0) {
       for (const sId of userSocketIds) {
         if (targetSockets.has(sId)) {
           isUserInChat = true;
@@ -330,32 +345,34 @@ export const registerSocketEvents = (
       return;
     }
 
-    // 2. User is NOT in chat. Trigger real-time socket notification if online
-    const isOnline = userSocketIds && userSocketIds.length > 0;
+    const notificationPayload = {
+      type: "NEW_MESSAGE",
+      title: `New message`,
+      message: text || `New message from ${senderName}`,
+      chatId,
+      image_url: senderAvatar,
+      created_at: createdAt || new Date().toISOString(),
+      messageId,
+      senderId,
+      mediaType,
+    };
+
+    // 2. User is NOT in chat. Trigger real-time socket notification if online.
+    const isOnline = userSocketIds.size > 0;
 
     if (isOnline) {
-      // Emit to user's private room
-      io.to(`user_socket:${targetClerkUserId}`).emit("new_notification", {
-        type: "NEW_MESSAGE",
-        title: `New message`,
-        message: text || `New message from ${senderName}`,
-        chatId,
-        image_url: senderAvatar, // Include avatar for UI
-        created_at: createdAt || new Date().toISOString(),
-        messageId,
-        senderId,
-        mediaType,
-      });
-
-      // Also emit unread count update if we want to be fancy
-      // io.to(`user_socket:${targetClerkUserId}`).emit("unread_update", { chatId });
+      for (const roomId of socketRooms) {
+        io.to(`user_socket:${roomId}`).emit(
+          "new_notification",
+          notificationPayload,
+        );
+      }
     }
 
     // 3. Trigger Batching/Push for offline OR not-in-chat users
-    // (Requirement 3: trigger push if offline, Requirement 4: buffer if not in chat)
     const senderSupabaseId = socket.data.supabaseId || "";
     await bufferNotification(
-      targetClerkUserId,
+      targetClerkUserId || targetSupabaseUserId,
       chatId,
       senderName,
       senderAvatar || "",
